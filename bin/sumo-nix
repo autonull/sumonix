@@ -1,0 +1,9 @@
+#!/bin/sh
+# sumo-nix [help|bags|compose|match|tq] ...   Needs mlnix (or set MLNIX to it).
+root=$(cd "$(dirname "$0")/.." && pwd)
+list=
+for a in "$@"; do
+  case $a in *[!A-Za-z0-9_.-]*) echo "sumo-nix: '$a' is not a plain word" >&2; exit 2;; esac
+  list="$list \"$a\""
+done
+exec "${MLNIX:-mlnix}" eval --raw -E "import $root/cli.nix $root [ $list ]"

@@ -50,3 +50,22 @@ Breaking the ancestor fold, the transitive rule or the severity test makes them 
 ## Known gap in mlnix
 
 The first `mlnix eval` that fetches a file fails with `path ... is not valid` when it reads it in the same run. A second run works.
+
+## Bags and help screens
+
+`bags.nix` groups the pinned SUMO files into canned bags. Ten macro sets (core, life, things, transport, hospitality,
+military, society, geography, english, other) partition the 78 files of `sumo.full`. Four test bags (`tests-general`,
+`tests-spatial`, `tests-modal`, `tests-all`) group the 84 `.kif.tq` files of `sumo.tests`, the `tests/` directory of
+ontologyportal/sumo, by the category each file declares. A bag lists the bags it needs. `compose` puts bags in order and
+reports what it added. `match` lists the bags that join a plan with nothing new.
+
+    bin/sumo-nix help            # front screen; also: help bag NAME, help compose, help tq
+    bin/sumo-nix bags
+    bin/sumo-nix compose military tests-spatial
+    bin/sumo-nix match core
+    bin/sumo-nix tq tests-general
+
+`tq.nix` runs a test file on the Horn solver with Merge.kif's structural axioms. Of the 84 files: 10 pass, 31 are open (the
+answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not loaded), 0 fail, 43 are unsupported (`<=>`,
+`forall`, `or`, row variables, compound consequents, typed languages). An unsupported file is not run and gets no verdict.
+`tests/bags.nix` checks the bags against `tests/bags-oracle.py`, a separate reader.
