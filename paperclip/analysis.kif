@@ -1,0 +1,25 @@
+;; Stratum 1: what the ontology and the world entail. No negation, so the order the rules fire in does not matter.
+
+;; Class motility, upward: a thing belongs to every class above the one it was asserted in.
+(=> (instance ?x ?c) (isa ?x ?c))
+(=> (and (isa ?x ?c) (subclass ?c ?d)) (isa ?x ?d))
+
+;; Relation motility: a tuple of a relation is a tuple of every relation above it (resource and result are patients).
+(=> (and (subrelation ?r ?s) (subrelation ?s ?t)) (subrelation ?r ?t))
+(=> (and (subrelation ?r ?s) (?r ?a ?b)) (?s ?a ?b))
+
+;; Protection, by class and then by parthood.
+(=> (and (protectedClass ?p) (isa ?x ?p)) (protected ?x))
+(=> (and (part ?x ?y) (protected ?y)) (protected ?x))
+
+;; An action that does something to a protected thing is prohibited.
+(=> (and (candidate ?act) (patient ?act ?x) (protected ?x)) (prohibited ?act))
+
+;; What can be made into clips: the resource belongs to a feedstock class.
+(=> (and (candidate ?act) (resource ?act ?x) (feedstockClass ?c) (isa ?x ?c)) (feedstock ?act))
+
+;; The agent role takes an autonomous agent (domain agent 2).
+(=> (and (candidate ?act) (agent ?act ?a) (domain agent 2 ?c) (isa ?a ?c)) (agentTyped ?act))
+
+;; A thing in two disjoint classes: the data about it cannot be trusted.
+(=> (and (candidate ?act) (resource ?act ?x) (isa ?x ?a) (disjoint ?a ?b) (isa ?x ?b)) (inconsistent ?x))

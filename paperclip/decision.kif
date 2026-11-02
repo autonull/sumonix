@@ -1,0 +1,4 @@
+;; Stratum 2: decided on what stratum 1 entails (it uses not, so it runs after stratum 1 has reached its fixpoint).
+(=> (and (candidate ?act) (feedstock ?act) (agentTyped ?act) (resource ?act ?x)
+         (not (prohibited ?act)) (not (inconsistent ?x)))
+    (permitted ?act))
