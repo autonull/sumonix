@@ -1,0 +1,2 @@
+sumo.full/**/*.kif filter=lfs diff=lfs merge=lfs -text
+sumo.full/*.kif filter=lfs diff=lfs merge=lfs -text
