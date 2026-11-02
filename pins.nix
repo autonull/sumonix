@@ -1,11 +1,15 @@
 # The SUMO corpus this repository reads, pinned. The same ref and hashes as TrikeShed's utils/sumo/sumo-corpus.pins.
-# Nothing is vendored: builtins.fetchurl downloads each file once and refuses one whose SHA-256 differs.
+# A file of ./sumo.full (Git LFS) is used when it is there and has the pinned SHA-256; otherwise builtins.fetchurl
+# downloads it once and refuses a file whose SHA-256 differs. Nothing is taken on trust either way.
 let
   ref = "25bb366fdffd8769e741d2e22f215c2785bddce1";
-  file = name: sha256: builtins.fetchurl {
-    url = "https://raw.githubusercontent.com/ontologyportal/sumo/${ref}/${name}";
-    inherit sha256;
-  };
+  file = name: sha256:
+    let local = ./sumo.full + "/${name}"; in
+    if builtins.pathExists local && builtins.hashFile "sha256" local == sha256 then local
+    else builtins.fetchurl {
+      url = "https://raw.githubusercontent.com/ontologyportal/sumo/${ref}/${name}";
+      inherit sha256;
+    };
 in
 {
   inherit ref;
