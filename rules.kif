@@ -1,0 +1,26 @@
+;; Rules from nix_sumo.md, sections 11.1, 11.2 and 18 (step 3).
+
+(=>
+  (and
+    (dependsOn ?a ?b)
+    (dependsOn ?b ?c))
+  (dependsOnTransitive ?a ?c))
+
+(=>
+  (dependsOn ?a ?b)
+  (dependsOnTransitive ?a ?b))
+
+(=>
+  (and
+    (instance ?pkg NIXPackage)
+    (dependsOnTransitive ?pkg ?dep)
+    (vulnerable ?dep ?cve))
+  (vulnerable ?pkg ?cve))
+
+(=>
+  (and
+    (vulnerable ?pkg ?cve)
+    (severity ?cve critical)
+    (instance ?pkg NIXService)
+    (serviceState ?pkg running))
+  (policyViolation ?pkg NoCriticalRunningCVE))
