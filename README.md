@@ -21,6 +21,20 @@ $ mlnix eval -E 'let k = import ./kif.nix; p = import ./pins.nix;
                  in o.ancestors.Human'
 ```
 
+## Through the dialects
+
+mlnix has the layers above the nix dialect: `sumo` (relations as ops) lowers to `kif` (terms, facts, rules) lowers to `nix`
+(`include/NixDialect/Kif.td`, `Sumo.td` in mlir-nix). The scenario as dialect ops is `test/mlir/inputs/kif-openssl.mlir` there.
+
+```
+mlnix-opt kif-openssl.mlir --sumo-to-kif --kif-to-nix > theory.mlir
+mlnix run-mlir theory.mlir --json > theory.json
+mlnix eval -E 'import ./tests/scenario.nix (builtins.fromJSON (builtins.readFile ./theory.json))'     # "ok"
+```
+
+`tests/scenario.nix` is the same check that `tests/rules.nix` runs on KIF text, so the two paths must agree.
+The solver itself is still the Nix in `datalog.nix`, not IR.
+
 ## What is covered
 
 Top-level `subclass`, `instance` and `domain` forms of `Merge.kif`: 5,505 forms, 712 classes with a parent, 714 classes.
