@@ -18,12 +18,16 @@ let
   reverse = xs: let n = length xs; in genList (i: elemAt xs (n - 1 - i)) n;
 
   # cur is the list being read, newest first; up holds the lists it sits inside.
+  # Each step is forced, so no chain of thunks builds up over the tokens (it overflows the stack of Nix's evaluator).
   step = st: t:
-    if t == "(" then { cur = [ ]; up = [ st.cur ] ++ st.up; }
-    else if t == ")" then
-      if st.up == [ ] then throw "kif: unbalanced ')'"
-      else { cur = [ (reverse st.cur) ] ++ head st.up; up = tail st.up; }
-    else { cur = [ t ] ++ st.cur; up = st.up; };
+    let
+      r =
+        if t == "(" then { cur = [ ]; up = [ st.cur ] ++ st.up; }
+        else if t == ")" then
+          if st.up == [ ] then throw "kif: unbalanced ')'"
+          else { cur = [ (reverse st.cur) ] ++ head st.up; up = tail st.up; }
+        else { cur = [ t ] ++ st.cur; up = st.up; };
+    in builtins.seq r.cur (builtins.seq r.up r);
 in
 {
   inherit tokens;
