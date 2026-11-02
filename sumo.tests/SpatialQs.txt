@@ -1,0 +1,1444 @@
+;; Spatial reasoning problems
+;; starting with word problems, then later coding the formal query and solution in SUMO
+
+; (1), (2), (13) are from https://www.cosy.informatik.uni-bremen.de/sites/default/files/ByrneJohnson-Laird89.pdf
+
+; (1) A is on the right of B
+;    C is on the left of B
+;    Hence, A is on the right of C
+
+(orientation A B Right)
+(orientation C B Left)
+
+; need to add to SUMO:
+
+(=>
+  (and
+    (orientation ?X ?Y ?R)
+    (orientation ?Y ?Z ?R))
+  (orientation ?X ?Z ?R))
+
+; proof will involve
+
+(<=>
+    (orientation ?OBJ1 ?OBJ2 Right)
+    (orientation ?OBJ2 ?OBJ1 Left))
+
+query: (orientation A C Right)
+
+proof: (over tinySUMO.kif)
+
+1. (not (orientation A C Right)) [] negated_conjecture
+
+2. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4) (=> (and (orientation ?VAR3 ?VAR4 ?VAR1) (orientation ?VAR2 ?VAR3 ?VAR1)) (orientation ?VAR2 ?VAR4 ?VAR1))) [] kb_SUMO_2
+
+3. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4) (or (orientation ?VAR2 ?VAR4 ?VAR1) (not (orientation ?VAR3 ?VAR4 ?VAR1)) (not (orientation ?VAR2 ?VAR3 ?VAR1)))) [2] ennf_transformation
+
+4. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4) (or (or (orientation ?VAR2 ?VAR4 ?VAR1) (not (orientation ?VAR3 ?VAR4 ?VAR1))) (not (orientation ?VAR2 ?VAR3 ?VAR1)))) [3] flattening
+
+5. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4) (or (or (orientation ?VAR4 ?VAR3 ?VAR2) (not (orientation ?VAR1 ?VAR3 ?VAR2))) (not (orientation ?VAR4 ?VAR1 ?VAR2)))) [4] cnf_transformation
+
+6. (forall (?VAR1) (or (not (orientation ?VAR1 C Right)) (not (orientation A ?VAR1 Right)))) [1, 5] resolution
+
+7. (orientation A B Right) [] kb_SUMO_114
+
+8. (not (orientation B C Right)) [6, 7] resolution
+
+9. (forall (?VAR1 ?VAR2) (and (=> (orientation ?VAR2 ?VAR1 Left) (orientation ?VAR1 ?VAR2 Right)) (=> (orientation ?VAR1 ?VAR2 Right) (orientation ?VAR2 ?VAR1 Left)))) [] kb_SUMO_1
+
+10. (forall (?VAR1 ?VAR2) (and (or (orientation ?VAR1 ?VAR2 Right) (not (orientation ?VAR2 ?VAR1 Left))) (or (orientation ?VAR2 ?VAR1 Left) (not (orientation ?VAR1 ?VAR2 Right))))) [9] ennf_transformation
+
+11. (forall (?VAR1 ?VAR2) (or (orientation ?VAR1 ?VAR2 Right) (not (orientation ?VAR2 ?VAR1 Left)))) [10] cnf_transformation
+
+12. (not (orientation C B Left)) [8, 11] resolution
+
+13. (orientation C B Left) [] kb_SUMO_115
+
+14. false [12, 13] subsumption_resolution
+
+-------------------------------------------------------------------
+
+
+(2) If x is on the right of y, and z is on the left of y, then x is on the right of z
+
+(orientation X Y Right)
+(orientation Z Y Left)
+
+(<=>
+  (orientation ?OBJ1 ?OBJ2 Right)
+  (orientation ?OBJ2 ?OBJ1 Left))
+
+We may need to add:
+
+(=>
+  (and
+    (orientation ?X ?Y Right)
+    (orientation ?Z ?Y Left))
+ (orientation ?X ?Z Right))
+
+query: (orientation X Z Right)
+
+proof: (with tinySUMO)
+
+1. (not (orientation X Z Right)) [] negated_conjecture
+
+2. (forall (?VAR1 ?VAR2 ?VAR3) (=> (and (orientation ?VAR3 ?VAR2 Left) (orientation ?VAR1 ?VAR2 Right)) (orientation ?VAR1 ?VAR3 Right))) [] kb_SUMO_3
+
+3. (forall (?VAR1 ?VAR2 ?VAR3) (or (orientation ?VAR1 ?VAR3 Right) (not (orientation ?VAR3 ?VAR2 Left)) (not (orientation ?VAR1 ?VAR2 Right)))) [2] ennf_transformation
+
+4. (forall (?VAR1 ?VAR2 ?VAR3) (or (or (orientation ?VAR1 ?VAR3 Right) (not (orientation ?VAR3 ?VAR2 Left))) (not (orientation ?VAR1 ?VAR2 Right)))) [3] flattening
+
+5. (forall (?VAR1 ?VAR2 ?VAR3) (or (or (orientation ?VAR2 ?VAR1 Right) (not (orientation ?VAR1 ?VAR3 Left))) (not (orientation ?VAR2 ?VAR3 Right)))) [4] cnf_transformation
+
+6. (forall (?VAR1) (or (not (orientation Z ?VAR1 Left)) (not (orientation X ?VAR1 Right)))) [1, 5] resolution
+
+7. (orientation Z Y Left) [] kb_SUMO_118
+
+8. (not (orientation X Y Right)) [6, 7] resolution
+
+9. (orientation X Y Right) [] kb_SUMO_117
+
+10. false [8, 9] subsumption_resolution
+
+-------------------------------------------------------------------
+
+ (3) John is in his house.  John's house is in San Jose.  Is John in San Jose?
+
+(instance JohnsHouse Physical)
+(instance John Physical)
+(instance SanJose City)
+(orientation John JohnsHouse Inside)
+(located JohnsHouse SanJose)
+(instance located TransitiveRelation)
+
+from SUMO:
+
+(=>
+  (instance ?R TransitiveRelation)
+  (=>
+    (and
+      (?R ?A ?B)
+      (?R ?B ?C))
+    (?R ?A ?C)))
+
+add to SUMO:
+
+(=>
+    (orientation ?OBJ1 ?OBJ2 Inside)
+    (located ?OBJ1 ?OBJ2))
+
+
+query: (located John SanJose)
+
+proof:
+
+1. (instance located TransitiveRelation) [] kb_SUMO_107
+
+2. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (and
+        (instance ?VAR3 Physical)
+        (instance ?VAR2 Physical))
+      (instance ?VAR1 Physical))
+    (=>
+      (instance located TransitiveRelation)
+      (=>
+        (and
+          (located ?VAR2 ?VAR3)
+          (located ?VAR1 ?VAR2))
+        (located ?VAR1 ?VAR3))))) [] kb_SUMO_7
+
+3. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (located ?VAR1 ?VAR3)
+        (not
+          (located ?VAR2 ?VAR3))
+        (not
+          (located ?VAR1 ?VAR2)))
+      (not
+        (instance located TransitiveRelation)))
+    (or
+      (not
+        (instance ?VAR3 Physical))
+      (not
+        (instance ?VAR2 Physical)))
+    (not
+      (instance ?VAR1 Physical)))) [2] ennf_transformation
+
+4. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (or
+          (or
+            (or
+              (located ?VAR1 ?VAR3)
+              (not
+                (located ?VAR2 ?VAR3)))
+            (not
+              (located ?VAR1 ?VAR2)))
+          (not
+            (instance located TransitiveRelation)))
+        (not
+          (instance ?VAR3 Physical)))
+      (not
+        (instance ?VAR2 Physical)))
+    (not
+      (instance ?VAR1 Physical)))) [3] flattening
+
+5. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (or
+          (or
+            (or
+              (located ?VAR2 ?VAR1)
+              (not
+                (located ?VAR3 ?VAR1)))
+            (not
+              (located ?VAR2 ?VAR3)))
+          (not
+            (instance located TransitiveRelation)))
+        (not
+          (instance ?VAR1 Physical)))
+      (not
+        (instance ?VAR3 Physical)))
+    (not
+      (instance ?VAR2 Physical)))) [4] cnf_transformation
+
+6. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (or
+          (or
+            (located ?VAR2 ?VAR1)
+            (not
+              (instance ?VAR3 Physical)))
+          (not
+            (located ?VAR2 ?VAR3)))
+        (not
+          (located ?VAR3 ?VAR1)))
+      (not
+        (instance ?VAR2 Physical)))
+    (not
+      (instance ?VAR1 Physical)))) [1, 5] global_subsumption
+
+7. (not
+  (located John SanJose)) [] negated_conjecture
+
+8. (forall (?VAR1)
+  (or
+    (or
+      (or
+        (or
+          (not
+            (instance ?VAR1 Physical))
+          (not
+            (located John ?VAR1)))
+        (not
+          (located ?VAR1 SanJose)))
+      (not
+        (instance John Physical)))
+    (not
+      (instance SanJose Physical)))) [6, 7] resolution
+
+9. (forall (?VAR1)
+  (or
+    (or
+      (or
+        (not
+          (instance ?VAR1 Physical))
+        (not
+          (located John ?VAR1)))
+      (not
+        (located ?VAR1 SanJose)))
+    (not
+      (instance SanJose Physical)))) [8] subsumption_resolution
+
+10. (instance SanJose Physical) [] kb_SUMO_57
+
+11. (forall (?VAR1)
+  (or
+    (or
+      (not
+        (located John ?VAR1))
+      (not
+        (instance ?VAR1 Physical)))
+    (not
+      (located ?VAR1 SanJose)))) [9, 10] subsumption_resolution
+
+12. (forall (?VAR1 ?VAR2)
+  (=>
+    (and
+      (instance ?VAR2 Physical)
+      (instance ?VAR1 Physical))
+    (=>
+      (orientation ?VAR1 ?VAR2 Inside)
+      (located ?VAR1 ?VAR2)))) [] kb_SUMO_9
+
+13. (forall (?VAR1 ?VAR2)
+  (or
+    (or
+      (located ?VAR1 ?VAR2)
+      (not
+        (orientation ?VAR1 ?VAR2 Inside)))
+    (not
+      (instance ?VAR2 Physical))
+    (not
+      (instance ?VAR1 Physical)))) [12] ennf_transformation
+
+14. (forall (?VAR1 ?VAR2)
+  (or
+    (or
+      (or
+        (located ?VAR1 ?VAR2)
+        (not
+          (orientation ?VAR1 ?VAR2 Inside)))
+      (not
+        (instance ?VAR2 Physical)))
+    (not
+      (instance ?VAR1 Physical)))) [13] flattening
+
+15. (forall (?VAR1)
+  (or
+    (or
+      (or
+        (or
+          (not
+            (instance ?VAR1 Physical))
+          (not
+            (located ?VAR1 SanJose)))
+        (not
+          (orientation John ?VAR1 Inside)))
+      (not
+        (instance ?VAR1 Physical)))
+    (not
+      (instance John Physical)))) [11, 14] resolution
+
+16. (forall (?VAR1)
+  (or
+    (or
+      (or
+        (not
+          (instance ?VAR1 Physical))
+        (not
+          (located ?VAR1 SanJose)))
+      (not
+        (orientation John ?VAR1 Inside)))
+    (not
+      (instance John Physical)))) [15] duplicate_literal_removal
+
+17. (instance John Physical) [] kb_SUMO_33
+
+18. (forall (?VAR1)
+  (or
+    (or
+      (not
+        (orientation John ?VAR1 Inside))
+      (not
+        (located ?VAR1 SanJose)))
+    (not
+      (instance ?VAR1 Physical)))) [16, 17] subsumption_resolution
+
+19. (orientation John JohnsHouse Inside) [] kb_SUMO_131
+
+20. (or
+  (not
+    (located JohnsHouse SanJose))
+  (not
+    (instance JohnsHouse Physical))) [18, 19] resolution
+
+21. (located JohnsHouse SanJose) [] kb_SUMO_128
+
+22. (not
+  (instance JohnsHouse Physical)) [20, 21] subsumption_resolution
+
+23. (instance JohnsHouse Physical) [] kb_SUMO_37
+
+24. false [22, 23] subsumption_resolution
+
+-------------------------------------------------------------------
+
+ (4) John is carrying a vase.  There is a flower in the vase.  Is John carrying a flower?
+
+(exists (?C ?V ?F)
+  (and
+    (instance ?C Carrying)
+    (objectTransferred ?C ?V)
+    (agent ?C John)
+    (instance ?F Flower)
+    (instance ?V Container)
+    (orientation ?F ?V Inside)))
+
+add to SUMO:
+
+(=>
+  (and
+    (instance ?T Transfer)
+    (objectTransferred ?T ?O)
+    (orientation ?O ?O2 Inside))
+  (objectTransferred ?T ?O2))
+
+(=>
+  (and
+    (instance ?T Transfer)
+    (objectTransferred ?T ?O)
+    (orientation ?O ?O2 On))
+  (objectTransferred ?T ?O2))
+
+query:
+(and
+  (instance ?C Carrying)
+  (agent ?C John)
+  (instance ?F Flower)
+  (objectTransferred ?C ?F))
+
+proof:
+
+1. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (and
+        (orientation ?VAR2 ?VAR1 Inside)
+        (objectTransferred ?VAR3 ?VAR1))
+      (instance ?VAR3 Transfer))
+    (objectTransferred ?VAR3 ?VAR2))) [] kb_SUMO_2
+
+2. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (objectTransferred ?VAR3 ?VAR2)
+    (or
+      (not
+        (orientation ?VAR2 ?VAR1 Inside))
+      (not
+        (objectTransferred ?VAR3 ?VAR1)))
+    (not
+      (instance ?VAR3 Transfer)))) [1] ennf_transformation
+
+3. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (objectTransferred ?VAR3 ?VAR2)
+        (not
+          (orientation ?VAR2 ?VAR1 Inside)))
+      (not
+        (objectTransferred ?VAR3 ?VAR1)))
+    (not
+      (instance ?VAR3 Transfer)))) [2] flattening
+
+4. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (or
+        (not
+          (orientation ?VAR3 ?VAR2 Inside))
+        (not
+          (objectTransferred ?VAR1 ?VAR2)))
+      (not
+        (instance ?VAR1 Transfer)))
+    (objectTransferred ?VAR1 ?VAR3))) [3] cnf_transformation
+
+5. (orientation sK2 sK1 Inside) [] cnf_transformation
+
+6. (forall (?VAR1)
+  (or
+    (or
+      (objectTransferred ?VAR1 sK2)
+      (not
+        (instance ?VAR1 Transfer)))
+    (not
+      (objectTransferred ?VAR1 sK1)))) [4, 5] resolution
+
+7. (agent sK0 John) [] cnf_transformation
+
+8. (not
+  (exists (?VAR1 ?VAR2)
+    (and
+      (and
+        (and
+          (objectTransferred ?VAR1 ?VAR2)
+          (instance ?VAR2 Flower))
+        (agent ?VAR1 John))
+      (instance ?VAR1 Carrying)))) [] negated_conjecture
+
+9. (forall (?VAR1 ?VAR2)
+  (or
+    (or
+      (or
+        (not
+          (objectTransferred ?VAR1 ?VAR2))
+        (not
+          (instance ?VAR2 Flower)))
+      (not
+        (agent ?VAR1 John)))
+    (not
+      (instance ?VAR1 Carrying)))) [8] ennf_transformation
+
+10. (forall (?VAR1 ?VAR2)
+  (or
+    (or
+      (or
+        (not
+          (agent ?VAR1 John))
+        (not
+          (instance ?VAR1 Carrying)))
+      (not
+        (instance ?VAR2 Flower)))
+    (not
+      (objectTransferred ?VAR1 ?VAR2)))) [9] cnf_transformation
+
+11. (forall (?VAR1)
+  (or
+    (or
+      (not
+        (instance sK0 Carrying))
+      (not
+        (instance ?VAR1 Flower)))
+    (not
+      (objectTransferred sK0 ?VAR1)))) [7, 10] resolution
+
+12. (forall (?VAR1)
+  (or
+    (not
+      (objectTransferred sK0 ?VAR1))
+    (not
+      (instance ?VAR1 Flower)))) [11] subsumption_resolution
+
+13. (or
+  (or
+    (not
+      (instance sK0 Transfer))
+    (not
+      (objectTransferred sK0 sK1)))
+  (not
+    (instance sK2 Flower))) [6, 12] resolution
+
+14. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (instance ?VAR3 ?VAR2)
+      (subclass ?VAR2 ?VAR1))
+    (instance ?VAR3 ?VAR1))) [] kb_SUMO_6
+
+15. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (instance ?VAR3 ?VAR1)
+    (not
+      (instance ?VAR3 ?VAR2))
+    (not
+      (subclass ?VAR2 ?VAR1)))) [14] ennf_transformation
+
+16. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (instance ?VAR3 ?VAR1)
+      (not
+        (instance ?VAR3 ?VAR2)))
+    (not
+      (subclass ?VAR2 ?VAR1)))) [15] flattening
+
+17. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (not
+        (subclass ?VAR3 ?VAR2))
+      (not
+        (instance ?VAR1 ?VAR3)))
+    (instance ?VAR1 ?VAR2))) [16] cnf_transformation
+
+18. (subclass Carrying Transfer) [] kb_SUMO_159
+
+19. (forall (?VAR1)
+  (or
+    (not
+      (instance ?VAR1 Carrying))
+    (instance ?VAR1 Transfer))) [17, 18] resolution
+
+20. (instance sK0 Carrying) [] cnf_transformation
+
+21. (instance sK0 Transfer) [19, 20] resolution
+
+22. (or
+  (not
+    (objectTransferred sK0 sK1))
+  (not
+    (instance sK2 Flower))) [13, 21] subsumption_resolution
+
+23. (objectTransferred sK0 sK1) [] cnf_transformation
+
+24. (not
+  (instance sK2 Flower)) [22, 23] subsumption_resolution
+
+25. (exists (?VAR1 ?VAR2 ?VAR3)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (orientation ?VAR3 ?VAR2 Inside)
+            (instance ?VAR2 Container))
+          (instance ?VAR3 Flower))
+        (agent ?VAR1 John))
+      (objectTransferred ?VAR1 ?VAR2))
+    (instance ?VAR1 Carrying))) [] kb_SUMO_12
+
+26. (instance sK2 Flower) [25] cnf_transformation
+
+27. false [24, 26] subsumption_resolution
+
+
+ (5) John jumps from a ledge to a trampoline.  The ledge is higher than the trampoline.  Does John wind up higher than the ledge?
+
+ (6) A bookcase is on the floor.  A book is on the bookcase.  Is the book higher than the floor?
+
+(exists (?B ?F ?BOOK)
+  (and
+    (instance ?BOOK Book)
+    (instance ?B Furniture)
+    (instance ?F Floor)
+    (orientation ?B ?F On)
+    (orientation ?BOOK ?B On)))
+
+(subclass TransitivePositionalAttribute PositionalAttribute)
+
+(=>
+  (and
+    (orientation ?A ?B ?P)
+    (orientation ?B ?C ?P)
+    (instance ?P TransitivePositionalAttribute))
+  (orientation ?A ?C ?P))
+
+(=>
+  (and
+    (orientation ?A ?B On)
+    (orientation ?B ?C On))
+  (orientation ?A ?C Above))
+
+query: (orientation ?BOOK ?F Above)
+
+ (7) Pittsburgh is north of Washington, DC.  New York City is north of Pittsburgh.  Is New York City north of Washington, DC?
+
+ (8) Bob and Jane are at the mouth of a tunnel.  Bob travels through the tunnel.  Can Bob be closer to Jane than the length of the tunnel?
+
+ (9) John is 6' tall.  John's feet are on the floor.  How far is John's head from the floor?
+
+ (10) John is 6' tall.  John is lying on the floor.  How far is John's head from the floor?
+
+ (11) John is carrying a box.  There is a book on the box.  What is John carrying?
+
+ (12) Jane is standing in front of John.  A van is parked in front of John. John cannot see Jane.  Is the van in front of Jane?
+
+(13) A is on the right of B
+     C is on the left of B
+     D is in front of C
+     E is in front of B.
+       Therefore D is on the left of E
+
+       a. Left (x,y> & Front (z, x) + Left (front
+       (z, x), y), where the right-hand side signifies
+       “z is in front of x, all of which is on the left
+       of y.”
+       b. Left (x, y) & Front (z, y) + Left (x,
+       front (z, y)), where the right-hand side signifies “x is on the left of z which is in front
+       of y.”
+       c. Left (x, y) & Left (u, z) -+ Left (x, left
+       6J3 z)).
+       d. Left (x, y) * Right ty, x).
+       e. Left (front (x, y), z) + Left (x, z) &
+       Left (y, z) & Front (x, y).
+       J Left (x, front (v, z)) -+ Left (x, y) &
+       Left (x, z) & Front (y, z).
+       g. Left (x, left (y, z)) + Left (x, y) & Left
+       (x, z) 8~ Left 01, z).
+       h. Left (x, y) + - Right (x, y).
+       i. Right (x, y) + - Left (x, y).
+
+(14) John is outside a circle and then crosses the border of the circle.  Is he inside the circle?
+
+(15) John is standing to the left of the platform and jumps over it.  Is he still to the left of the platform?
+
+(16) Jane is looking at Mark and John.  Mark is to the left of John from her perspective.  Mary is also
+looking at Mark and John and Mark appears to the right of John from her perspective.  Is John in between
+Mary and Jane?
+
+(17) A string passes through a ring.  If John picks up both ends of the string, does he lift the ring too?
+
+(18) John holds one end of a string.  The other end is tied to a cart.  If the string is taut and John
+pulls on his end, does the cart move?
+
+(19)  Shakespeare road runs east to west.  City hall is south of Shakespeare road.  Tosh road runs
+north to south and ends at Shakespeare road. Officer Perez is in Tosh St with City Hall to her right.
+What direction is she facing?  answer: east
+
+Thanks to Annie Zaenen (primarily verb "to go" problems)
+
+(20) The road goes from Mountain View to Menlo Park. Does the road end in Menlo Park? no:
+and then continues to Redwood City.
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)))
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)
+    (traverses ?R RedwoodCityCA)))
+
+(routeInSystem SVRouteX ElCamino)
+
+(21) Mountain View to Menlo Park: x miles. Menlo Park to Redwood City: y miles.
+What is the distance from Mountain View to Menlo Park? ??? no idea.
+
+(exists (?P1 ?P2)
+  (and
+    (distanceOnPath ?D1 ?P1)
+    (routeBetween ?P1 MountainViewCA MenloParkCA)
+    (distanceOnPath ?D2 ?P2)
+    (routeBetween ?P2 MenloParkCA RedwoodCityCA)))
+
+(instance TransitwayCompositionFn BinaryFunction)
+(domain TransitwayCompositionFn 1 Transitway)
+(domain TransitwayCompositionFn 2 Transitway)
+(range TransitwayCompositionFn Transitway)
+(documentation TransitwayCompositionFn EnglishLanguage "The composition of two transitways
+that meet into a single transitway.")
+
+(=>
+  (and
+    (routeBetween ?P1 ?L1 ?L2)
+    (routeBetween ?P2 ?L2 ?L3)
+    (equals ?P3
+      (TransitwayCompositionFn ?P1 ?P2))
+    (traverses ?P1 ?POINT))
+  (traverses ?P3 ?POINT))
+
+ ;; note that a Transitway need not be bi-directional
+
+(=>
+  (and
+    (routeBetween ?P1 ?L1 ?L2)
+    (routeBetween ?P2 ?L2 ?L3)
+    (equals ?P3
+      (TransitwayCompositionFn ?P1 ?P2))
+    (traverses ?P2 ?POINT))
+  (traverses ?P3 ?POINT))
+
+(=>
+  (and
+    (distanceOnPath (MeasureFn ?D1 ?U) ?P1)
+    (routeBetween ?P1 ?L1 ?L2)
+    (distanceOnPath (MeasureFn ?D2 ?U) ?P2)
+    (routeBetween ?P2 ?L2 ?L3))
+  (exists (?P3)
+    (and
+      (equals ?P3
+        (TransitwayCompositionFn ?P1 ?P2))
+      (equal ?D3
+        (AdditionFn ?D1 ?D2))
+      (distanceOnPath (MeasureFn ?D3 ?U) ?P3))))
+
+
+(22) John went from MP to MV in 1 hour. How long does it take not go from MP to MV?
+No idea. Need to know how he moved, then one can say that it can be done in 1 hour
+by that way of locomotion but it can also take more or less time.
+
+
+(23) The road goes from MV to MP.  PA is between MV and MP.  Does the road go through PA?
+Don’t know: it can go around the bay (237 going from MV to Oakland is a bit like that: the
+bay is between MV and Oakland but 237 doesn’t cross the bay).
+
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (routeBetween ?T MountainViewCA MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Transitway)
+    (traverses ?T PaloAltoCA)))
+
+(24) The meeting went from 3 to 5 pm. Was the meeting going on at 4 pm.
+Yes, but it depends on your view of granularity: it could be that just at 4pm,
+there was a little break. How do you want to handle that?
+
+(instance typicalProcessElement BinaryPredicate)
+(documentation typicalProcessElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is typically a &%subProcess of another.")
+(domainSubclass typicalProcessElement 1 Process)
+(domainSubclass typicalProcessElement 2 Process)
+
+(=>
+  (typicalProcessElement ?PART ?WHOLE)
+  (exists (?X ?Y)
+    (and
+      (instance ?X ?WHOLE)
+      (instance ?Y ?PART)
+      (part ?Y ?X))))
+
+
+(=>
+  (and
+    (typicalProcessElement ?PART ?WHOLE)
+    (instance ?X ?PART)
+    (equal ?PARTPROB
+      (ProbabilityFn
+        (exists (?Y)
+          (and
+            (instance ?Y ?WHOLE)
+            (subProcess ?X ?Y)))))
+    (equal ?NOTPARTPROB
+      (ProbabilityFn
+        (not
+          (exists (?Z)
+            (and
+              (instance ?Z ?WHOLE)
+              (subProcess ?X ?Z)))))))
+  (greaterThan ?PARTPROB ?NOTPARTPROB))
+
+(instance processElement BinaryPredicate)
+(documentation processElement EnglishLanguage "A &%Relation between &%Classes stating that
+one &%Process is necessarily a &%subProcess of another.")
+(domainSubclass processElement 1 Process)
+(domainSubclass processElement 2 Process)
+
+(=>
+  (and
+    (instance ?PI ?P)
+    (processElement ?PE ?P))
+  (exists (?PEI)
+    (and
+      (instance ?PEI ?PE)
+      (subProcess ?PEI ?PI))))
+
+(subclass HomogeneousProcess Process)
+(documentation HomogeneousProcess EnglishLanguage "A &%Process that can have temporal sub-parts that
+are of the same type, down to a certain level of granularity.  For example, &%Walking can
+have parts that are also instances of walking, unless it's such a short instance that it's just
+two steps.  But a &%HeterogeneousProcess has no temporal sub-parts of the same type.  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+
+(=>
+  (and
+    (instance ?P HomogeneousProcess)
+    (not
+      (equals ?PC HomogeneousProcess))
+    (immediateInstance ?P ?PC))
+  (modalAttribute
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))
+    Possibility)))
+
+(subclass HeterogeneousProcess Process)
+(documentation HeterogeneousProcess EnglishLanguage "A &%Process that do not have temporal sub-parts that
+are of the same type  For
+example, &%Attaching has no temporal sub-parts that are also attachings.")
+(disjoint HeterogeneousProcess HomogeneousProcess)
+
+(=>
+  (and
+    (instance ?P HeterogeneousProcess)
+    (not
+      (equals ?PC HomogeneousProcess))
+    (immediateInstance ?P ?PC))
+  (not
+    (exists (?PSUB)
+      (and
+        (subProcess ?PSUB ?P)
+        (instance ?PSUB ?PC)))))
+
+(subclass Meeting HomogeneousProcess)
+(processElement Communication Meeting)
+
+(25) John went from MV to ML. Did John go from MP to MV? Don’t know
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MountainViewCA)
+    (destination ?T MenloParkCA)))
+
+query:
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (origin ?T MenloParkCA)
+    (destination ?T MountainViewCA)))
+
+(26) The road goes from MV to MP.  Does the road go from MP to MV?
+yes but what do you want to say about one way roads:
+
+(exists (?R)
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R MountainViewCA MenloParkCA)))
+
+query:
+(routeBetween ?X MenloParkCA MountainViewCA)
+
+1. (forall (?VAR1)
+  (ans0 ?VAR1)) [] introduced:answer_literal
+, 2. (routeBetween sK1 MountainViewCA MenloParkCA) [3] cnf_transformation
+, 3. (exists (?VAR1)
+  (and
+    (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+    (instance ?VAR1 BidirectionalTransitway))) [] kb_SUMO_148
+, 4. (=>
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MountainViewCA MenloParkCA)
+      (instance ?VAR1 BidirectionalTransitway)))
+  (and
+    (routeBetween sK1 MountainViewCA MenloParkCA)
+    (instance sK1 BidirectionalTransitway))) [] introduced:choice_axiom
+, 5. (and
+  (routeBetween sK1 MountainViewCA MenloParkCA)
+  (instance sK1 BidirectionalTransitway)) [3, 4] skolemisation
+, 6. (instance sK1 BidirectionalTransitway) [5] cnf_transformation
+, 7. (forall (?VAR1 ?VAR2 ?VAR3)
+  (=>
+    (and
+      (routeBetween ?VAR2 ?VAR1 ?VAR3)
+      (instance ?VAR2 BidirectionalTransitway))
+    (routeBetween ?VAR2 ?VAR3 ?VAR1))) [] kb_SUMO_8
+, 8. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (routeBetween ?VAR2 ?VAR3 ?VAR1)
+    (not
+      (routeBetween ?VAR2 ?VAR1 ?VAR3))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [7] ennf_transformation
+, 9. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (routeBetween ?VAR2 ?VAR3 ?VAR1)
+      (not
+        (routeBetween ?VAR2 ?VAR1 ?VAR3)))
+    (not
+      (instance ?VAR2 BidirectionalTransitway)))) [8] flattening
+, 10. (forall (?VAR1 ?VAR2 ?VAR3)
+  (or
+    (or
+      (not
+        (routeBetween ?VAR3 ?VAR2 ?VAR1))
+      (routeBetween ?VAR3 ?VAR1 ?VAR2))
+    (not
+      (instance ?VAR3 BidirectionalTransitway)))) [9] cnf_transformation
+, 11. (routeBetween sK1 MenloParkCA MountainViewCA) [2, 6, 10] unit_resulting_resolution
+, 12. (not
+  (exists (?VAR1)
+    (routeBetween ?VAR1 MenloParkCA MountainViewCA))) [] negated_conjecture
+, 13. (not
+  (exists (?VAR1)
+    (and
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA)
+      (ans0 ?VAR1)))) [12] answer_literal
+, 14. (forall (?VAR1)
+  (or
+    (not
+      (routeBetween ?VAR1 MenloParkCA MountainViewCA))
+    (not
+      (ans0 ?VAR1)))) [13] ennf_transformation
+, 15. (not
+  (ans0 sK1)) [11, 14] unit_resulting_resolution
+, 16. false [1, 15] unit_resulting_resolution
+]
+
+
+(27) The road goes from MV to MP.  Can you go from MP to MV that way? Don’t know.
+
+(exists (?R)
+  (and
+    (instance ?R Road)
+    (traverses ?R MountainViewCA)
+    (traverses ?R MenloParkCA)))
+
+(instance ElCaminoReal BidirectionalTransitway)
+(subclass BidirectionalTransitway Transitway)
+(documentation BidirectionalTransitway EnglishLanguage "A &%Transitway that allows travel in both
+directions, either by having flexible laws or customs, or two segmented traffic streams in the
+same transityway that travel in opposite directions.  A single-track forest trail would be
+bidirectional, as would a single track rural road with bypass areas, as would a divided highway.")
+
+(=>
+  (and
+    (instance ?R BidirectionalTransitway)
+    (routeBetween ?R ?A ?B))
+  (routeBetween ?R ?B ?A))
+
+(28) From Monday to Friday the Bay Bridge will be unusable from Yerba Buena Island to Oakland.
+Will you be able to use the road to go from Yerba Buena to Oakland between Monday and Friday? No.
+Will you be able to use the road to go from Oakland to Yerba Buena between Monday and Friday? Maybe.
+
+(instance TransitwayClosed RelationalAttribute)
+(documentation TransitwayClosed EnglishLanguage "An &%Attribute stating that a &%Transitway is closed.
+or blocked in some way.  This covers legal or other normative statements that prohibit its use.")
+
+(=>
+  (holdsDuring ?TIME
+    (attribute ?T TransitwayClosed))
+  (exists (?P)
+    (holdsObligation ?P
+      (holdsDuring ?TIME
+        (not
+          (exists (?TP)
+            (and
+              (instance ?TP Translocation)
+              (located ?TP ?T)))))))
+
+;; note from Merge.kif
+(=>
+  (and
+    (holdsDuring ?TIME1 ?SITUATION)
+    (temporalPart ?TIME2 ?TIME1))
+  (holdsDuring ?TIME2 ?SITUATION))
+
+(instance BayBridgeSF Bridge)
+(routeBetween BayBridge YerbaBuenaIsland Oakland)
+(routeBetween BayBridge Oakland YerbaBuenaIsland)
+
+(and
+  (holdsDuring ?T
+     (attribute BayBridgeSF TransitwayClosed))
+  (exists (?WEEK ?M ?F)
+    (and
+      (instance ?WEEK Week)
+      (instance ?M Monday)
+      (instance ?F Friday)
+      (during ?M ?WEEK)
+      (during ?F ?WEEK)
+      (equal ?T
+        (TimeIntervalFn
+          (BeginFn ?M)
+          (EndFn ?F))))))
+
+;; note we don't have a working inference system for full HOL
+;; (needed for holdsDuring and holdsObligation)
+
+(29) Liz went from Stanford to MIT. Did she walk? very unlikely.
+
+(and
+  (greaterThan ?D (MeasureFn 3000 Mile))
+  (distance StanfordUniversity MIT ?D))
+
+(=>
+  (and
+    (distance ?O ?D (MeasureFn ?N1 ?U))
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N2 Mile) ?P)
+    (origin ?T ?O)
+    (destination ?T ?D))
+  (greaterThan ?N2 ?N1))
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (agent ?T Liz)
+    (origin ?T StanfordUniversity)
+    (destination ?T MIT)))
+
+(=>
+  (and
+    (instance ?T Translocation)
+    (path ?T ?P)
+    (distanceOnPath (MeasureFn ?N Mile) ?P)
+    (greaterThan ?N 1))
+  (modalAttribute
+    (instance ?T Walking)
+    Unlikely))
+
+query:
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T StanfordUniversity)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
+(30) Liz went from Harvard to MIT. Did she walk? Possibly.
+
+(distance (MeasureFn 0.9 Mile) Harvard MIT)
+
+(and
+  (instance ?T Walking)
+  (agent ?T Liz)
+  (origin ?T Harvard)
+  (destination ?T MIT))
+
+;; note we don't have a working inference system for full HOL
+
+(31) The road climbs 5 meters between X and Y. Does the road descend 5 meters between Y and X? yes.
+
+(=>
+  (altitude ?P1 ?P2 ?D)
+  (altitude ?P2 ?P1 (SubtractionFn 0 ?D)))
+
+(routeBetween TheRoute X Y)
+(altitude X Y (MeasureFn 5 Meters))
+
+;query:
+(altitude Y X (MeasureFn -5 Meters))
+
+(32) John climbed 5 meters between X and Y. Did John descend 5 meters between Y and X?  ???
+
+(exists (?M)
+  (and
+    (instance ?M MotionUpward)
+    (origin ?M X)
+    (destination ?M Y)
+    (altitude X Y (MeasureFn 5 Meter)))
+
+;query:
+(exists (?M)
+  (and
+    (instance ?M MotionDownward)
+    (origin ?M Y)
+    (destination ?M X)
+    (altitude Y X (MeasureFn -5 Meter)))
+
+(33) The train goes from one end of the station to the other. Is it a long train? Depends on size of station.
+
+(exists (?T ?S)
+  (and
+    (instance ?T Train)
+    (instance ?S TrainStation)
+    (length ?T (MeasureFn ?N Meter))
+    (length ?S (MeasureFn ?N Meter))))
+
+(defaultMaximumLength Train (MeasureFn 500 FootLength))
+(defaultMaximumLength TrainStation (MeasureFn 1000 FootLength))
+
+;; we could ask whether the train is longer than what's typical
+;query:
+(and
+  (instance ?T Train)
+  (length ?T ?N1)
+  (defaultMaximumLength Train ?N2)
+  (greaterThan ?N1 ?N2))
+
+(34) The train goes from Paris to Istanbul. Is it a long train? we don’t know.
+
+(exists (?TRANS)
+  (and
+    (instance ?TRANS Transportation)
+    (instrument ?TRANS TheTrain)
+    (instance TheTrain Train)
+    (origin ?TRANS Paris)
+    (destination ?TRANS IstanbulTurkey)))
+
+;query:
+(and
+  (instance TheTrain Train)
+  (length TheTrain ?N1)
+  (defaultMaximumLength Train ?N2)
+  (greaterThan ?N1 ?N2))
+
+(35) John entered the EU on January 20, 2007. Is the EU now bigger? What the hell are you talking about?
+
+(exists (?T)
+  (and
+    (instance ?T Translocation)
+    (equal
+      (WhenFn ?T)
+      (DayFn 20 (MonthFn January (YearFn 2007))))
+    (destination ?T ?N)
+    (instance ?N Nation)
+    (member ?N EuropeanUnion)
+    (agent ?T John)))
+
+(instance EuropeanUnion GeopoliticalArea)
+
+;query: if interpreted as population
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (equal ?P1 (PopulationFn EuropeanUnion)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (equal ?P2 (PopulationFn EuropeanUnion)))
+  (greaterThan ?P2 ?P1))
+
+; query if interpreted as area
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P1 ?U)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 20 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P2 ?U)))
+  (greaterThan ?P2 ?P1))
+
+(36) Bulgaria entered the EU on January 1, 2007. IS the EU now bigger? Yes provided no other member left.
+
+(exists (?T)
+  (and
+    (instance ?T JoiningAnOrganization)
+    (time ?T
+      (DayFn 1 (MonthFn January (YearFn 2007))))
+    (patient ?T EuropeanUnion)
+    (agent ?T Bulgaria)))
+
+
+;query: if interpreted as population
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (equal ?P1 (PopulationFn EuropeanUnion)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (equal ?P2 (PopulationFn EuropeanUnion)))
+  (greaterThan ?P2 ?P1))
+
+; query if interpreted as area
+(and
+  (holdsDuring
+    (ImmediatePastFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P1 ?U)))
+  (holdsDuring
+    (ImmediateFutureFn (DayFn 1 (MonthFn January (YearFn 2007))))
+    (totalArea EuropeanUnion (MeasureFn ?P2 ?U)))
+  (greaterThan ?P2 ?P1))
+
+
+(37) The painting went from the first to the second floor. Did the painting move? Most likely but not surely.
+
+(instance ThePainting PaintedPicture)
+
+; formalize this that the painting traverses the floors (as in a large painting in an atrium spanning floors
+(exists (?BUILDING ?LEVEL1 ?LEVEL2)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+          (floorCode ?LEVEL1 "1")
+          (floorCode ?LEVEL2 "2")
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (penetrates ThePainting ?LEVEL1)
+    (penetrates ThePainting ?LEVEL2)))
+
+; formalize this that the painting travelled from one floor to the other
+; quoted things are ignored in TPTP translation so remove those literals
+(exists (?BUILDING ?LEVEL1 ?LEVEL2 ?T)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (instance ?T Translocation)
+    (objectTransferred ?T ThePainting)
+    (origin ?T ?LEVEL1)
+    (destination ?T ?LEVEL2)))
+
+; query
+(and
+  (instance ?T Translocation)
+  (objectTransferred ?T ThePainting))
+
+KB.main(): bindings: [sK10]
+KB.main(): proof: [1. (forall (?VAR1)
+  (ans0 ?VAR1)) [] introduced:answer_literal
+, 2. (not
+  (exists (?VAR1)
+    (and
+      (objectTransferred ?VAR1 ThePainting)
+      (instance ?VAR1 Translocation)))) [] negated_conjecture
+, 3. (not
+  (exists (?VAR1)
+    (and
+      (and
+        (objectTransferred ?VAR1 ThePainting)
+        (instance ?VAR1 Translocation))
+      (ans0 ?VAR1)))) [2] answer_literal
+, 4. (forall (?VAR1)
+  (or
+    (or
+      (not
+        (objectTransferred ?VAR1 ThePainting))
+      (not
+        (instance ?VAR1 Translocation)))
+    (not
+      (ans0 ?VAR1)))) [3] ennf_transformation
+, 5. (forall (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (orientation ?VAR2 ?VAR1 On)
+            (instance ?VAR4 Flower))
+          (objectTransferred ?VAR2 ?VAR3))
+        (agent ?VAR2 John))
+      (instance ?VAR2 Carrying))
+    (instance ?VAR1 Sunday))) [] kb_SUMO_53
+, 6. (forall (?VAR1 ?VAR2)
+  (objectTransferred ?VAR2 ?VAR1)) [5] cnf_transformation
+, 7. (forall (?VAR1)
+  (or
+    (not
+      (instance ?VAR1 Translocation))
+    (not
+      (ans0 ?VAR1)))) [4, 6] subsumption_resolution
+, 8. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (and
+                  (and
+                    (destination ?VAR4 ?VAR3)
+                    (origin ?VAR4 ?VAR2))
+                  (objectTransferred ?VAR4 ThePainting))
+                (instance ?VAR4 Translocation))
+              (part ?VAR3 ?VAR1))
+            (part ?VAR2 ?VAR1))
+          (instance ?VAR1 Building))
+        (not
+          (equals ?VAR2 ?VAR3)))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [] kb_SUMO_146
+, 9. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (and
+                  (destination ?VAR4 ?VAR3)
+                  (origin ?VAR4 ?VAR2))
+                (objectTransferred ?VAR4 ThePainting))
+              (instance ?VAR4 Translocation))
+            (part ?VAR3 ?VAR1))
+          (part ?VAR2 ?VAR1))
+        (instance ?VAR1 Building))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [8] pure_predicate_removal
+, 10. (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (destination ?VAR4 ?VAR3)
+              (origin ?VAR4 ?VAR2))
+            (objectTransferred ?VAR4 ThePainting))
+          (instance ?VAR4 Translocation))
+        (instance ?VAR1 Building))
+      (instance ?VAR3 BuildingLevel))
+    (instance ?VAR2 BuildingLevel))) [9] pure_predicate_removal
+, 11. (=>
+  (exists (?VAR1 ?VAR2 ?VAR3 ?VAR4)
+    (and
+      (and
+        (and
+          (and
+            (and
+              (and
+                (destination ?VAR4 ?VAR3)
+                (origin ?VAR4 ?VAR2))
+              (objectTransferred ?VAR4 ThePainting))
+            (instance ?VAR4 Translocation))
+          (instance ?VAR1 Building))
+        (instance ?VAR3 BuildingLevel))
+      (instance ?VAR2 BuildingLevel)))
+  (and
+    (and
+      (and
+        (and
+          (and
+            (and
+              (destination sK10 sK9)
+              (origin sK10 sK8))
+            (objectTransferred sK10 ThePainting))
+          (instance sK10 Translocation))
+        (instance sK7 Building))
+      (instance sK9 BuildingLevel))
+    (instance sK8 BuildingLevel))) [] introduced:choice_axiom
+, 12. (and
+  (and
+    (and
+      (and
+        (and
+          (and
+            (destination sK10 sK9)
+            (origin sK10 sK8))
+          (objectTransferred sK10 ThePainting))
+        (instance sK10 Translocation))
+      (instance sK7 Building))
+    (instance sK9 BuildingLevel))
+  (instance sK8 BuildingLevel)) [10, 11] skolemisation
+, 13. (instance sK10 Translocation) [12] cnf_transformation
+, 14. (not
+  (ans0 sK10)) [7, 13] resolution
+, 15. false [1, 14] unit_resulting_resolution
+]
+
+
+(38) The staircase went from the first to the second floor. Did the staircase move? most likely not.
+
+(instance TheStaircase Stairway)
+
+(exists (?BUILDING ?LEVEL1 ?LEVEL2)
+  (and
+    (instance ?LEVEL1 BuildingLevel)
+    (instance ?LEVEL2 BuildingLevel)
+    (not
+      (equals ?LEVEL1 ?LEVEL2))
+    (floorCode ?LEVEL1 "1")
+    (floorCode ?LEVEL2 "2")
+    (instance ?BUILDING Building)
+    (part ?LEVEL1 ?BUILDING)
+    (part ?LEVEL2 ?BUILDING)
+    (penetrates TheStaircase ?LEVEL1)
+    (penetrates TheStaircase ?LEVEL2)))
+
+; query
+(and
+  (instance ?T Translocation)
+  (objectTransferred ?T TheStaircase))
+
+; problems from TPTP - http://tptp.org
+; reformulated to use SUMO
+; GEG006^1 : TPTP v7.3.0. Released v4.1.0.
+
+(instance Catalonia GeographicArea)
+(instance Spain Nation)
+(instance France Nation)
+(instance Paris City)
+
+(39) from https://www.youtube.com/watch?v=cEyHsMzbZBs referencing
+Marton Trencseni https://bytepawn.com/testing-gpt-4-spatial-reasoning-and-comprehension.html#testing-gpt-4-spatial-reasoning-and-comprehension
+
+There is a square room
+Alice is standing in the north-west corner
+Bob is standing in the south west corner
+Charlie is standing in the south east corner
+David is standing in the north east corner
+Ed is standing in the center of the room, looking at Alice
+how many people are there in the room?
+who is standing to the left of Ed?
