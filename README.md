@@ -77,3 +77,7 @@ answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not load
 A group rule keeps each facet on its branch: modalities under ContentBearingObject, tasks under Process, domains under FieldOfStudy. Two traps are avoided: SUMO's `Table` is furniture and its `Medicine` is a drug.
 `hf/check.nix` checks the file; `hf/oracle.py` checks it again with its own reader; `tests/hf.nix` compares them and shows five bad edits being refused. `hf/fetch.py` refreshes the snapshot.
 Hugging Face lists domain, origin and modality together under `other`; its own tag lists keep axes apart better than most outlines.
+
+## Typed questions over the taxonomy crosswalks
+
+`decide.nix` answers typed questions about a Pick Your AI Project value or a Hugging Face tag: which axis it belongs to, whether it has an HF tag or a SUMO class, which kind of anchor a tag has. An answer is a probability for each option and an explicit null. The backend is rules over `pyai/crosswalk.json`, `hf/tags.json` and `hf/anchors.kif`, so each probability is 1 or 0, and a value the rules have no entry for answers null, not no. It is lookup and checking, not a trained model. `Choice` and `Noul` are built; `Score` and free-text instructions are not. `tests/decide.nix` compares 38 Project values and 159 Hugging Face tags with `tests/decide-oracle.py`, a separate Python reading, and checks that unknowns come back null and that bad questions are errors.

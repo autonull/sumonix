@@ -1,0 +1,1029 @@
+{
+ "hf": {
+  "domain:agent": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "AgentSystemsField"
+  },
+  "domain:art": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "ArtField"
+  },
+  "domain:biology": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Biology"
+  },
+  "domain:chemistry": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Chemistry"
+  },
+  "domain:climate": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "ClimateScience"
+  },
+  "domain:code": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "ComputingField"
+  },
+  "domain:finance": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "FinanceField"
+  },
+  "domain:legal": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "LegalField"
+  },
+  "domain:medical": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "MedicalScience"
+  },
+  "domain:music": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "MusicField"
+  },
+  "domain:simready": {
+   "hasAnchor": false,
+   "kind": null,
+   "sumo": null
+  },
+  "license:afl-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:agpl-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:apache-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:apple-amlr": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:apple-ascl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:artistic-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bigcode-openrail-m": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bigscience-bloom-rail-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bigscience-openrail-m": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bsd": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bsd-2-clause": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bsd-3-clause": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bsd-3-clause-clear": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:bsl-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:c-uda": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-2.5": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-nd-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-nd-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-sa-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-sa-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nc-sa-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-nd-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-sa-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc-by-sa-4.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cc0-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cdla-permissive-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cdla-permissive-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:cdla-sharing-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:creativeml-openrail-m": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:deepfloyd-if-license": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:ecl-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:epl-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:epl-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:etalab-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:eupl-1.1": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:eupl-1.2": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:fair-noncommercial-research-license": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:gemma": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:gfdl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:gpl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:gpl-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:gpl-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:grok2-community": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:h-research": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:intel-research": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:isc": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:lgpl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:lgpl-2.1": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:lgpl-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:lgpl-lr": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama2": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama3": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama3.1": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama3.2": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama3.3": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:llama4": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:lppl-1.3c": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:mit": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:mpl-2.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:ms-pl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:ncsa": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:odbl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:odc-by": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:ofl-1.1": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:openmdw-1.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:openmdw-1.1": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:openrail": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:openrail++": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:osl-3.0": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:other": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:pddl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:postgresql": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:unlicense": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:wtfpl": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "license:zlib": {
+   "hasAnchor": true,
+   "kind": "instance",
+   "sumo": "License"
+  },
+  "modality:3d": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "ThreeDModel"
+  },
+  "modality:audio": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "AudioRecording"
+  },
+  "modality:document": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Document"
+  },
+  "modality:geospatial": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "GeospatialData"
+  },
+  "modality:image": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Image"
+  },
+  "modality:tabular": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "TabularData"
+  },
+  "modality:text": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Text"
+  },
+  "modality:timeseries": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "TimeSeriesData"
+  },
+  "modality:video": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "MotionPicture"
+  },
+  "origin:synthetic": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "SyntheticOrigin"
+  },
+  "task:any-to-any": {
+   "hasAnchor": false,
+   "kind": null,
+   "sumo": null
+  },
+  "task:audio-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:audio-text-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:audio-to-audio": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:automatic-speech-recognition": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Interpreting"
+  },
+  "task:depth-estimation": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  },
+  "task:document-question-answering": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Answering"
+  },
+  "task:feature-extraction": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Calculating"
+  },
+  "task:fill-mask": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Predicting"
+  },
+  "task:graph-ml": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "GraphLearning"
+  },
+  "task:image-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:image-feature-extraction": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Calculating"
+  },
+  "task:image-segmentation": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  },
+  "task:image-text-to-image": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-text-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-text-to-video": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-to-3d": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-to-image": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:image-to-video": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:keypoint-detection": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  },
+  "task:mask-generation": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  },
+  "task:multiple-choice": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Answering"
+  },
+  "task:object-detection": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  },
+  "task:question-answering": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Answering"
+  },
+  "task:reinforcement-learning": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Learning"
+  },
+  "task:robotics": {
+   "hasAnchor": true,
+   "kind": "new",
+   "sumo": "RoboticControl"
+  },
+  "task:sentence-similarity": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Comparing"
+  },
+  "task:summarization": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:table-question-answering": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Answering"
+  },
+  "task:table-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:tabular-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:tabular-regression": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Predicting"
+  },
+  "task:tabular-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:text-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:text-generation": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:text-ranking": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Searching"
+  },
+  "task:text-retrieval": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Searching"
+  },
+  "task:text-to-3d": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:text-to-audio": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:text-to-image": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:text-to-speech": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Speaking"
+  },
+  "task:text-to-video": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:time-series-forecasting": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Predicting"
+  },
+  "task:token-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:translation": {
+   "hasAnchor": true,
+   "kind": "exact",
+   "sumo": "Translating"
+  },
+  "task:unconditional-image-generation": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:video-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:video-text-to-text": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:video-to-video": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "ContentDevelopment"
+  },
+  "task:visual-document-retrieval": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Searching"
+  },
+  "task:visual-question-answering": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Answering"
+  },
+  "task:voice-activity-detection": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Hearing"
+  },
+  "task:zero-shot-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:zero-shot-image-classification": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Classifying"
+  },
+  "task:zero-shot-object-detection": {
+   "hasAnchor": true,
+   "kind": "broader",
+   "sumo": "Seeing"
+  }
+ },
+ "pyai": {
+  "Access Classification|Commercial/Paid": {
+   "axis": "access",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Gated/Approval": {
+   "axis": "access",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Mixed": {
+   "axis": "composite",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Not Applicable": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Not Assessed": {
+   "axis": "workflow",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Open": {
+   "axis": "access",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Registration Required": {
+   "axis": "access",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Access Classification|Restricted/Sensitive": {
+   "axis": "access",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Cross-category": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Domain/Specialized": {
+   "axis": "domain",
+   "hasHf": false,
+   "hasSumo": true,
+   "sumo": "FieldOfStudy"
+  },
+  "Dataset Category|Evaluation Benchmark": {
+   "axis": "role",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Fine-tuning & Instruction": {
+   "axis": "role",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Not Applicable": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Retrieval & Embedding Corpus": {
+   "axis": "role",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Safety & Red-team": {
+   "axis": "role",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Category|Synthetic": {
+   "axis": "origin",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "SyntheticOrigin"
+  },
+  "Dataset Category|Training Corpus": {
+   "axis": "role",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Modality|Code": {
+   "axis": "domain",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "ComputingField"
+  },
+  "Dataset Modality|Cross-modal": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Modality|Geospatial": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "GeospatialData"
+  },
+  "Dataset Modality|Graph & Structured": {
+   "axis": "task",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "GraphLearning"
+  },
+  "Dataset Modality|Image": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "Image"
+  },
+  "Dataset Modality|Multimodal": {
+   "axis": "composite",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Modality|Not Applicable": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "Dataset Modality|Robotics": {
+   "axis": "task",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "RoboticControl"
+  },
+  "Dataset Modality|Scientific": {
+   "axis": "domain",
+   "hasHf": false,
+   "hasSumo": true,
+   "sumo": "Science"
+  },
+  "Dataset Modality|Speech & Audio": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "AudioRecording"
+  },
+  "Dataset Modality|Tabular": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "TabularData"
+  },
+  "Dataset Modality|Text": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "Text"
+  },
+  "Dataset Modality|Time Series": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "TimeSeriesData"
+  },
+  "Dataset Modality|Video": {
+   "axis": "modality",
+   "hasHf": true,
+   "hasSumo": true,
+   "sumo": "MotionPicture"
+  },
+  "License/Rights Status|Conditional": {
+   "axis": "substance",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Not Applicable": {
+   "axis": "planning",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Not Assessed": {
+   "axis": "workflow",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Permitted for Metadata Use": {
+   "axis": "substance",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Restricted": {
+   "axis": "substance",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Under Review": {
+   "axis": "workflow",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  },
+  "License/Rights Status|Withdrawn/Disputed": {
+   "axis": "event",
+   "hasHf": false,
+   "hasSumo": false,
+   "sumo": null
+  }
+ }
+}
