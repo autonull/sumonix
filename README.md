@@ -77,3 +77,9 @@ answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not load
 A group rule keeps each facet on its branch: modalities under ContentBearingObject, tasks under Process, domains under FieldOfStudy. Two traps are avoided: SUMO's `Table` is furniture and its `Medicine` is a drug.
 `hf/check.nix` checks the file; `hf/oracle.py` checks it again with its own reader; `tests/hf.nix` compares them and shows five bad edits being refused. `hf/fetch.py` refreshes the snapshot.
 Hugging Face lists domain, origin and modality together under `other`; its own tag lists keep axes apart better than most outlines.
+
+## License
+
+The code in this repository is licensed under the GNU Lesser General Public License, version 2.1: the same license as Nix and mlnix. `COPYING` is a byte-for-byte copy of Nix's `COPYING` (git blob `f6683e74e0f0130f246dbf7054f4cacc88ca84b0` in NixOS/nix).
+
+Some files are copies of other projects' files, or are read from them, and keep the terms of their sources: `sumo.full/` and `sumo.tests/` (ontologyportal/sumo; see `sumo.full/NOTICE.md`), `hf/tags.json` (a snapshot of Hugging Face's public tag lists) and `pyai/fields.json` (read from a Pick-Your-AI repository at a pinned commit).
