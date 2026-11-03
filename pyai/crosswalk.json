@@ -1,0 +1,203 @@
+{
+ "note": "axis: what kind of thing the value says. modality/domain/task/origin/role/access/substance: a fact about the dataset or its rights. workflow/event: the state of the work or something that happened. planning: a label for the Project, not for a dataset. composite: a combination of other values. hf: the Hugging Face tag facet:tag with the same meaning, or null. sumo: a SUMO class chosen by hand when no Hugging Face tag exists, or null.",
+ "values": {
+  "Dataset Modality": {
+   "Cross-modal": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   },
+   "Text": {
+    "axis": "modality",
+    "hf": "modality:text",
+    "sumo": null
+   },
+   "Code": {
+    "axis": "domain",
+    "hf": "domain:code",
+    "sumo": null
+   },
+   "Image": {
+    "axis": "modality",
+    "hf": "modality:image",
+    "sumo": null
+   },
+   "Video": {
+    "axis": "modality",
+    "hf": "modality:video",
+    "sumo": null
+   },
+   "Speech & Audio": {
+    "axis": "modality",
+    "hf": "modality:audio",
+    "sumo": null
+   },
+   "Multimodal": {
+    "axis": "composite",
+    "hf": null,
+    "sumo": null
+   },
+   "Time Series": {
+    "axis": "modality",
+    "hf": "modality:timeseries",
+    "sumo": null
+   },
+   "Tabular": {
+    "axis": "modality",
+    "hf": "modality:tabular",
+    "sumo": null
+   },
+   "Geospatial": {
+    "axis": "modality",
+    "hf": "modality:geospatial",
+    "sumo": null
+   },
+   "Robotics": {
+    "axis": "task",
+    "hf": "task:robotics",
+    "sumo": null
+   },
+   "Scientific": {
+    "axis": "domain",
+    "hf": null,
+    "sumo": "Science"
+   },
+   "Graph & Structured": {
+    "axis": "task",
+    "hf": "task:graph-ml",
+    "sumo": null
+   },
+   "Not Applicable": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   }
+  },
+  "Dataset Category": {
+   "Cross-category": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   },
+   "Training Corpus": {
+    "axis": "role",
+    "hf": null,
+    "sumo": null
+   },
+   "Fine-tuning & Instruction": {
+    "axis": "role",
+    "hf": null,
+    "sumo": null
+   },
+   "Evaluation Benchmark": {
+    "axis": "role",
+    "hf": null,
+    "sumo": null
+   },
+   "Retrieval & Embedding Corpus": {
+    "axis": "role",
+    "hf": null,
+    "sumo": null
+   },
+   "Safety & Red-team": {
+    "axis": "role",
+    "hf": null,
+    "sumo": null
+   },
+   "Synthetic": {
+    "axis": "origin",
+    "hf": "origin:synthetic",
+    "sumo": null
+   },
+   "Domain/Specialized": {
+    "axis": "domain",
+    "hf": null,
+    "sumo": "FieldOfStudy"
+   },
+   "Not Applicable": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   }
+  },
+  "Access Classification": {
+   "Not Assessed": {
+    "axis": "workflow",
+    "hf": null,
+    "sumo": null
+   },
+   "Open": {
+    "axis": "access",
+    "hf": null,
+    "sumo": null
+   },
+   "Registration Required": {
+    "axis": "access",
+    "hf": null,
+    "sumo": null
+   },
+   "Gated/Approval": {
+    "axis": "access",
+    "hf": null,
+    "sumo": null
+   },
+   "Restricted/Sensitive": {
+    "axis": "access",
+    "hf": null,
+    "sumo": null
+   },
+   "Commercial/Paid": {
+    "axis": "access",
+    "hf": null,
+    "sumo": null
+   },
+   "Mixed": {
+    "axis": "composite",
+    "hf": null,
+    "sumo": null
+   },
+   "Not Applicable": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   }
+  },
+  "License/Rights Status": {
+   "Not Assessed": {
+    "axis": "workflow",
+    "hf": null,
+    "sumo": null
+   },
+   "Under Review": {
+    "axis": "workflow",
+    "hf": null,
+    "sumo": null
+   },
+   "Permitted for Metadata Use": {
+    "axis": "substance",
+    "hf": null,
+    "sumo": null
+   },
+   "Conditional": {
+    "axis": "substance",
+    "hf": null,
+    "sumo": null
+   },
+   "Restricted": {
+    "axis": "substance",
+    "hf": null,
+    "sumo": null
+   },
+   "Withdrawn/Disputed": {
+    "axis": "event",
+    "hf": null,
+    "sumo": null
+   },
+   "Not Applicable": {
+    "axis": "planning",
+    "hf": null,
+    "sumo": null
+   }
+  }
+ }
+}

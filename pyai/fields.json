@@ -1,0 +1,52 @@
+{
+ "source": "https://github.com/Pick-Your-AI/pick-your-ai-datasets/blob/86611c774371da073c78854ca8472120f7f94536/planning/project-backlog.json (project.fields)",
+ "commit": "86611c774371da073c78854ca8472120f7f94536",
+ "fields": {
+  "Dataset Modality": [
+   "Cross-modal",
+   "Text",
+   "Code",
+   "Image",
+   "Video",
+   "Speech & Audio",
+   "Multimodal",
+   "Time Series",
+   "Tabular",
+   "Geospatial",
+   "Robotics",
+   "Scientific",
+   "Graph & Structured",
+   "Not Applicable"
+  ],
+  "Dataset Category": [
+   "Cross-category",
+   "Training Corpus",
+   "Fine-tuning & Instruction",
+   "Evaluation Benchmark",
+   "Retrieval & Embedding Corpus",
+   "Safety & Red-team",
+   "Synthetic",
+   "Domain/Specialized",
+   "Not Applicable"
+  ],
+  "Access Classification": [
+   "Not Assessed",
+   "Open",
+   "Registration Required",
+   "Gated/Approval",
+   "Restricted/Sensitive",
+   "Commercial/Paid",
+   "Mixed",
+   "Not Applicable"
+  ],
+  "License/Rights Status": [
+   "Not Assessed",
+   "Under Review",
+   "Permitted for Metadata Use",
+   "Conditional",
+   "Restricted",
+   "Withdrawn/Disputed",
+   "Not Applicable"
+  ]
+ }
+}
