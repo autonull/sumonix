@@ -1,0 +1,90 @@
+;; Pages of an organization's repositories under SUMO.  (pageKindClass KIND CLASS) maps what org/classify.nix says to a class.
+;;
+;; Every class below is declared here under Document (Mid-level-ontology.kif: (subclass Document ContentBearingObject)).
+;; (pageAbout CLASS SUMO-CLASS) says what a page of that class is about, when SUMO has a class for it.
+;; Two traps: SUMO's Receipt is a FinancialInstrument, and its Contract is a legal agreement.  A ReceiptPage is a repository file
+;; that records a step, and a ContractPage is an interface contract (an API or a schema), so neither is linked to those classes.
+;; The axioms at the end use an existential and belong to full SUMO reasoners; org/check.nix reads only the Horn forms.
+
+(subclass OrgPage Document)
+(documentation OrgPage EnglishLanguage "A file of a repository that a person or an agent reads: Markdown, YAML or JSON.")
+
+(subclass ProcessPage OrgPage)
+(documentation ProcessPage EnglishLanguage "A page that says how work is done, decided, planned or recorded.")
+(subclass GovernancePage ProcessPage)
+(subclass DecisionPage ProcessPage)
+(subclass TemplatePage ProcessPage)
+(subclass ProcedurePage ProcessPage)
+(subclass PlanningPage ProcessPage)
+(subclass PlanningRecordPage ProcessPage)
+(subclass ProposalPage ProcessPage)
+(subclass ReceiptPage ProcessPage)
+
+(subclass ResearchContentPage OrgPage)
+(documentation ResearchContentPage EnglishLanguage "A page of research notes, market study, catalog or taxonomy.")
+(subclass ResearchPage ResearchContentPage)
+(subclass MarketResearchPage ResearchContentPage)
+(subclass CatalogPage ResearchContentPage)
+(subclass TaxonomyPage ResearchContentPage)
+
+(subclass SpecificationPage OrgPage)
+(subclass ContractPage SpecificationPage)
+
+(subclass DataFilePage OrgPage)
+(documentation DataFilePage EnglishLanguage "A data or configuration file kept beside the pages.")
+(subclass DataPage DataFilePage)
+(subclass EvidencePage DataFilePage)
+(subclass PackageDataPage DataFilePage)
+(subclass ConfigPage DataFilePage)
+
+(subclass AutomationPage OrgPage)
+(subclass PromptPage OrgPage)
+(subclass ReadmePage OrgPage)
+(subclass GeneralPage OrgPage)
+
+(pageKindClass receipt ReceiptPage)
+(pageKindClass evidence EvidencePage)
+(pageKindClass template TemplatePage)
+(pageKindClass automation AutomationPage)
+(pageKindClass governance GovernancePage)
+(pageKindClass decision DecisionPage)
+(pageKindClass readme ReadmePage)
+(pageKindClass prompt PromptPage)
+(pageKindClass planning-record PlanningRecordPage)
+(pageKindClass planning PlanningPage)
+(pageKindClass contract ContractPage)
+(pageKindClass catalog CatalogPage)
+(pageKindClass taxonomy TaxonomyPage)
+(pageKindClass market MarketResearchPage)
+(pageKindClass research ResearchPage)
+(pageKindClass proposal ProposalPage)
+(pageKindClass data DataPage)
+(pageKindClass process ProcedurePage)
+(pageKindClass doc GeneralPage)
+(pageKindClass package-data PackageDataPage)
+(pageKindClass config ConfigPage)
+
+(pageAbout GovernancePage Policy)
+(pageAbout ProcedurePage Procedure)
+(pageAbout PlanningPage Plan)
+
+;; The files GitHub takes from the organization's .github repository when a public repository has none of its own.  CODEOWNERS and
+;; AGENTS.md are not among them.  (docs.github.com, "Creating a default community health file")
+(communityDefault ContributingGuide)
+(communityDefault SecurityPolicy)
+(communityDefault SupportGuide)
+(communityDefault ConductCode)
+(communityDefault PullRequestTemplate)
+(communityDefault IssueTemplate)
+(ownRole CodeOwnersFile)
+(ownRole AgentsGuide)
+
+;; For a full SUMO reasoner (not read by org/check.nix):
+(=>
+  (instance ?P ProcedurePage)
+  (exists (?PR)
+    (and (instance ?PR Procedure) (containsInformation ?P ?PR))))
+(=>
+  (instance ?P PlanningPage)
+  (exists (?PL)
+    (and (instance ?PL Plan) (containsInformation ?P ?PL))))

@@ -1,0 +1,17 @@
+;; Stratum 2: rules with `not`.  They run on the finished facts of stratum 1 (negation as failure is only safe on a fixpoint).
+
+;; A page that still uses a former team name, and is neither a dated record nor the register that documents the renames.
+(=>
+  (and (usesFormerName ?P ?N) (not (historicalPage ?P)) (not (renameRegister ?P)))
+  (staleName ?P ?N))
+
+;; A role a repository has neither by its own page nor by the default repository.  Absent from the tree at the pinned commit is a
+;; known fact, not an unknown; whether a repository needs the page is for its owners to say.
+(=>
+  (and (publicRepo ?R) (expectedRole ?Role) (not (effectiveRole ?R ?Role)))
+  (lacksRole ?R ?Role))
+
+;; Same role, different file.
+(=>
+  (and (roleOf ?A ?Role) (roleOf ?B ?Role) (not (equal ?A ?B)) (not (identicalCopy ?A ?B ?Role)))
+  (divergentCopy ?A ?B ?Role))

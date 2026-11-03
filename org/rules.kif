@@ -1,0 +1,35 @@
+;; Stratum 1: positive rules.  The engine adds subclass reasoning for (instance X Class): a ReceiptPage is a ProcessPage.
+
+;; A page of the process umbrella that says it was generated.
+(=>
+  (and (instance ?P ProcessPage) (declaredGenerated ?P ?M))
+  (generatedProcessPage ?P ?M))
+
+;; Receipts and evidence are dated records: they keep the names of their day.
+(=>
+  (instance ?P ReceiptPage)
+  (historicalPage ?P))
+(=>
+  (instance ?P EvidencePage)
+  (historicalPage ?P))
+
+;; The roles a public repository is expected to have: what GitHub inherits, and what it does not.
+(=>
+  (communityDefault ?Role)
+  (expectedRole ?Role))
+(=>
+  (ownRole ?Role)
+  (expectedRole ?Role))
+
+;; A repository has a role by its own page, or by the organization's default repository when GitHub inherits that file.
+(=>
+  (hasRole ?R ?Role)
+  (effectiveRole ?R ?Role))
+(=>
+  (and (publicRepo ?R) (communityDefault ?Role) (orgDefaultRepo ?D) (hasRole ?D ?Role))
+  (effectiveRole ?R ?Role))
+
+;; Two pages in the same role that hold the very same file (the same git blob).
+(=>
+  (and (roleOf ?A ?Role) (roleOf ?B ?Role) (not (equal ?A ?B)) (blob ?A ?S) (blob ?B ?S))
+  (identicalCopy ?A ?B ?Role))
