@@ -1,0 +1,52 @@
+{
+ "anchors": {
+  "domain": {
+   "exact": 3,
+   "new": 7
+  },
+  "license": {
+   "instance": 82
+  },
+  "modality": {
+   "broader": 2,
+   "exact": 3,
+   "new": 4
+  },
+  "origin": {
+   "new": 1
+  },
+  "task": {
+   "broader": 52,
+   "exact": 1,
+   "new": 2
+  }
+ },
+ "new": [
+  "AgentSystemsField",
+  "ArtField",
+  "ClimateScience",
+  "ComputingField",
+  "FinanceField",
+  "GeospatialData",
+  "GraphLearning",
+  "LegalField",
+  "MusicField",
+  "RoboticControl",
+  "SyntheticOrigin",
+  "TabularData",
+  "ThreeDModel",
+  "TimeSeriesData"
+ ],
+ "twice": [],
+ "unanchored": [
+  [
+   "domain",
+   "simready"
+  ],
+  [
+   "task",
+   "any-to-any"
+  ]
+ ],
+ "violations": []
+}
