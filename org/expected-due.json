@@ -1,0 +1,1114 @@
+{
+  "day": 20760,
+  "ends": {
+    "ahead": [
+      {
+        "at": "11:00:00Z",
+        "band": "today",
+        "cues": [
+          "deadline"
+        ],
+        "date": "2026-11-03",
+        "days": 0,
+        "label": "NLNET-CODESUPPLY",
+        "priority": "P2",
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/records/1/deadline/deadline_utc",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/1/deadline/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/1/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/funding-pipeline.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/1/deadline_utc",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/1/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          }
+        ]
+      },
+      {
+        "at": "11:00:00Z",
+        "band": "today",
+        "cues": [
+          "deadline"
+        ],
+        "date": "2026-11-03",
+        "days": 0,
+        "label": "NLNET-RESTACK",
+        "priority": "P3",
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/records/0/deadline/deadline_utc",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/0/deadline/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/0/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/funding-pipeline.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/0/deadline_utc",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/0/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "before"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L602",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-11-21",
+        "days": 18,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L23",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L518",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L563",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "ends",
+          "through"
+        ],
+        "date": "2026-11-30",
+        "days": 27,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L23",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L139",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L162",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L245",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L402",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L518",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L580",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L590",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "expires"
+        ],
+        "date": "2026-11-30",
+        "days": 27,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L236",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-12-31",
+        "days": 58,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L140",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L580",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L590",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "cutoff"
+        ],
+        "date": "2027-01-06",
+        "days": 64,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "readme",
+            "loc": "L49",
+            "page": "pick-your-ai-research:research/T5-training-fine-tuning/README.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "end"
+        ],
+        "date": "2027-01-06",
+        "days": 64,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L341",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "expires"
+        ],
+        "date": "2027-01-14",
+        "days": 72,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "process",
+            "loc": "L23",
+            "page": "pick-your-ai-website:docs/operations/dns-and-ssl.md"
+          },
+          {
+            "kind": "process",
+            "loc": "L24",
+            "page": "pick-your-ai-website:docs/operations/dns-and-ssl.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "deadline"
+        ],
+        "date": "2027-03-02",
+        "days": 119,
+        "label": "NSF-PESOSE-26-506",
+        "priority": "P2",
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/records/11/deadline/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/11/recorded_claim_evidence/0",
+            "page": "pick-your-ai-sustainability:data/audits/freshness-readback-2026-10-19.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/11/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/funding-pipeline.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/11/source_evidence/0",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/11/verified_deadline",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "deadline"
+        ],
+        "date": "2027-03-02",
+        "days": 119,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "doc",
+            "loc": "L60",
+            "page": "pick-your-ai-sustainability:docs/funding/award-mechanisms-and-restrictions.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "through"
+        ],
+        "date": "2027-04-30",
+        "days": 178,
+        "label": "FIREBASE-TEST-LAB",
+        "priority": "P1",
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/records/34/next_verification_trigger",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/34/restrictions_and_obligations/1",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/34/source_evidence/2",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/34/sources/2/review_scope",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "through"
+        ],
+        "date": "2027-04-30",
+        "days": 178,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/sources/373/verification_scope",
+            "page": "pick-your-ai-sustainability:data/research-freshness.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "through"
+        ],
+        "date": "2027-04-30",
+        "days": 178,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "process",
+            "loc": "L91",
+            "page": "pick-your-ai-sustainability:docs/workstreams/e06-summary.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "through"
+        ],
+        "date": "2027-04-30",
+        "days": 178,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L58",
+            "page": "pick-your-ai-sustainability:research/hardware/mobile-device-labs.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L126",
+            "page": "pick-your-ai-sustainability:research/hardware/mobile-device-labs.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "expires"
+        ],
+        "date": "2028-10-16",
+        "days": 713,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "process",
+            "loc": "L7",
+            "page": "pick-your-ai-website:docs/operations/dns-and-ssl.md"
+          }
+        ]
+      }
+    ],
+    "past": [
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "expiry"
+        ],
+        "date": "2026-11-01",
+        "days": -2,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "process",
+            "loc": "L86",
+            "page": "pick-your-ai-apple:docs/validation/toolchain-pin.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2026-10-31",
+        "days": -3,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L236",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L324",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "end"
+        ],
+        "date": "2026-10-23",
+        "days": -11,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L164",
+            "page": "pick-your-ai-research:research/T0-configuration/saved-shared-builds.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L1075",
+            "page": "pick-your-ai-research:research/T0-configuration/saved-shared-builds.md"
+          }
+        ]
+      },
+      {
+        "at": "05:35:18Z",
+        "band": "past",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-10-20",
+        "days": -14,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "doc",
+            "loc": "L5",
+            "page": "pick-your-ai-sustainability:docs/dashboard.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "end"
+        ],
+        "date": "2026-10-19",
+        "days": -15,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "doc",
+            "loc": "/currentObservationWindows/websiteApi/end",
+            "page": "pick-your-ai-leaderboard:docs/engineering-provider-role-audit-2026-10-19.json"
+          },
+          {
+            "kind": "doc",
+            "loc": "/currentObservationWindows/websiteCanonicalRepositoryAndIntegrationRange/end",
+            "page": "pick-your-ai-leaderboard:docs/engineering-provider-role-audit-2026-10-19.json"
+          }
+        ]
+      },
+      {
+        "at": "04:50:21Z",
+        "band": "past",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-10-19",
+        "days": -15,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "evidence",
+            "loc": "/observation_window_utc/through",
+            "page": "pick-your-ai-leaderboard:docs/evidence/github-rest-observation-2026-10-19.json"
+          }
+        ]
+      },
+      {
+        "at": "00:11:24.691Z",
+        "band": "past",
+        "cues": [
+          "end"
+        ],
+        "date": "2026-10-19",
+        "days": -15,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "/reported_observed_utc/idle_window_end",
+            "page": "pick-your-ai-research:research/T2-infrastructure/measurements/rtx-pro-4000-blackwell-sff-power-2026-10-19.json"
+          }
+        ]
+      },
+      {
+        "at": "05:07:00Z",
+        "band": "past",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-10-18",
+        "days": -16,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "market",
+            "loc": "L280",
+            "page": "pick-your-ai-research:research/market/mr01-acceptance.md"
+          }
+        ]
+      },
+      {
+        "at": "05:19:30Z",
+        "band": "past",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-10-18",
+        "days": -16,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "market",
+            "loc": "L188",
+            "page": "pick-your-ai-research:research/market/mr02-acceptance.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "through"
+        ],
+        "date": "2026-10-15",
+        "days": -19,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "doc",
+            "loc": "L97",
+            "page": "pick-your-ai-sustainability:docs/nonprofit/public-benefit-legal-assessment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "through",
+          "until"
+        ],
+        "date": "2026-10-05",
+        "days": -29,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L116",
+            "page": "pick-your-ai-research:research/T4-agents-integrations/agent-memory.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L621",
+            "page": "pick-your-ai-research:research/T4-agents-integrations/agent-memory.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2026-09-24",
+        "days": -40,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L622",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/monitoring.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2026-09-07",
+        "days": -57,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L204",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L361",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2025-07-16",
+        "days": -475,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L249",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2025-02-11",
+        "days": -630,
+        "label": "K12",
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/source_observations/29/scope",
+            "page": "pick-your-ai-sustainability:data/opportunities/donation-channel-assessment.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "before"
+        ],
+        "date": "2025-02-11",
+        "days": -630,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/sources/319/verification_scope",
+            "page": "pick-your-ai-sustainability:data/research-freshness.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "deadline"
+        ],
+        "date": "2025-01-31",
+        "days": -641,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L99",
+            "page": "pick-your-ai-sustainability:research/compute/cerebras-support.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "cutoff"
+        ],
+        "date": "2020-01-01",
+        "days": -2498,
+        "label": "GITHUB-SECURE-OSS-FUND",
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/source_reconciliation/2/finding",
+            "page": "pick-your-ai-sustainability:data/opportunities/github-secure-open-source-fund.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "past",
+        "cues": [
+          "cutoff"
+        ],
+        "date": "2020-01-01",
+        "days": -2498,
+        "label": "S3",
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/sources/2/finding",
+            "page": "pick-your-ai-sustainability:data/opportunities/github-sponsors.json"
+          }
+        ]
+      }
+    ]
+  },
+  "starts": {
+    "ahead": [
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": "ANTHROPIC-RESEARCHER",
+        "priority": "P2",
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/records/23/sources/7/review_scope",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/records/23/sources/11/review_scope",
+            "page": "pick-your-ai-sustainability:data/opportunities.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L148",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L478",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L602",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/deployment.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L336",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L696",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L70",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/guardrails.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L208",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/guardrails.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "data",
+            "loc": "/sources/102/verification_scope",
+            "page": "pick-your-ai-sustainability:data/research-freshness.json"
+          },
+          {
+            "kind": "data",
+            "loc": "/sources/106/verification_scope",
+            "page": "pick-your-ai-sustainability:data/research-freshness.json"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "effective"
+        ],
+        "date": "2026-11-12",
+        "days": 9,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L25",
+            "page": "pick-your-ai-sustainability:research/compute/anthropic-researcher-access.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L26",
+            "page": "pick-your-ai-sustainability:research/compute/anthropic-researcher-access.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "month",
+        "cues": [
+          "from",
+          "starting"
+        ],
+        "date": "2026-12-01",
+        "days": 28,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L23",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L139",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L162",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L245",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L254",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L402",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L518",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L580",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L590",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "from",
+          "starting"
+        ],
+        "date": "2027-01-01",
+        "days": 59,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L140",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L580",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          },
+          {
+            "kind": "research",
+            "loc": "L590",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/cost-estimate.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "from"
+        ],
+        "date": "2027-01-06",
+        "days": 64,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "research",
+            "loc": "L283",
+            "page": "pick-your-ai-research:research/T6-deployment-operations/evaluation.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "from"
+        ],
+        "date": "2027-02-01",
+        "days": 90,
+        "label": null,
+        "priority": null,
+        "where": [
+          {
+            "kind": "process",
+            "loc": "L36",
+            "page": "pick-your-ai-android:docs/PLAY_POLICY_REGISTER.md"
+          }
+        ]
+      },
+      {
+        "at": null,
+        "band": "later",
+        "cues": [
+          "from"
+        ],
+        "date": "2027-03-01",
+        "days": 118,
+        "label": "mcp_server.atlassian-remote",
+        "priority": null,
+        "where": [
+          {
+            "kind": "catalog",
+            "loc": "/provenance/1/notes",
+            "page": "pick-your-ai-research:catalog/proposals/t4c-atlassian-remote.json"
+          }
+        ]
+      }
+    ]
+  },
+  "today": "2026-11-03"
+}
