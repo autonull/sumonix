@@ -77,3 +77,7 @@ answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not load
 A group rule keeps each facet on its branch: modalities under ContentBearingObject, tasks under Process, domains under FieldOfStudy. Two traps are avoided: SUMO's `Table` is furniture and its `Medicine` is a drug.
 `hf/check.nix` checks the file; `hf/oracle.py` checks it again with its own reader; `tests/hf.nix` compares them and shows five bad edits being refused. `hf/fetch.py` refreshes the snapshot.
 Hugging Face lists domain, origin and modality together under `other`; its own tag lists keep axes apart better than most outlines.
+
+## A Jev-shaped decision interface
+
+`decide.nix` takes a state and typed questions and returns typed answers, as Jev (TypeSafe AI, proprietary) and Jeva (NUS, Apache-2.0) do: a probability for each option and an explicit null, never prose. Here the backend is rules over `pyai/crosswalk.json`, `hf/tags.json` and `hf/anchors.kif`, so each probability is 1 or 0, and a rule that knows nothing about a value answers null, not no. `Choice` and `Noul` are built; `Score` and free-text instructions are not (a rule backend cannot read them, so `ask` names the rule). A model backend, such as a local Jeva-4B quant, could answer the same questions where the rules have no entry; nothing here calls one. `tests/decide.nix` compares 38 Project values and 159 Hugging Face tags with `tests/decide-oracle.py` and checks that unknowns come back null and that bad questions are errors.
