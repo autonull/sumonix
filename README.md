@@ -69,3 +69,11 @@ reports what it added. `match` lists the bags that join a plan with nothing new.
 answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not loaded), 0 fail, 43 are unsupported (`<=>`,
 `forall`, `or`, row variables, compound consequents, typed languages). An unsupported file is not run and gets no verdict.
 `tests/bags.nix` checks the bags against `tests/bags-oracle.py`, a separate reader.
+
+## Hugging Face tags anchored in SUMO
+
+`hf/tags.json` is a snapshot (2026-11-02) of the small facets of Hugging Face's public tag lists: 9 modalities, 56 tasks, 82 licenses, 11 domains, 1 origin, plus size, format and library. `hf/anchors.kif` anchors each tag in SUMO:
+`exact` (same meaning), `broader` (a SUMO class the tag falls under) or `new` (SUMO has no class: 14 are declared, each under a class SUMO has). Two tags are left out on purpose (`any-to-any`, `simready`), and size, format and library are not SUMO's subject.
+A group rule keeps each facet on its branch: modalities under ContentBearingObject, tasks under Process, domains under FieldOfStudy. Two traps are avoided: SUMO's `Table` is furniture and its `Medicine` is a drug.
+`hf/check.nix` checks the file; `hf/oracle.py` checks it again with its own reader; `tests/hf.nix` compares them and shows five bad edits being refused. `hf/fetch.py` refreshes the snapshot.
+Hugging Face lists domain, origin and modality together under `other`; its own tag lists keep axes apart better than most outlines.

@@ -1,0 +1,77 @@
+{
+ "hfUnused": [
+  "3d",
+  "document"
+ ],
+ "offAxis": {
+  "Access Classification": [
+   "Not Assessed",
+   "Mixed"
+  ],
+  "Dataset Category": [
+   "Synthetic",
+   "Domain/Specialized"
+  ],
+  "Dataset Modality": [
+   "Code",
+   "Multimodal",
+   "Robotics",
+   "Scientific",
+   "Graph & Structured"
+  ],
+  "License/Rights Status": [
+   "Not Assessed",
+   "Under Review",
+   "Withdrawn/Disputed"
+  ]
+ },
+ "problems": [],
+ "sumo": {
+  "Access Classification": {},
+  "Dataset Category": {
+   "Domain/Specialized": "FieldOfStudy",
+   "Synthetic": "SyntheticOrigin"
+  },
+  "Dataset Modality": {
+   "Code": "ComputingField",
+   "Geospatial": "GeospatialData",
+   "Graph & Structured": "GraphLearning",
+   "Image": "Image",
+   "Robotics": "RoboticControl",
+   "Scientific": "Science",
+   "Speech & Audio": "AudioRecording",
+   "Tabular": "TabularData",
+   "Text": "Text",
+   "Time Series": "TimeSeriesData",
+   "Video": "MotionPicture"
+  },
+  "License/Rights Status": {}
+ },
+ "tally": {
+  "Access Classification": {
+   "access": 5,
+   "composite": 1,
+   "planning": 1,
+   "workflow": 1
+  },
+  "Dataset Category": {
+   "domain": 1,
+   "origin": 1,
+   "planning": 2,
+   "role": 5
+  },
+  "Dataset Modality": {
+   "composite": 1,
+   "domain": 2,
+   "modality": 7,
+   "planning": 2,
+   "task": 2
+  },
+  "License/Rights Status": {
+   "event": 1,
+   "planning": 1,
+   "substance": 3,
+   "workflow": 2
+  }
+ }
+}
