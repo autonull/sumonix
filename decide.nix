@@ -1,9 +1,8 @@
-# A Jev-shaped decision interface over the taxonomy crosswalks, answered by rules.
+# Typed questions over the taxonomy crosswalks, answered by rules.
 #
-# Jev (TypeSafe AI, proprietary) and Jeva (NUS, Apache-2.0) take a state and typed questions and return typed answers: a
-# probability for each option and an explicit null, never prose.  This file has that shape with a rule backend: an answer is
-# 1, 0 or null.  A rule that knows nothing about a value says null, not no.  A model backend (the local Jeva-4B quant) could answer
-# the same questions where the rules have no entry; nothing here calls one.
+# A question names a rule; the answer is a probability for each option and an explicit null.  The backend is rules over
+# pyai/crosswalk.json, hf/tags.json and hf/anchors.kif, so a probability is 1 or 0, and a rule that has no entry for a value
+# answers null, not no.  This is lookup and checking, not a trained model: nothing here learns, guesses or generates.
 #
 #   d = import ./decide.nix
 #   d.decide {
@@ -20,7 +19,7 @@
 #          { kind = "hf"; facet; tag }       a Hugging Face tag (hf/tags.json, hf/anchors.kif)
 # Asks:    pyai  axis (Choice), sumoClass (Choice), hasHfTag (Noul), hasSumoClass (Noul)
 #          hf    anchorKind (Choice among exact broader new instance), sumoClass (Choice), hasAnchor (Noul)
-# Not built: Score, and free-text instructions (a rule backend cannot read them, so `ask` names the rule).
+# Not built: Score, and free-text instructions (rules cannot read them, so `ask` names the rule).
 let
   inherit (builtins) attrNames elem elemAt filter fromJSON head isList length listToAttrs map mapAttrs readFile;
   kif = import ./kif.nix;
