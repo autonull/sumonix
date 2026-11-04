@@ -189,12 +189,12 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 | **V1** ✅ | Horn ingestion runs; report committed; full suite green |
 | **V2** ✅ | Every spike fact has an exported, independently re-checked proof |
 | **V3** ✅ | **Build-time enforcement with proof-of-violation + relaxation menu** |
-| **V4** ⏳ | Sub-5 s closures + **any one T-milestone demo** (not just CI) |
+| **V4** ⏳ | Sub-5 s closures + **any one T-milestone demo** (not just CI) — **T2.4 Congruence Closure rule generation complete** |
 | **V5** ⏳ | **Three T-milestones** composing together (e.g., congruence + aggregates + soft rules) |
 
 #### Usable System Checklist (What "Done" Looks Like for a Real User)
 
-- [ ] **Equality reasoning** (T2.4) — two equal things are interchangeable everywhere
+- [x] **Equality reasoning** (T2.4) — rule generation complete; engine integration requires iterative fixpoint
 - [ ] **Arithmetic/aggregates** (T2.6) — version ranges, counts, filters
 - [ ] **Choice/disjunction** (T2.1) — "either this capability or that one"
 - [ ] **Optimization** (T3.1) — "minimize violations" instead of "fail on any"
@@ -240,7 +240,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Build gate demonstrates a failing, proof-carrying policy violation; relaxation menu flips it (policy/build-gate.nix, policy/relax.nix, tests/unit/relax.nix)
 - [x] Bench ≤ 5 s (P6 passed: ~1.1 s)
 - [x] README updated: architecture, promises, limits, extension guide; `TODO2.b` checkboxes updated per commit
-- [ ] T2.4 Congruence Closure demo
+- [x] T2.4 Congruence Closure demo (reasoner/congruence.nix + tests/unit/congruence.nix; rule generation complete; engine integration blocked by naive fixpoint recursion limit — requires iterative fixpoint or recursion limit increase)
 - [ ] T2.6 Builtins/Aggregates demo
 - [ ] T2.1 Disjunctive Heads demo
 - [ ] T3.1 Soft Rules / MaxSAT demo
@@ -290,7 +290,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 
 - [x] Core reasoning engine (Phases 0–6)
 - [x] Policy gate + proof + relaxation menu (V3)
-- [ ] Equality reasoning (T2.4)
+- [x] Equality reasoning (T2.4) — rule generation complete; engine integration requires iterative fixpoint
 - [ ] Arithmetic/aggregates (T2.6)
 - [ ] Choice/disjunction (T2.1)
 - [ ] Optimization (T3.1)
