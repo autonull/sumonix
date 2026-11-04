@@ -258,7 +258,140 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | P6 benchmark (+ semi-naive only if needed) | 0–6 h | 13–21 h |
 | P7 differential CI | 2 h | **V4** |
 
-## 12. File manifest (✅ = done in Phases 0–5; ⏳ = Phase 6+)
+## 12. Application Bootstraps — The Complete System Vision (from TODO.md)
+
+The core engine (Phases 0–6) is the **kernel**. The opportunities below are **independent application bootstraps** that plug into it. Each is a pure Nix module + converter + policy pack + demo. No CI, no external deps — just `sumo-nix` as the universal proof layer.
+
+| # | Bootstrap | What It Lifts | Converter | Policy Pack (KIF Rules) | Demo Query | Effort | Enables |
+|---|-----------|---------------|-----------|-------------------------|------------|--------|---------|
+| B1 | **Nixpkgs Ontology** | 100k+ packages, deps, licenses, meta | `pkgs → nixpkgs.kif` | SoftwareArtifact, dependsOn, licenses, capabilities | "Find all BSD-licensed web servers with no network deps" | 2–4 h | Semantic package manager |
+| B2 | **Epistemic Flakes** | Compliance rules as flake inputs | Flake → KIF rules | GDPR, HIPAA, PCI, security baselines | "Build fails: PII package depends on network-transmitter" | 1–2 h | Compliance-as-code |
+| B3 | **json2kif / yaml2kif** | Any JSON/YAML → KIF facts | Generic (Nix + yq) | Domain-specific (secrets, ports, users...) | "Which services use secrets AND expose public ports?" | 1–2 h | Universal truth loader |
+| B4 | **Terraform Plan** | `terraform show -json` | HCL/JSON → KIF | S3 public, SG open, IAM wildcards, encryption | "Prove this plan has no public sensitive data" | 2–3 h | IaC semantic review |
+| B5 | **K8s / Docker Compose** | Manifests → KIF | YAML → KIF | Privileged, hostPath, root, secrets, limits | "Which containers are privileged AND exposed?" | 2–3 h | K8s/Compose linter |
+| B6 | **Lockfile + OSV/NVD** | package-lock.json, Cargo.lock, go.sum + OSV API | Lockfile → KIF + OSV fetch | Vuln propagation, version ranges, transitive closure | "Is my-app exposed to CVE-2024-1234 via transitive deps?" | 2–4 h | Proof-carrying SBOM |
+| B7 | **License Oracle** | SPDX licenses + dep graph | SPDX + pkgs → KIF | Compatibility matrix (MIT/BSD/Apache/GPL/Proprietary) | "Can this proprietary artifact ship?" | 2–3 h | License compliance |
+| B8 | **OpenAPI / JSON Schema** | OpenAPI v1/v2 → KIF | OpenAPI → KIF | Backward-compat rules (types, required, enums) | "Is v2 backward compatible with v1 clients?" | 2–4 h | API semantic diff |
+| B9 | **SQL / dbt Lineage** | DDL / dbt manifest → KIF | SQL parse + dbt manifest | PII tags, column refs, downstream models | "Which BI models contain email addresses?" | 3–4 h | Data governance |
+| B10 | **Git + CODEOWNERS** | Git log + CODEOWNERS → KIF | Git export + text parse | Ownership, domain, blast radius, review routing | "Who must review changes to payment code?" | 1–2 h | Blast-radius oracle |
+| B9 | **Firewall / SG Analyzer** | iptables, AWS SG, K8s NetworkPolicy → KIF | Export → KIF | Shadow rules, exposure, lateral movement, priority | "Is SSH exposed? Which rules are shadowed?" | 2–3 h | Firewall audit |
+| B10 | **RBAC / ABAC Explainer** | IAM, groups, roles, resources → KIF | JSON → KIF | Role hierarchies, resource classes, sensitivity | "Can alice read prod-db? Why/why not?" | 1–2 h | Access review |
+| B11 | **CI Pipeline Optimizer** | GitHub Actions / GitLab CI → KIF | YAML → KIF | Cycles, missing deps, deploy-before-test, fork secrets | "Does deploy run before tests? Any fork secrets?" | 1–2 h | CI semantic lint |
+| B12 | **Env Validator** | .env + app meta → KIF | .env parse + meta | Required, secure, secret, optional per service | "Is production fully configured?" | <1 h | Pre-deploy check |
+| B13 | **Git Hygiene** | Git ls-files + patterns → KIF | Git + patterns | Secrets, keys, dumps, binaries, LFS candidates | "Are secret-like files tracked?" | <1 h | Repo hygiene |
+| B14 | **Semantic Grep** | Repo files → KIF (filenames, env vars, YAML keys) | Multi-format → KIF | Secret patterns, PII, privileged, exposed | `sumo grep . "PII fields"` | 1–2 h | Concept search |
+| B15 | **Ontology Task Runner** | Task declarations → KIF | Nix/Dhall → KIF | Provides/requires, minimal graph, explain | "What tasks to build running-service?" | 1–2 h | Declarative task runner |
+| B16 | **Change Impact** | Dependency graph + facts → KIF | Graph → KIF | Blast radius, transitive closure, policy | "What breaks if I remove redis?" | 2–3 h | Impact analysis |
+| B17 | **Compliance Receipt** | Check results → signed receipt | Report gen | Policy version, commit, facts, proofs, hash | "Audit artifact for GDPR" | 1–2 h | Audit evidence |
+| B18 | **Proof Badges** | Check results → SVG badges | SVG gen | Policy name, status, proof hash | `![No CVE](badge.svg)` links to proof | <1 h | Viral adoption |
+| B19 | **Semantic Package Select** | Nixpkgs ontology + constraints | KIF query | Provides/requires, licenses, size, capabilities | `selectPackage { provides="WebServer"; NoGPL }` | 2–3 h | Policy-driven pkg select |
+| B20 | **Crypto Epistemology** | HW state, network, user → KIF | Env inject | Context-aware secret derivation | "Secret only exists on corp Wi-Fi + disk unlocked" | 2–3 h | Context-aware secrets |
+| B21 | **API Evolution** | OpenAPI v1/v2 + client contracts → KIF | OpenAPI → KIF | Type compat, required fields, enum stability | "Is v2 backward compatible?" | 2–3 h | Breaking-change killer |
+| B22 | **Config Contradiction** | NixOS modules → KIF | Nix eval → KIF | Disjoint states, port conflicts, policy | "Postgres needs 5432 but StrictFirewall denies all" | 2–3 h | NixOS logic prover |
+| B23 | **Policy-as-Flakes** | Flake inputs → KIF rules | Flake → KIF | Composable, versioned, hash-pinned policies | `inputs.gdpr.url = "github:org/gdpr-kif"` | 1–2 h | Compliance flakes |
+| B24 | **sumo flake check** | Checks → Nix flake checks | Nix integration | Any policy pack as `nix flake check` | `nix flake check` fails with proof | <1 h | Native Nix integration |
+| B25 | **sumo assert** | `sumo.assert { query; }` in Nix | Helper fn | Any query as Nix assertion | Build fails with proof in Nix eval | <1 h | Nix-native assertions |
+| B26 | **Why-does-this-exist** | Resource facts → generated docs | Renderer | Dependents, policy, removal impact | "Why does redis-cache exist?" | 1–2 h | Living documentation |
+
+---
+
+### Extension Contract Coverage (Mapping to §5)
+
+| T-Milestone | Bootstraps Enabled | Engine Extension |
+|-------------|-------------------|------------------|
+| **T2.4 Congruence Closure** | B1, B8, B9, B10 | `equal` → predicate interchangeability |
+| **T2.6 Builtins/Aggregates** | B6, B7, B9, B16 | `count`, `subsetOf`, `compareVersions`, `groupBy` |
+| **T2.1 Disjunctive Heads** | B4, B5, B11 | `A ⇒ B ∨ C` (choice in configs) |
+| **T2.2 WFS Negation** | B10, B11, B22 | `unknown` verdicts for cyclic policies |
+| **T2.3 Bounded Existentials** | B6, B8, B16 | Finite-domain Skolem (depth ≤ 1) |
+| **T3.1 Soft Rules / MaxSAT** | B4, B5, B11, B12, B17 | Rule weights, violation minimization |
+| **T2.7 Soufflé CI** | All | Differential CI (byte-equal) |
+| **T3.2 Parallel Eval** | B1, B6, B9 | Set-parallel semi-naive |
+| **T3.3 Temporal/Modal** | B8, B9, B16, B19 | `during`, `before`, `validFrom/Until` |
+
+---
+
+### V-Milestones (Complete)
+
+| Milestone | What Ships |
+|-----------|------------|
+| **V1** ✅ | Core engine (parser, ontology, synthesis, stratifier, ingestion, naive engine, proof, policy gate, relaxation) |
+| **V2** ✅ | V1 + 1 bootstrap (e.g., B3 json2kif + B12 env validator) + demo |
+| **V3** ✅ | V2 + policy product (build gate + relaxation menu) + 3 bootstraps composing |
+| **V4** ⏳ | V3 + **any 3 bootstraps** composing + T2.4/T2.6 |
+| **V5** ⏳ | V4 + **all 26 bootstraps** + T2.1/T2.6/T3.1 + T2.7 (Soufflé CI) |
+
+---
+
+### Usable System Checklist (Complete)
+
+- [x] Core reasoning engine (Phases 0–6)
+- [x] Policy gate + proof + relaxation menu (V3)
+- [ ] Equality reasoning (T2.4) — B1, B8, B9, B10
+- [ ] Arithmetic/aggregates (T2.6) — B6, B7, B9, B16
+- [ ] Choice/disjunction (T2.1) — B4, B5, B11
+- [ ] Optimization (T3.1) — B4, B5, B11, B12
+- [ ] Temporal (T3.3) — B8, B9, B16, B19
+- [ ] Context-aware secrets (B20)
+- [ ] Semantic API governance (B21)
+- [ ] NixOS config logic prover (B22)
+- [ ] Compliance flakes (B23)
+- [ ] Native Nix integration (B24, B25)
+- [ ] Living documentation (B26)
+
+---
+
+## 13. File manifest (✅ = done in Phases 0–5; ⏳ = Phase 6+; 📦 = Bootstrap modules)
+
+```
+TODO2.b.md                  # this plan (rev 2) — checkboxes updated ✅
+reasoner/ingest.nix         # P3 classification & horn filter ✅
+reasoner/stratify.nix       # P2 predicate graph → strata → reject/allow ✅
+reasoner/synthesize.nix     # P1 declaration → Horn synthesis ✅
+reasoner/proof.nix          # P4 proof export ✅
+reasoner/naive.nix          # T0 reference for parity (P6, tests only) ⏳
+reasoner/engine.nix         # created only if P6 triggers (semi-naive) ⏳
+policy/build-gate.nix       # P5 gate ✅
+policy/relax.nix            # P5 relaxation menu ✅
+proof-check.nix             # P4 independent checker ✅
+sumo.nix                    # P1: equivalent union-find subsumption ✅
+datalog.nix                 # thin façade (legacy API for tests) ✅
+tests/ingest-report.nix     # P0 committed histogram ✅
+tests/unit/*.nix            # stratify, equivalents, synthesis, builtins, relax ✅
+tests/semi-naive-parity.nix # P6 only ⏳
+tests/perf/bench.nix        # P6 ⏳
+# Bootstrap modules (to be created):
+bootstrap/
+  nixpkgs-ontology.nix      # B1: Nixpkgs → KIF
+  epistemic-flakes.nix      # B2: Compliance rules as flakes
+  json2kif.nix              # B3: Universal JSON/YAML → KIF
+  terraform-plan.nix        # B4: Terraform JSON → KIF
+  k8s-compose.nix           # B5: K8s/Compose → KIF
+  lockfile-osv.nix          # B6: Lockfiles + OSV → KIF
+  license-oracle.nix        # B7: SPDX + deps → KIF
+  openapi-diff.nix          # B8: OpenAPI v1/v2 → KIF
+  sql-dbt-lineage.nix       # B9: SQL/dbt → KIF
+  git-codeowners.nix        # B10: Git + CODEOWNERS → KIF
+  firewall-sg.nix           # B11: FW/SG → KIF
+  rbac-abac.nix             # B12: IAM → KIF
+  ci-optimizer.nix          # B13: CI YAML → KIF
+  env-validator.nix         # B14: .env + meta → KIF
+  git-hygiene.nix           # B15: Git files → KIF
+  semantic-grep.nix         # B16: Repo → KIF concepts
+  ontology-tasks.nix        # B17: Task decls → KIF
+  change-impact.nix         # B18: Graph → KIF
+  compliance-receipt.nix    # B19: Checks → receipt
+  proof-badges.nix          # B20: Checks → SVG badges
+  semantic-select.nix       # B21: Constraints → KIF query
+  crypto-epistemology.nix   # B22: HW/net/user → KIF
+  api-evolution.nix         # B23: OpenAPI + contracts → KIF
+  config-contradiction.nix  # B24: NixOS modules → KIF
+  policy-flakes.nix         # B25: Flake inputs → KIF
+  flake-check.nix           # B26: Nix flake checks
+  sumo-assert.nix           # B27: Nix assertions
+  semantic-select.nix       # B28: Requirements → pkg
+  why-exists.nix            # B29: Facts → docs
+```
 
 ```
 TODO2.b.md                  # this plan (rev 2) — checkboxes updated ✅
