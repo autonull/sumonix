@@ -159,29 +159,60 @@ Files: `reasoner/engine.nix` (move + upgrade), `reasoner/naive.nix` (kept, tests
 
 **P6 Result (2026-11-04):** Benchmark ~1.1 s on 286 rules / 23–185 derived facts (ingest-smoke scenario). Well under 5 s gate. **Semi-naive NOT needed; naive engine ships.**
 
-### Phase 7 — Differential CI (2 h, optional but recommended) — **DEFERRED**
+### Phase 7 — Differential CI — **DEFERRED (no CI wiring in this repo)**
 Same facts+rules → Soufflé (or other checker); byte-equal derived predicates; any divergence fails; never runtime. Add as CI job; document for manual use.
 
-**T-milestones** (each independently committed, all behind flags with tests): T2.1 disjunctive heads · T2.2 WFS negation · T2.3 bounded existentials · T2.4 congruence closure · T2.5 Knuth–Bendix tool · T2.6 builtins/aggregate full set · T2.7 Soufflé CI · T3.1 weights/MaxSAT · T3.2 parallel branches · T3.3 temporal modalities.
+---
 
-### V-milestones (what "done enough to ship" looks like)
+### 🚀 Remaining Work — Cool Demos & Usable System
 
-- **V1** ✅ (after P3): Horn ingestion runs; report committed; full suite green.
-- **V2** ✅ (after P4): every spike fact has an exported, independently re-checked proof.
-- **V3** ✅ (after P5): **build-time enforcement with proof-of-violation + relaxation menu** — the demo that justifies this project.
-- **V4** ⏳ (after P7): sub-5 s closures on full universe; differential CI green.
+All Phases 0–6 complete (V3 ships). The remaining work is organized as **independent milestones** that each unlock a new capability or demo. No CI, no GitHub workflow, no external deps — just pure Nix modules you can pick up and run.
 
-Cumulative to V3 ≈ 13–15 h. Cumulative to V4 ≈ 15–23 h (P6 semi-naive not needed; P7 deferred).
+#### T-Milestones (Extension Contract, §5)
+
+| Milestone | What It Unlocks | Effort | Demo Idea |
+|-----------|-----------------|--------|-----------|
+| **T2.4 Congruence Closure** | `equal a b ⇒ P(…a…) ≡ P(…b…)` for all predicates | 2–3 h | "If two packages are equal, all their dependencies, vulnerabilities, and capabilities are equal" |
+| **T2.6 Builtins/Aggregates** | `greaterThan`, `subsetOf`, `compareVersions`, `count` with group-by | 2–4 h | "Count vulnerable packages per severity"; "filter packages by version range" |
+| **T2.1 Disjunctive Heads** | `A ⇒ B ∨ C` via branch enumeration + per-branch fixpoint (`maxBranches`) | 3–4 h | "A package either provides capability X or Y (or both)" |
+| **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection |
+| **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" |
+| **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" |
+| **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" |
+| **T3.2 Parallel Eval** | Semi-naive rounds set-parallel (internal `deepSeq`) | 2–3 h | "2× speedup on large fact sets" |
+| **T3.3 Temporal/Modal** | `during`, `before` as binary predicates + dedicated module | 3–4 h | "Vulnerability was introduced between version X and Y" |
+
+#### V-Milestones (Updated)
+
+| Milestone | Status | What It Means |
+|-----------|--------|---------------|
+| **V1** ✅ | Horn ingestion runs; report committed; full suite green |
+| **V2** ✅ | Every spike fact has an exported, independently re-checked proof |
+| **V3** ✅ | **Build-time enforcement with proof-of-violation + relaxation menu** |
+| **V4** ⏳ | Sub-5 s closures + **any one T-milestone demo** (not just CI) |
+| **V5** ⏳ | **Three T-milestones** composing together (e.g., congruence + aggregates + soft rules) |
+
+#### Usable System Checklist (What "Done" Looks Like for a Real User)
+
+- [ ] **Equality reasoning** (T2.4) — two equal things are interchangeable everywhere
+- [ ] **Arithmetic/aggregates** (T2.6) — version ranges, counts, filters
+- [ ] **Choice/disjunction** (T2.1) — "either this capability or that one"
+- [ ] **Optimization** (T3.1) — "minimize violations" instead of "fail on any"
+- [ ] **Temporal** (T3.3) — "this held at time T1 but not T2"
+
+> **No CI, no GitHub, no external deps.** Each milestone is a pure Nix module behind a flag, with its own test and demo. Pick the one that unlocks your next use case.
+
+Cumulative to V3 ≈ 13–15 h. Each T-milestone ≈ 2–6 h independent work.
 
 ## 7. Testing strategy
 
 1. `tests/` is untouched as oracle; any diff to `*.expected.json` is a bug, not a judgement call.
 2. Parity test T0≡T1 (Phase 6) — mandatory when it exists; until then, ingestion smoke test + suite.
 3. Unit tests: stratifier (cycles/negations), equivalences (10 cases), synthesis (`transitiveAttribute part`), builtins, proof-checker tamper cases.
-4. Ingestion report JSON committed; CI fails if rejects regress >10 % silently.
+4. Ingestion report JSON committed; rejects must not regress >10 % silently.
 5. Relaxation menu: golden output on a fixed 6-toggle policy; exact match.
 6. Performance floor: ≤ 5 s; > 2× regression fails even under floor.
-7. Proof-check in CI on every commit.
+7. Proof-check on every local eval (no CI).
 
 ## 8. Diagnostics (folded into every phase)
 
@@ -196,9 +227,9 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | Semi-naive/Δ bug ⇒ unsound | med | invalid proofs | parity test mandatory; proof-check as second gate; fail closed |
 | Stratifier rejects too much | med | missing reasoning | `manualAdmission` allow-list, logged; human review of rejection list |
 | Slow eval after ingestion | med | V3 suffers | bench gate; P6 conditional semi-naive; drop ingestion default |
-| Proof export drifts | low | audit theater | checker is independent (§4/P4); CI requires it |
+| Proof export drifts | low | audit theater | checker is independent (§4/P4); local eval requires it |
 | Scope creep into T2/T3 | high | never ships | V-milestones ship; T2/T3 separate commits, each independently valuable |
-| SUMO drift | low | CI surprise | pinned `sumo.full`; ingestion-report diff gate |
+| SUMO drift | low | surprise | pinned `sumo.full`; ingestion-report diff gate |
 
 ## 10. Definition of done
 
@@ -207,8 +238,12 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Equivalences subsumption correct; synthesis proven on a real declaration (tests/unit/equivalents.nix, synthesize.nix)
 - [x] Proof export + independent checker green (proof.kif + proof-check.nix + tests/proof-check.nix)
 - [x] Build gate demonstrates a failing, proof-carrying policy violation; relaxation menu flips it (policy/build-gate.nix, policy/relax.nix, tests/unit/relax.nix)
-- [ ] Bench ≤ 5 s or ingestion default off + rationale committed (V4)
-- [ ] README updated: architecture, promises, limits, extension guide; `TODO2.b` checkboxes updated per commit
+- [x] Bench ≤ 5 s (P6 passed: ~1.1 s)
+- [x] README updated: architecture, promises, limits, extension guide; `TODO2.b` checkboxes updated per commit
+- [ ] T2.4 Congruence Closure demo
+- [ ] T2.6 Builtins/Aggregates demo
+- [ ] T2.1 Disjunctive Heads demo
+- [ ] T3.1 Soft Rules / MaxSAT demo
 
 ## 11. Effort estimate (to first product)
 
