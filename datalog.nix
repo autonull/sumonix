@@ -69,6 +69,14 @@ let
           if b == null then [ ] else [ { inherit b; used = s.used ++ [ e.key ]; } ])
         (candidates ix s.b p);
 
+  ruleVars = ant: cons: b:
+    let flatten = f: if isList f then concatMap flatten f else [ f ];
+        vs = attrNames b;
+        needed = unique (filter isVar (flatten ant ++ flatten cons));
+    in builtins.listToAttrs (map (v: { name = v; value = b.${v}; }) (filter (v: elem v needed) vs));
+
+  unique = xs: builtins.attrNames (builtins.listToAttrs (map (n: { name = n; value = null; }) xs));
+
   # Each rule, with a name from its consequent and its place among the rules.
   named = genList
     (i:
@@ -78,7 +86,7 @@ let
 
   # Every fact the rules give from idx that idx does not hold yet, with the rule and the facts it rests on.
   # (listToAttrs keeps the first of equal names: the first rule and solution that gave a fact.)
-  derive = idx:
+  derive = round: idx:
     let ix = index idx; in
     builtins.listToAttrs (concatMap
       (r:
@@ -87,13 +95,13 @@ let
             let f = subst s.b r.consequent; k = show f; in
             if !(ground f) then throw "rule ${r.id}: the consequent keeps a variable (${k})"
             else if idx ? ${k} then [ ]
-            else [ { name = k; value = { key = k; fact = f; by = { rule = r.id; from = s.used; }; }; } ])
+            else [ { name = k; value = { key = k; fact = f; by = { rule = r.id; from = s.used; round = round; bindings = ruleVars r.antecedent r.consequent s.b; }; }; } ])
           (step ix { b = { }; used = [ ]; } r.antecedent))
       named);
 
-  fix = idx: let new = derive idx; in if new == { } then idx else fix (idx // new);
+  fix = round: idx: let new = derive round idx; in if new == { } then idx else fix (round + 1) (idx // new);
 
-  closure = fix (builtins.listToAttrs (map (f: { name = show f; value = { key = show f; fact = f; by = null; }; }) facts));
+  closure = fix 1 (builtins.listToAttrs (map (f: { name = show f; value = { key = show f; fact = f; by = null; }; }) facts));
 
   proof = k:
     let e = closure.${k}; in
@@ -106,6 +114,7 @@ let
 in
 {
   facts = map (e: e.fact) (builtins.attrValues closure);
+  trace = closure; # full derivation metadata: entry = { key; fact; by = null | { rule; from; round; bindings } }
   holds = f: closure ? ${show f};
   # The bindings that make a pattern true: ask [ "dependsOnTransitive" "?x" "openssl" ] -> [ { "?x" = "curl"; } .. ]
   ask = pattern: map (s: s.b) (step (index closure) { b = { }; used = [ ]; } pattern);
