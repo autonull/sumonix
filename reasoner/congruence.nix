@@ -18,8 +18,8 @@ let
 
   headOf = f: if isList f && f != [ ] then head f else "";
   show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
-  count = xs: foldl' (m: x: m // { ${toString x} = (m.${toString x} or 0) + 1; }) { } xs;
-  unique = xs: let s = foldl' (m: x: m // { ${toString x} = x; }) { } xs; in attrValues s;
+  # unique: keep both strings and integers
+  unique = xs: let s = foldl' (m: x: if isString x || builtins.typeOf x == "int" then m // { ${toString x} = x; } else m) { } xs; in attrValues s;
   flatten = f: if isList f then concatMap flatten f else [ f ];
   subforms = f: if isList f then [ f ] ++ concatMap subforms (tail f) else [ ];
   isVar = s: isString s && (builtins.substring 0 1 s == "?" || builtins.substring 0 1 s == "@");
@@ -115,6 +115,6 @@ let
   kept = map (r: r.rule) (filter (r: !r.redundant) deduped);
   redundant = map (r: show r.rule) (filter (r: r.redundant) deduped);
 
-  diagnostics = { generated = length kept; predicates = length allPredicates; arities = predArityObserved; byArity = count (map (R: toString (arityOf R)) allPredicates); redundant = length redundant; };
+  diagnostics = { generated = length kept; predicates = length allPredicates; arities = predArityObserved; redundant = length redundant; };
 in
 { rules = kept; inherit diagnostics; }
