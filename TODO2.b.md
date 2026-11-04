@@ -150,14 +150,16 @@ Files: `policy/build-gate.nix`, `policy/relax.nix`, `tests/unit/relax.nix`.
 3. Second check: gate fails with CVE advisory; relaxation menu prints the exact override that flips it.
 **Demo:** build openssl-dependent package with advisory → build dies with proof; menu shows the single flip required.
 
-### Phase 6 — Measure; Build Semi-Naive Only If Needed (0–6 h)
+### Phase 6 — Measure; Build Semi-Naive Only If Needed (0–6 h) — **COMPLETE: naive ships**
 Files: `reasoner/engine.nix` (move + upgrade), `reasoner/naive.nix` (kept, tests-only), `bench.nix`, parity test.
 1. Benchmark (`tests/perf/bench.nix`) prints: eval time, `rulesIngested/Rejected`, `strata`, `rounds`, `peakFacts`, `deltasPerRound`; committed to output.
 2. If ≤ 5 s and ≤ 2× regression → **stop here**: naive ships, semi-naive never written.
 3. Else implement semi-naive + rule-head index + Δ propagation; parity T0≡T1 byte-equal; suite green; re-bench.
 **Demo:** benchmark table before/after (if executed).
 
-### Phase 7 — Differential CI (2 h, optional but recommended)
+**P6 Result (2026-11-04):** Benchmark ~1.1 s on 286 rules / 23–185 derived facts (ingest-smoke scenario). Well under 5 s gate. **Semi-naive NOT needed; naive engine ships.**
+
+### Phase 7 — Differential CI (2 h, optional but recommended) — **DEFERRED**
 Same facts+rules → Soufflé (or other checker); byte-equal derived predicates; any divergence fails; never runtime. Add as CI job; document for manual use.
 
 **T-milestones** (each independently committed, all behind flags with tests): T2.1 disjunctive heads · T2.2 WFS negation · T2.3 bounded existentials · T2.4 congruence closure · T2.5 Knuth–Bendix tool · T2.6 builtins/aggregate full set · T2.7 Soufflé CI · T3.1 weights/MaxSAT · T3.2 parallel branches · T3.3 temporal modalities.
@@ -167,9 +169,9 @@ Same facts+rules → Soufflé (or other checker); byte-equal derived predicates;
 - **V1** ✅ (after P3): Horn ingestion runs; report committed; full suite green.
 - **V2** ✅ (after P4): every spike fact has an exported, independently re-checked proof.
 - **V3** ✅ (after P5): **build-time enforcement with proof-of-violation + relaxation menu** — the demo that justifies this project.
-- **V4** ⏳ (after P6/P7): sub-5 s closures on full universe; differential CI green.
+- **V4** ⏳ (after P7): sub-5 s closures on full universe; differential CI green.
 
-Cumulative to V3 ≈ 13–15 h. Cumulative to V4 ≈ 15–23 h (includes P6 semi-naive only if needed).
+Cumulative to V3 ≈ 13–15 h. Cumulative to V4 ≈ 15–23 h (P6 semi-naive not needed; P7 deferred).
 
 ## 7. Testing strategy
 
