@@ -1,8 +1,26 @@
-;; SUMO-aligned capability composition rules
-;; Capability subclasses SoftwareCapability (per nix-domain.kif)
-;; composesWith is a BinaryRelation; transitive closure via Datalog
+;; SUMO-aligned capability composition rules.
+;; Capability names are plain atoms; NIXPackage subclasses ComputerProgram (nix-domain.kif).
+;; Transitive closures seed from the 1-hop base case, then extend by one edge.
 
-;; Direct composition: A provides X, B provides Y, X composesWith Y
+;; dependsOn transitive closure
+(=>
+  (dependsOn ?a ?b)
+  (dependsOnTransitive ?a ?b))
+
+(=>
+  (and (dependsOn ?a ?b) (dependsOnTransitive ?b ?c))
+  (dependsOnTransitive ?a ?c))
+
+;; Capability composition transitive closure
+(=>
+  (composesWith ?a ?b)
+  (composesWithTransitive ?a ?b))
+
+(=>
+  (and (composesWith ?a ?b) (composesWithTransitive ?b ?c))
+  (composesWithTransitive ?a ?c))
+
+;; Direct composition: this package provides ?capA, an immediate dependency provides ?capB, ?capA composesWith ?capB
 (=>
   (and
     (instance ?pkg NIXPackage)
@@ -12,16 +30,7 @@
     (dependsOn ?pkg ?other))
   (canCompose ?pkg ?capA ?capB))
 
-;; Transitive composition chains
-(=>
-  (and (composesWith ?a ?b) (composesWith ?b ?c))
-  (composesWithTransitive ?a ?c))
-
-(=>
-  (and (composesWith ?a ?b) (composesWithTransitive ?b ?c))
-  (composesWithTransitive ?a ?c))
-
-;; Find novel capability combinations a package enables
+;; Capabilities this package unlocks through its transitive dependencies
 (=>
   (and
     (instance ?pkg NIXPackage)
@@ -31,13 +40,13 @@
     (dependsOnTransitive ?pkg ?dep))
   (enablesCapability ?pkg ?otherCap))
 
-;; Capability synergy: when 3+ capabilities combine
+;; Synergy: 3+ distinct enabled capabilities on the same package
 (=>
   (and
     (enablesCapability ?pkg ?cap1)
     (enablesCapability ?pkg ?cap2)
     (enablesCapability ?pkg ?cap3)
-    (not (= ?cap1 ?cap2))
-    (not (= ?cap1 ?cap3))
-    (not (= ?cap2 ?cap3)))
+    (not (equal ?cap1 ?cap2))
+    (not (equal ?cap1 ?cap3))
+    (not (equal ?cap2 ?cap3)))
   (synergy ?pkg ?cap1 ?cap2 ?cap3))

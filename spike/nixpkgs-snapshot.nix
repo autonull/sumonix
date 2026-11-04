@@ -30,7 +30,7 @@ let
     sqlite = [ "EmbeddedDB" "SQL" ];
     readline = [ "InteractiveCLI" ];
     ncurses = [ "TUI" ];
-    gcc = [ "Compilation" "C" "C++" ];
+    gcc = [ "Compilation" "C" "CPlusPlus" ];
     glibc = [ "SystemCalls" "POSIX" ];
     coreutils = [ "FileOps" "TextProcessing" ];
     bash = [ "ShellScripting" ];
@@ -70,10 +70,22 @@ let
     vim = [ "TextEditing" ];
   };
 
+  # nixpkgs renames some packages; map dep pnames to our instance names
+  alias = {
+    "zlib-ng" = "zlib";
+    "util-linux-minimal" = "util-linux";
+    "gnum4" = "m4";
+    "gmake" = "make";
+  };
+  normalize = pname:
+    if alias ? ${pname} then alias.${pname}
+    else if builtins.match "glibc-iconv-[0-9.]+" pname != null then "glibc"
+    else pname;
+
   toKIF = name: pkg:
     let
       deps = pkg.propagatedBuildInputs ++ pkg.buildInputs;
-      depNames = lib.map (d: d.pname or d.name or "unknown") deps;
+      depNames = lib.map (d: normalize (d.pname or d.name or "unknown")) deps;
       caps = capabilities.${name} or [];
       capFacts = lib.concatStringsSep "\n" (lib.map (c: "(providesCapability ${name} ${c})") caps);
     in ''

@@ -127,228 +127,66 @@ kifFacts
     (enablesCapability ?pkg ?cap1)
     (enablesCapability ?pkg ?cap2)
     (enablesCapability ?pkg ?cap3)
-    (not (= ?cap1 ?cap2))
-    (not (= ?cap1 ?cap3))
-    (not (= ?cap2 ?cap3)))
+    (not (equal ?cap1 ?cap2))
+    (not (equal ?cap1 ?cap3))
+    (not (equal ?cap2 ?cap3)))
   (synergy ?pkg ?cap1 ?cap2 ?cap3))
 ```
 
-**Validation:** `mlnix eval -E 'let k=import ./kif.nix; in k.parse (builtins.readFile ./spike/vuln-rules.kif)'` — no errors.
+Note the required 1-hop base rules — `(=> (dependsOn ?a ?b) (dependsOnTransitive ?a ?b))` and `(=> (composesWith ?a ?b) (composesWithTransitive ?a ?b))` — and SUO-KIF `equal` for the disequalities. See `spike/vuln-rules.kif`.
+
+**Validation:** `nix eval --impure --raw --expr 'import ./spike/run-spike.nix { snapshot = builtins.readFile /tmp/opencode/facts.kif; }'` — prints the discovery report; no errors. (The earlier `mlnix eval` validation line was aspirational; this host has no `mlnix`, so testing used `nix eval`.)
 
 ---
 
-### Task C: Spike Driver — Pure Nix, Uses Actual sumo-nix Library (1 hr) ✅ **DONE**
+### Task C: Spike Driver — Pure Nix, Uses Actual sumo-nix Library (1 hr) ✅ **DONE (verified locally)**
 **Goal:** Single Nix expression that loads SUMO, adds facts/rules, runs capability discovery queries, returns formatted results.
 
 **Files:** 
-- `spike/run-spike.nix` — **IMPLEMENTED** (queries for compositions, enabled capabilities, synergies)
-- `spike/capabilities.kif` — **IMPLEMENTED** (composition seed facts, embedded in run-spike.nix)
+- `spike/run-spike.nix` — **IMPLEMENTED, tested** (queries for compositions, enabled capabilities, synergies; verified locally via `nix eval --impure --expr 'import ./spike/run-spike.nix { snapshot = builtins.readFile /tmp/opencode/facts.kif; }'`)
+- `spike/vuln-rules.kif`, `spike/capabilities.kif` — **IMPLEMENTED, tested** (read by run-spike.nix; no duplication)
 
-```nix
-{ pkgs ? import <nixpkgs> {} }:
+**Implementation (see `spike/run-spike.nix`):** Loads SUMO (`sumo.full/Merge.kif` + `nix-domain.kif`) via `kif.parse`, splits parsed forms into Horn rules (`head == "=>"`) and ground facts, and calls the real `datalog.nix` API:
 
-let
-  sumo-nix = import <sumo-nix>;
-  kif = sumo-nix.kif;
-  sumo = sumo-nix.sumo { forms = kif.parse (builtins.readFile sumo-nix.pins.merge); };
-  datalog = sumo-nix.datalog { ontology = sumo; };
-
-  snapshot = builtins.readFile /run/sumo-facts.kif;
-
-  rules = ''
-    ;; Transitive dependency closure
-    (=>
-      (and (dependsOn ?a ?b) (dependsOn ?b ?c))
-      (dependsOnTransitive ?a ?c))
-    (=>
-      (and (dependsOn ?a ?b) (dependsOnTransitive ?b ?c))
-      (dependsOnTransitive ?a ?c))
-
-    ;; Capability composition rules
-    (=>
-      (and
-        (instance ?pkg NIXPackage)
-        (providesCapability ?pkg ?capA)
-        (composesWith ?capA ?capB)
-        (providesCapability ?other ?capB)
-        (dependsOn ?pkg ?other))
-      (canCompose ?pkg ?capA ?capB))
-
-    (=>
-      (and (composesWith ?a ?b) (composesWith ?b ?c))
-      (composesWithTransitive ?a ?c))
-    (=>
-      (and (composesWith ?a ?b) (composesWithTransitive ?b ?c))
-      (composesWithTransitive ?a ?c))
-
-    (=>
-      (and
-        (instance ?pkg NIXPackage)
-        (providesCapability ?pkg ?cap)
-        (composesWithTransitive ?cap ?otherCap)
-        (providesCapability ?dep ?otherCap)
-        (dependsOnTransitive ?pkg ?dep))
-      (enablesCapability ?pkg ?otherCap))
-
-    (=>
-      (and
-        (enablesCapability ?pkg ?cap1)
-        (enablesCapability ?pkg ?cap2)
-        (enablesCapability ?pkg ?cap3)
-        (not (= ?cap1 ?cap2))
-        (not (= ?cap1 ?cap3))
-        (not (= ?cap2 ?cap3)))
-      (synergy ?pkg ?cap1 ?cap2 ?cap3))
-  '';
-
-  capabilities = ''
-    ;; 20+ composesWith seed facts (web, data, language, system, build, interactive, archive, vcs)
-    (composesWith HTTPServer TLS)
-    (composesWith HTTPServer ReverseProxy)
-    (composesWith Scripting DataScience)
-    (composesWith ServiceManagement IPC)
-    ;; ...
-  '';
-
-  allForms = kif.parse (snapshot + "\n" + rules + "\n" + capabilities);
-  kb = datalog.facts allForms;
-
-  directComps = datalog.ask kb "(canCompose ?pkg ?capA ?capB)";
-  enabledCaps = datalog.ask kb "(enablesCapability ?pkg ?cap)";
-  synergies = datalog.ask kb "(synergy ?pkg ?cap1 ?cap2 ?cap3)";
-
-  formatDirect = row: "🔗 ${row.pkg} composes ${row.capA} + ${row.capB}";
-  formatEnabled = row: "✨ ${row.pkg} enables ${row.cap} via transitive deps";
-  formatSynergy = row: "🚀 ${row.pkg} synergy: ${row.cap1} + ${row.cap2} + ${row.cap3}";
-
-  output = ''
-    ╔══════════════════════════════════════════════════════════════╗
-    ║           SUMO-NIX CAPABILITY DISCOVERY SPIKE                 ║
-    ║       "What novel capabilities can I compose?"                ║
-    ╚══════════════════════════════════════════════════════════════╝
-
-    📦 DIRECT COMPOSITIONS (package + immediate deps):
-    ${lib.concatStringsSep "\n" (lib.map formatDirect directComps)}
-
-    🌐 ENABLED CAPABILITIES (via transitive dependency closure):
-    ${lib.concatStringsSep "\n" (lib.map formatEnabled enabledCaps)}
-
-    💡 SYNERGIES (3+ capabilities combining):
-    ${lib.concatStringsSep "\n" (lib.map formatSynergy synergies)}
-
-    ────────────────────────────────────────────────────────────────
-    ✨ Spike complete. Your nixpkgs is a capability goldmine.
-  '';
-in
-output
-```
-
-**Key efficiency:** Uses actual `sumo-nix` library. Three parallel queries → beautiful formatted output. No JSON parsing.
+- `ontology = import ../sumo.nix { forms = kif.parse (readFile ../sumo.full/Merge.kif) ++ kif.parse (readFile ../nix-domain.kif); }`
+- `e = import ../datalog.nix { inherit ontology rules facts; };`
+- `e.ask [ "canCompose" "?pkg" "?capA" "?capB" ]` (s-expression lists, not strings)
+- facts/rules read from `spike/capabilities.kif` and `spike/vuln-rules.kif` (no duplicated strings)
+- synergy triples deduplicated per (pkg, unordered caps); proof trees via `e.explain`
 
 ---
 
-### Task D: NixOS VM — Minimal, Flake-Free, Uses Activation Script (1–2 hrs) ✅ **DONE**
+### Task D: NixOS VM — Minimal, Flake-Free (1–2 hrs) ✅ **DONE (impl) — ⏳ boot test blocked**
 **Goal:** Boot a NixOS VM that generates facts on startup, runs the spike, prints proofs to console.
+
+**Status:** Implemented and **the VM config evaluates cleanly** (`vm.drvPath` builds the derivation graph, assertions pass). The VM **cannot be built or booted in the current sandbox** (no writable `/nix/store`, no kernel namespaces for the build sandbox, no qemu on host). Boot verification must happen on a normal host or CI — see §12.
 
 **File:** `spike/vm.nix` — **IMPLEMENTED** (standalone module, no flake needed)
 
-```nix
-{ config, pkgs, lib, ... }:
+**Implementation (see `spike/vm.nix`):** the current code — not the original sketch — does the following:
 
-let
-  # Path to the sumo-nix repository (host path, copied into VM)
-  sumoNixHostPath = "/home/me/sumonix";
-  sumoNixVmPath = "/etc/sumo-nix";
-
-  # Copy sumo-nix source into VM image
-  sumoNixSource = pkgs.runCommand "sumo-nix-source" { } ''
-    mkdir -p $out
-    cp -r ${sumoNixHostPath}/* $out/
-    # Ensure pins.nix.merge points to the copied Merge.kif
-    sed -i 's|\./sumo\.full|'"${sumoNixVmPath}"'/sumo.full|g' $out/pins.nix
-  '';
-
-  # The spike runner — uses sumo-nix from local overlay
-  spikeRunner = pkgs.writeScriptBin "sumo-spike" ''
-    #!/usr/bin/env ${pkgs.runtimeShell}
-    NIX_PATH="sumo-nix=${sumoNixVmPath}:${NIX_PATH}" ${pkgs.mlnix}/bin/mlnix eval ${./run-spike.nix}
-  '';
-
-  # Activation script: runs at boot (stage 2), generates KIF facts from live nixpkgs
-  activationScript = pkgs.writeScript "generate-sumo-facts" ''
-    #!/usr/bin/env ${pkgs.runtimeShell}
-    ${pkgs.nix}/bin/nix eval --raw --expr '(import ${./nixpkgs-snapshot.nix} {})' > /run/sumo-facts.kif
-  '';
-
-in {
-  # Minimal VM config — no flake, builds fast
-  boot.loader.grub.devices = [ "/dev/vda" ];
-  boot.loader.grub.efiSupport = false;
-  fileSystems."/" = { device = "/dev/vda"; fsType = "ext4"; };
-
-  # sumo-nix via nixpkgs (mlnix is in nixpkgs) or local overlay
-  environment.systemPackages = [ pkgs.mlnix spikeRunner sumoNixSource ];
-
-  # Generate facts early in boot
-  boot.initrd.postDeviceCommands = lib.mkForce [ activationScript ];
-
-  # Run spike as oneshot service after facts exist
-  systemd.services.sumo-spike = {
-    description = "Run sumo-nix vulnerability spike";
-    after = [ "local-fs.target" ];
-    wantedBy = [ "multi-user.target" ];
-    serviceConfig = {
-      Type = "oneshot";
-      ExecStart = "${spikeRunner}";
-      StandardOutput = "journal+console";
-      StandardError = "journal+console";
-    };
-  };
-
-  boot.kernelParams = [ "console=ttyS0" ];
-  systemd.services.getty@ttyS0.wantedBy = [ "multi-user.target" ];
-  networking.useDHCP = true;
-  networking.hostName = "sumo-spike-vm";
-  services.openssh.enable = true;
-}
-```
+- Copies the repo into the VM with `builtins.path { path = ../.; filter = ...; }` excluding `.git`, `.nix-store`, `.nix-state`, build outputs — the old `cp -r /home/me/sumonix/*` copied the 831 MB local store into the image.
+- Passes the building host's nixpkgs to the VM as `pkgs.path` (via `NIX_PATH` inside the runner) so `nixpkgs-snapshot.nix`'s `import <nixpkgs> {}` evaluates offline inside the guest.
+- `sumo-spike` oneshot service (`after = [ "local-fs.target" ]`) runs: generate facts to `/run/sumo-facts.kif` (`nix --extra-experimental-features nix-command eval --impure`), then run the spike (`--impure` required — absolute `readFile /run/sumo-facts.kif` is forbidden in pure eval).
+- Guest resources via `virtualisation.vmVariant.virtualisation.memorySize = 4096; cores = 4;` (the `virtualisation.cores` option exists only in the VM-variant module set, not top level).
+- The classic VM direct-boots the kernel (`useBootLoader = false`); `boot.loader.grub.enable = false` + a tmpfs `/` satisfy eval-time assertions; no GRUB device needed.
+- Serial console `console=ttyS0` + `getty@ttyS0` for the boot log; `journal+console` for the spike output.
+- `<nixpkgs/nixos>` re-exports `vm` — the attribute to build is **`vm`** (the plan's original `system.build.vm` does not exist there).
 
 **Build command (no flake):**
 ```bash
-nix build -f '<nixpkgs/nixos>' system.build.vm -I nixos-config=./spike/vm.nix --impure
+nix build -f "${NIXPKGS_PATH}/nixos" vm -I nixos-config=./spike/vm.nix
 ```
+(Plain `nix build -f '<nixpkgs/nixos>' system.build.vm` was wrong twice: wrong attribute and `<nixpkgs>` unresolved — `spike/demo.sh` now resolves nixpkgs itself via `(builtins.getFlake "nixpkgs").outPath`.)
+
+**Verification status:** `nix eval -f "$NIXPKGS_PATH/nixos" vm.drvPath -I nixos-config=./spike/vm.nix` **succeeds** (full module evaluation, assertions pass, image derivation produced). VM **build + boot not possible in the current sandbox** (see §12).
 
 ---
 
-### Task E: Demo Script — Robust, Times Out Cleanly (30 min) ✅ **DONE**
+### Task E: Demo Script — Robust, Times Out Cleanly (30 min) ✅ **DONE (impl) — ⏳ boot test blocked**
 **Goal:** One command builds VM, boots it, captures capability discovery output, exits cleanly.
 
-**File:** `spike/demo.sh` — **IMPLEMENTED**
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-cd "$(dirname "$0")"
-
-echo "🔨 Building NixOS VM (no flake, fast)..."
-nix build -f '<nixpkgs/nixos>' system.build.vm -I nixos-config=./vm.nix --impure -o vm-result
-
-echo "🚀 Booting VM (headless, serial console, 60s timeout)..."
-echo "   Discovering what capabilities your packages can compose..."
-echo ""
-timeout 60s ./vm-result/bin/run-*-vm \
-  -nographic -serial mon:stdio -device virtio-rng-pci -no-reboot 2>&1 | \
-  awk '
-    /SUMO-NIX CAPABILITY DISCOVERY/ { in_spike=1 }
-    in_spike { print }
-    /✨ Spike complete/ { saw_complete=1 }
-    END { if (!saw_complete) exit 1 }
-  '
-
-echo ""
-echo "🎉 Capability discovery complete! Your nixpkgs is a goldmine."
-```
+**File:** `spike/demo.sh` — **IMPLEMENTED** (resolves nixpkgs via `(builtins.getFlake "nixpkgs").outPath`, builds `${NIXPKGS_PATH}/nixos` attribute **`vm`**, boots with a configurable `SPIKE_TIMEOUT` (default 180s), captures the banner-to-footer report via the same awk filter, fails loudly if the spike output never appears)
 
 **Run:**
 ```bash
@@ -361,15 +199,15 @@ cd spike && ./demo.sh
 
 ```
 spike/
-├── nixpkgs-snapshot.nix     # Task A: emits KIF to stdout (50 packages + capabilities)
-├── vuln-rules.kif           # Task B: 7 capability composition rules
-├── capabilities.kif         # Task B: 20+ composesWith seed facts
-├── run-spike.nix            # Task C: driver, 3 parallel queries, formatted output
-├── vm.nix                   # Task D: NixOS module (no flake)
-└── demo.sh                  # Task E: build + boot + capture
+├── nixpkgs-snapshot.nix     # Task A: emits KIF to stdout (50 packages + capabilities, dep-name aliases)
+├── vuln-rules.kif           # Task B: capability composition rules (with 1-hop base cases)
+├── capabilities.kif         # Task B: 24 composesWith seed facts
+├── run-spike.nix            # Task C: driver, 2 closure queries + synergy, deduplicated, formatted output
+├── vm.nix                   # Task D: NixOS module (no flake); vmVariant memory/cores
+└── demo.sh                  # Task E: resolve nixpkgs, build `vm`, boot, capture
 ```
 
-**7 files, ~300 LOC total.** No generated files committed (facts generated at VM boot). SUMO corpus copied into VM image.
+**6 spike files.** No generated files committed (facts generated at VM boot). The repo root gains a `.gitignore` for `.nix-store/`, `.nix-state/` and build outputs (this host builds nix with a diverted local store).
 
 ---
 
@@ -377,10 +215,10 @@ spike/
 
 | Tool | Version | Notes |
 |---|---|---|
-| Nix | 2.18+ | `nix build -f '<nixpkgs/nixos>'` |
-| QEMU/KVM | any | VM runtime |
-| mlnix | any | In nixpkgs (`pkgs.mlnix`) |
-| sumo-nix | local | Available via `NIX_PATH` or overlay |
+| Nix | 2.18+ | `nix build -f "${NIXPKGS_PATH}/nixos" vm` (nixpkgs resolved via `builtins.getFlake`) |
+| QEMU/KVM | any | VM runtime; used via `pkgs.qemu_kvm` inside the VM closure |
+| writable `/nix/store` + kernel namespaces | — | **Required to build** — not available in the current sandbox |
+| sumo-nix | local | Copied into the VM image; paths read via `builtins.readFile` at eval time |
 
 ---
 
@@ -388,13 +226,13 @@ spike/
 
 | Time | Milestone | Status |
 |---|---|---|
-| 0:00–1:30 | Task A: `nix eval` prints valid KIF for 50 packages | ✅ **DONE** |
-| 1:30–2:30 | Task B: `mlnix eval` loads rules, no syntax errors | ✅ **DONE** |
-| 2:30–3:30 | Task C: `mlnix eval run-spike.nix` (with manual facts file) prints proofs | ✅ **DONE** |
-| 3:30–5:00 | Task D: `nix build` succeeds, VM boots to login prompt | ✅ **IMPLEMENTED** |
-| 5:00–5:30 | Task E: `./demo.sh` runs end-to-end, prints proof trees | ✅ **IMPLEMENTED** |
+| 0:00–1:30 | Task A: `nix eval` prints valid KIF for 50 packages | ✅ **DONE — verified** |
+| 1:30–2:30 | Task B: rules load, no syntax errors | ✅ **DONE — verified** |
+| 2:30–3:30 | Task C: `nix eval` with manual facts file prints proofs | ✅ **DONE — verified** |
+| 3:30–5:00 | Task D: VM config evaluates (`vm.drvPath`) | ✅ **DONE** — boot/build pending host |
+| 5:00–5:30 | Task E: `./demo.sh` runs end-to-end, prints proof trees | ⏳ **BLOCKED** — needs host/CI with writable store + namespaces |
 
-**Total: ~5.5 hours.** (VM build is parallelizable; flake removal saves ~1 hr.) **Implementation complete, testing requires NixOS environment.**
+**Total: ~5.5 hours implementation.** The spike's reasoning pipeline is fully verified locally (facts → Datalog closure → synergies → proof trees). Only the VM image build/boot remains, blocked by the sandbox (see §12).
 
 ---
 
@@ -429,12 +267,15 @@ cd /home/me/sumonix/spike
 ./demo.sh                    # Builds VM, boots it, runs spike, prints proof trees
 ```
 
-**Fallback (no QEMU):**
+**Fallback (no QEMU — used on this host):**
 ```bash
-# Manual facts file for local test
-nix eval --raw --expr '(import ./nixpkgs-snapshot.nix {})' > /tmp/facts.kif
-cp /tmp/facts.kif /run/sumo-facts.kif  # or bind-mount
-mlnix eval ./run-spike.nix
+# Facts (nixpkgs eval must run with flakes enabled)
+nix --extra-experimental-features 'nix-command flakes' eval --impure --raw \
+  --expr 'let pkgs = import (builtins.getFlake "nixpkgs") {}; in (import ./spike/nixpkgs-snapshot.nix { inherit pkgs; })' \
+  > /tmp/facts.kif
+# Reasoning (no VM needed — pure evaluation)
+nix --extra-experimental-features 'nix-command flakes' eval --impure --raw \
+  --expr 'import ./spike/run-spike.nix { snapshot = builtins.readFile /tmp/facts.kif; }'
 ```
 
 ---
@@ -461,7 +302,7 @@ nixpkgs-snapshot.nix    →     Lazy incremental bootstrap    →     Epistemic 
     (50 pkgs, eager)            (100k pkgs, cached)             (signed, versioned)            (multi-node consensus)
 
 vuln-rules.kif          →     Policy pack registry          →     PID-guarded policies      →     Cybernetic control loops
-    (3 rules)                  (security, license, caps)         (hysteresis, cooldowns)         (Temporal Datalog)
+    (7 rules)                  (security, license, caps)         (hysteresis, cooldowns)         (Temporal Datalog)
 
 cve-seed.kif            →     Live advisory ingest          →     Data derivations            →     Stateful transitions
     (1 static fact)             (OSV/NVD streams)                 (migrations, snapshots)         (ZFS/rsync checkpoints)
@@ -501,47 +342,49 @@ demo.sh                 →     nix flake check + VM tests    →     Property-b
 
 The spike has successfully seeded the full potential when:
 
-- [x] `./demo.sh` runs end-to-end in a clean environment (CI-verified) — **IMPLEMENTED, needs NixOS env to test**
-- [x] Capability discovery output is human-readable, inspiring, and cites source facts + rules — **IMPLEMENTED**
-- [x] All KIF uses SUMO classes (`SoftwareArtifact`, `SoftwareCapability`, `composesWith`) per `nix-domain.kif` — **IMPLEMENTED**
-- [ ] VM builds on `x86_64-linux` and `aarch64-linux` (no flake required) — **PENDING TEST**
+- [x] Capability discovery pipeline runs end-to-end (facts → Datalog → report) — **VERIFIED on this host** (see §12)
+- [ ] `./demo.sh` runs end-to-end in a clean environment (CI-verified) — **BLOCKED in current sandbox** (no `/nix/store`, no build namespaces)
+- [x] Capability discovery output is human-readable, inspiring, and cites source facts + rules — **IMPLEMENTED + VERIFIED**
+- [x] All KIF uses SUMO classes per `nix-domain.kif` — **IMPLEMENTED** (`NIXPackage` subclass of `ComputerProgram`; relations `dependsOn`/`providesCapability`)
+- [ ] VM builds on `x86_64-linux` and `aarch64-linux` (no flake required) — **VM config evaluates** (`vm.drvPath` OK); **build not possible here**; aarch64 untested
 - [x] No modifications to `kif.nix`, `sumo.nix`, `datalog.nix` required — **CONFIRMED**
-- [x] Next developer can add a new capability composition in 15 minutes by editing `capabilities.kif` — **DESIGNED FOR THIS**
+- [x] Next developer can add a new capability composition in 15 minutes by editing `capabilities.kif` — **DESIGNED FOR THIS + USED IT** (2 seeds added in this pass)
 
 ---
 
-## 12. Implementation Notes (2026-11-04)
+## 12. Implementation Notes (2026-11-04, second pass)
 
-### Files Created
-| File | Task | Lines | Notes |
-|---|---|---|---|
-| `spike/nixpkgs-snapshot.nix` | A | 45 | 50 packages + capabilities mapping, emits KIF |
-| `spike/vuln-rules.kif` | B | 35 | 7 rules: transitive closure + capability composition |
-| `spike/capabilities.kif` | B | 30 | 20+ composesWith seed facts (web, data, lang, sys, build, ...) |
-| `spike/run-spike.nix` | C | 95 | Driver: 3 queries (direct, transitive, synergy) + formatted output |
-| `spike/vm.nix` | D | 58 | NixOS module, copies sumo-nix source to VM |
-| `spike/demo.sh` | E | 20 | Builds VM, boots, captures capability discovery output |
-| `default.nix` | — | 12 | Library entry point for `import <sumo-nix>` |
+### Files Changed
+| File | What changed |
+|---|---|
+| `spike/run-spike.nix` | **Rewritten against the real `datalog.nix` API**: `{ ontology rules facts }` args, Horn rules split by `head == "=>"`, queries as s-expression lists (`e.ask [ "canCompose" "?pkg" ... ]`), no phantom `lib`, repo-relative paths, `snapshot ? builtins.readFile /run/sumo-facts.kif` parameter for local testing, synergy triples deduplicated per (pkg, unordered caps), counts in section headers, `e.explain`-ready |
+| `spike/vuln-rules.kif` | **Added missing 1-hop base cases** (`dependsOnTransitive`, `composesWithTransitive`) — without them no closure derives; disequalities use SUO-KIF `equal` instead of `=` (the engine's equality form; `=` matched nothing in facts) |
+| `spike/capabilities.kif` | `"C++"` → `CPlusPlus` (quoted strings keep their quotes in this parser and never unified with the bare `C++` atom); added `(composesWith Crypto X509)` and `(composesWith VersionControl HTTPClient)`; restored mangled System compositions block |
+| `spike/nixpkgs-snapshot.nix` | `C++` → `CPlusPlus`; **dep-name alias table** for nixpkgs renames: `zlib-ng→zlib`, `util-linux-minimal→util-linux`, `gnum4→m4`, `gmake→make`, `glibc-iconv-*→glibc` — deps now link to universe instances |
+| `spike/vm.nix` | **Rewritten**: repo copied with `builtins.path` filter (excludes `.git`/`.nix-store`/`.nix-state` — old code copied 831 MB into the image); nixpkgs passed as `pkgs.path` for offline in-VM eval; `--impure` evals (absolute `readFile /run/sumo-facts.kif` is forbidden in pure eval); guest resources via `virtualisation.vmVariant` (the option does not exist at top level); classic VM direct-boots kernel, so `boot.loader.grub.enable = false` + tmpfs `/` satisfy eval assertions |
+| `spike/demo.sh` | Resolves nixpkgs via `(builtins.getFlake "nixpkgs").outPath`; builds attribute **`vm`** (`system.build.vm` does not exist under `<nixpkgs/nixos>`); `SPIKE_TIMEOUT` (default 180s); fails loudly when the banner/completion marker is missing |
+| `.gitignore` | **New**: `.nix-store/`, `.nix-state/`, build outputs — this host builds nix with a diverted local store |
 
-### Key Implementation Decisions
+### Verification (this host, diverted nix store at `./.nix-store`)
+- **Facts**: `nix eval --impure --expr 'let pkgs = import (builtins.getFlake "nixpkgs") {}; in import ./spike/nixpkgs-snapshot.nix { inherit pkgs; }'` → valid KIF, 386 lines.
+- **Reasoning**: `import ./spike/run-spike.nix { snapshot = builtins.readFile facts.kif; }` → report with:
+  - 📦 6 direct compositions (nginx×3, automake, libarchive, git)
+  - 🌐 10 enabled capabilities (nginx: TLS/Crypto/X509; git: SSHClient/SFTP/HTTPClient; postgresql: SQL via `postgresql→util-linux→sqlite` 2-hop closure; libgcrypt, libarchive, automake)
+  - 💡 2 synergies (`git: HTTPClient + SFTP + SSHClient`, `nginx: Crypto + TLS + X509`)
+- **Transitive closure verified** via `e.explain [ "enablesCapability" "postgresql" "SQL" ]` — full proof tree with asserted facts and rule names.
+- **VM config evaluates**: `nix eval -f "$NIXPKGS_PATH/nixos" vm.drvPath -I nixos-config=./spike/vm.nix` → `/nix/store/w2lzna4aifzfc1c5qs51waabv5fyg3zf-nixos-vm.drv`. Assertions pass.
 
-1. **SUMO corpus in VM**: The `sumo.full/Merge.kif` (632KB) is copied into the VM image at `/etc/sumo-nix/sumo.full` via `sumoNixSource` in `vm.nix`. The `pins.nix` is patched at build time to point to the VM path.
+### Blocked here — needs a normal host or CI
+- **VM build + boot**: this sandbox has no writable `/nix/store` (`creating directory "/nix/store": Permission denied`), and builds in a diverted store are impossible (`this system does not support the kernel namespaces that are required for sandboxing`); user namespaces are blocked (`unshare: Operation not permitted`); no qemu on host. The image build runs `qemu-img`/disk creation locally, so it cannot be substituted from the cache.
+- **To finish**: on any NixOS/Linux host with nix ≥ 2.18 and KVM, run `cd spike && ./demo.sh` (or `SPIKE_TIMEOUT=180 ./spike/demo.sh`). Expected: VM builds, boots headless, `sumo-spike` oneshot service logs the report to console; awk extracts it; exit 0.
+- **aarch64-linux**: untested; classic VM is x86_64-BIOS-oriented — for ARM use `virtualisation.useEFIBoot` or run on x86_64.
 
-2. **Embedded rules/seed**: `run-spike.nix` embeds the capability composition rules and `composesWith` seed facts as strings to avoid file path resolution issues inside the VM.
-
-3. **NIX_PATH injection**: The `spikeRunner` script sets `NIX_PATH="sumo-nix=/etc/sumo-nix:..."` so `import <sumo-nix>` resolves to the copied source.
-
-4. **Activation script timing**: Facts are generated in `boot.initrd.postDeviceCommands` (early boot), then the `sumo-spike` oneshot service runs after `local-fs.target`.
-
-5. **Package selection**: 50 packages chosen to include rich capability combinations (nginx→HTTPServer+TLS, python3→Scripting+ML, nodejs→JS+WebServer, postgresql→RelationalDB+ACID, redis→KeyValueStore+PubSub, etc.).
-
-### Known Limitations / TODO for Testing
-
-- [ ] **Test in NixOS environment**: Requires Nix 2.18+, QEMU/KVM, and KVM access. Current environment lacks Nix.
-- [ ] **Verify transitive closure**: Confirm that `dependsOnTransitive` correctly computes multi-hop dependencies (e.g., nginx → openssl → crypto).
-- [ ] **Check output format**: Ensure three query sections render correctly with emoji headers.
-- [ ] **VM boot timeout**: 60s may be tight on slow CI runners; consider configurable timeout.
-- [ ] **aarch64-linux**: VM config uses GRUB BIOS; may need UEFI adjustments for ARM.
+### Key Implementation Decisions (updated)
+1. **Repo-relative paths everywhere** — `run-spike.nix` reads `../kif.nix`, `../sumo.nix`, `../sumo.full/Merge.kif`, `../nix-domain.kif`, `./vuln-rules.kif`, `./capabilities.kif`; works identically from the repo and from the VM image copy.
+2. **Rules/seeds as files, not embedded strings** — single source of truth (`vuln-rules.kif`, `capabilities.kif`), parsed once at eval; duplication removed.
+3. **`--impure` is required at runtime** — facts live at an absolute path (`/run/sumo-facts.kif`) outside the store; pure eval forbids `builtins.readFile` there.
+4. **Synergy dedup at format time** — the engine derives all 6 orderings of a triple; output collapses by (pkg, sorted caps).
+5. **Local facts injection** — `snapshot ?` parameter lets the exact VM code path be exercised locally without booting (used for all verification above).
 
 ### Next Steps After Spike (Per Plan)
 1. **Lazy incremental bootstrap** — Cache package facts, invalidate on metadata change.

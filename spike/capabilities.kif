@@ -22,7 +22,7 @@
 (composesWith Scripting WebFramework)
 (composesWith Scripting ML)
 (composesWith Compilation C)
-(composesWith Compilation "C++")
+(composesWith Compilation CPlusPlus)
 
 ;; System compositions
 (composesWith ServiceManagement InitSystem)
@@ -30,8 +30,11 @@
 (composesWith ServiceManagement ServiceDiscovery)
 (composesWith SSHServer RemoteAccess)
 (composesWith SSHClient SFTP)
+
+;; Crypto: TLS and certificates
 (composesWith TLS Crypto)
 (composesWith X509 Crypto)
+(composesWith Crypto X509)
 
 ;; Build tool compositions
 (composesWith BuildAutomation BuildConfiguration)
@@ -52,3 +55,4 @@
 ;; Version control
 (composesWith VersionControl DistributedSync)
 (composesWith DistributedSync SSHClient)
+(composesWith VersionControl HTTPClient)

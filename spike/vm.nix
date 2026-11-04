@@ -1,44 +1,53 @@
+# NixOS VM for the sumo-nix capability discovery spike. No flake required.
+#
+# Build on a host with a writable /nix/store and kernel namespaces (or CI):
+#   nix build -f '<nixpkgs/nixos>' vm -I nixos-config=./spike/vm.nix
+# or via spike/demo.sh. The classic VM direct-boots the kernel; no GRUB needed.
 { config, pkgs, lib, ... }:
 
 let
-  # Path to the sumo-nix repository (host path, copied into VM)
-  sumoNixHostPath = "/home/me/sumonix";
-  sumoNixVmPath = "/etc/sumo-nix";
+  # Copy only the repository source into the VM; drop VCS, local stores and build outputs.
+  repoRoot = builtins.path {
+    path = ../.;
+    filter = path: type: !(builtins.elem (baseNameOf path)
+      [ ".git" ".nix-store" ".nix-state" "result" "vm-result" ]);
+  };
 
-  # Copy sumo-nix source into VM image
-  sumoNixSource = pkgs.runCommand "sumo-nix-source" { } ''
-    mkdir -p $out
-    cp -r ${sumoNixHostPath}/* $out/
-    # Ensure pins.nix.merge points to the copied Merge.kif
-    sed -i 's|\./sumo\.full|'"${sumoNixVmPath}"'/sumo.full|g' $out/pins.nix
+  # nixpkgs source of the host building the VM, so nixpkgs eval works offline inside the VM.
+  nixpkgsPath = pkgs.path;
+
+  spike = pkgs.writeShellScript "sumo-spike" ''
+    set -euo pipefail
+    export NIX_PATH="nixpkgs=${nixpkgsPath}"
+    echo "Generating facts from live nixpkgs..."
+    ${pkgs.nix}/bin/nix --extra-experimental-features 'nix-command' eval --raw --impure \
+      --expr '(import ${repoRoot}/spike/nixpkgs-snapshot.nix {})' > /run/sumo-facts.kif
+    echo "Running capability discovery..."
+    ${pkgs.nix}/bin/nix --extra-experimental-features 'nix-command' eval --raw --impure \
+      --expr '(import ${repoRoot}/spike/run-spike.nix {})'
   '';
+in
+{
+  # The classic VM direct-boots the kernel (no GRUB); these satisfy eval-time assertions only.
+  boot.loader.grub.enable = false;
+  fileSystems."/" = { device = "tmpfs"; fsType = "tmpfs"; };
 
-  # The spike runner — uses sumo-nix modules directly via nix eval
-  spikeRunner = pkgs.writeScriptBin "sumo-spike" ''
-    #!/usr/bin/env ${pkgs.runtimeShell}
-    # Generate facts first
-    ${pkgs.nix}/bin/nix eval --raw --expr '(import ${./nixpkgs-snapshot.nix} {})' > /run/sumo-facts.kif
-    # Run spike using nix eval directly
-    ${pkgs.nix}/bin/nix eval --raw --expr '(import ${./run-spike.nix} {})'
-  '';
+  # Guest resources for nixpkgs + SUMO evaluation (vmVariant declares these options)
+  virtualisation.vmVariant = {
+    virtualisation.memorySize = 4096;
+    virtualisation.cores = 4;
+  };
 
-in {
-  # Minimal VM config — no flake, builds fast
-  boot.loader.grub.devices = [ "/dev/vda" ];
-  boot.loader.grub.efiSupport = false;
-  fileSystems."/" = { device = "/dev/vda"; fsType = "ext4"; };
+  environment.systemPackages = [ pkgs.nix ];
 
-  # sumo-nix source copied into VM
-  environment.systemPackages = [ spikeRunner sumoNixSource ];
-
-  # Run spike as oneshot service after facts exist
+  # Generate facts from live nixpkgs and run the spike as a oneshot service at boot
   systemd.services.sumo-spike = {
     description = "Run sumo-nix capability discovery spike";
     after = [ "local-fs.target" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
       Type = "oneshot";
-      ExecStart = "${spikeRunner}";
+      ExecStart = spike;
       StandardOutput = "journal+console";
       StandardError = "journal+console";
     };
