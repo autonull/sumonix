@@ -1,7 +1,12 @@
 # sumo-nix 🦙
 
-> **The SUMO upper ontology as a capable, auditable reasoner in pure Nix.**
-> No external deps. No hand-curation. Just a pinned KIF file and ~1,000 lines of Nix.
+> **A semantic operating system: where every package, vulnerability, capability, and policy is a fact in a shared knowledge graph, reasoned over by a capable, auditable engine — and the build fails with a proof when policy is violated.**
+
+> **The vision:** NixOS configurations, nixpkgs derivations, CI pipelines, and runtime telemetry all contribute facts to a single SUMO-native knowledge base. A forward-chaining engine derives transitive closures (dependencies, vulnerabilities, capabilities), subsumes through equivalences, and answers queries with full provenance. Policies are Horn rules; violations halt the build with an independently re-checkable proof. A relaxation menu shows exactly which overrides flip the verdict. Extensions for disjunction, aggregates, soft rules, temporal logic, and congruence closure are admitted by design — each a pure Nix module behind a flag, never touching the eval path unless explicitly enabled.
+
+> **What runs today (V3):** parser, ontology with equivalence union-find, declaration-driven synthesis (166 rules from SUMO's own `TransitiveRelation`/`subrelation`/`inverse`…), stratifier (349 neg-cycle rejections with reasons), ingestion (116 Horn rules from Merge.kif, default-on), naive engine (~1.1 s), proof export + zero-shared-code checker, build gate with proof-of-violation, relaxation menu (single flips + size-2 flips + minimal supports).
+
+> **What's next (pick one):** congruence closure (equal things interchangeable), aggregates/builtins (version ranges, counts), disjunctive heads (choice), soft rules/MaxSAT (minimize violations), well-founded negation, bounded existentials, temporal logic — each an independent module with its own test and demo.
 
 ---
 
