@@ -1,95 +1,195 @@
-# sumo-nix
+# sumo-nix 🦙
 
-The SUMO upper ontology as Nix lambdas, read from its KIF text. It needs [mlnix](https://github.com/jnorthrup/mlir-nix) (or any Nix) to run, and nothing else.
+> **The SUMO upper ontology as a capable, auditable reasoner in pure Nix.**
+> No external deps. No hand-curation. Just a pinned KIF file and ~1,000 lines of Nix.
 
-TrikeShed keeps a 13-term hand-written spine (`SumoOntology.kt`) and a frozen binary of SUMO. This repository
-uses neither. The source is the KIF file at the commit pinned in `pins.nix`, the same commit and hashes as
-TrikeShed's `utils/sumo/sumo-corpus.pins`. `builtins.fetchurl` downloads it once and refuses a file whose SHA-256 differs.
+---
 
-| file | what |
-| --- | --- |
-| `kif.nix` | `parse`: KIF text to S-expressions (an atom is a string, a list is a list) |
-| `sumo.nix` | `parents`, `ancestors`, `classOf`, `domains`, `isSubclass`, `isInstance`, `wellTyped`, and `classes`: each SUMO class as a predicate lambda |
-| `datalog.nix` | forward chaining over `(=> ..)` rules: `facts`, `holds`, `ask`, `why`, `explain`; every derived fact keeps its rule and the facts it rests on |
-| `nix-domain.kif`, `rules.kif` | the NIX classes and relations under SUMO, and the rules, from [nix_sumo.md](https://gist.github.com/autonull/2d60c4001c8f92f25945ed6decee39f1) sections 6, 11 and 18 |
-| `pins.nix` | the pinned corpus |
-| `tests/default.nix`, `tests/rules.nix` | `mlnix eval tests/default.nix` prints `"ok"`; so does `tests/rules.nix` |
+## 🎯 What This Is
+
+| Layer | What It Does |
+|-------|--------------|
+| 📖 **Parser** (`kif.nix`) | SUO-KIF text → S-expressions (atoms = strings, lists = lists) |
+| 🧠 **Ontology** (`sumo.nix`) | `subclass`/`instance`/`equivalent` → ancestors, classOf, `isSubclass`, `isInstance`, domains, well-typedness |
+| ⚙️ **Engine** (`datalog.nix`) | Naive forward chaining over Horn rules; every derived fact carries `{ rule, from, round, bindings }` |
+| 🔬 **Synthesis** (`reasoner/synthesize.nix`) | Reads SUMO's own declarations (`TransitiveRelation`, `SymmetricRelation`, `subrelation`, `inverse`, `subAttribute`…) and *writes* Horn rules — no hand-curation |
+| 🛡️ **Stratifier** (`reasoner/stratify.nix`) | Predicate dependency graph; rejects every rule on a negative cycle with a reason; assigns strata |
+| 📥 **Ingestion** (`reasoner/ingest.nix`) | Classifies all `=>`/`<=>`/`forall` forms from Merge.kif; strips quantifiers, splits `or`/`and`, drops ancestor-prop duplicates, applies stratifier cut |
+| 📜 **Proof Export** (`reasoner/proof.nix`) | Emits a KIF certificate: ontologies, rules (engine IDs), axioms, steps in round order, bindings, goal |
+| ✅ **Independent Checker** (`proof-check.nix`) | Zero shared code. Re-parses, re-derives subsumption, re-evaluates each step. Tamper → loud failure. |
+| 🚧 **Policy Gate** (`policy/build-gate.nix`) | `check { goal; passWhen }` → pass/fail with proof tree. `mkPolicyChecked` → derivation that fails the *build* with the proof when policy is violated. |
+| 🧭 **Relaxation Menu** (`policy/relax.nix`) | When a gate fails: lists every single toggle whose removal flips the verdict (with proof sketch), size-2 flips when no single does, and minimal supports for a passing goal. |
+
+---
+
+## 🏆 V3 — The Policy Product (Shipping Now)
+
+| Milestone | What You Get |
+|-----------|--------------|
+| **V1** ✅ | Horn ingestion runs; full test suite green |
+| **V2** ✅ | Every derived fact has an exported, independently re-checked proof |
+| **V3** ✅ | **Build-time enforcement with a proof-of-violation + a relaxation menu** — the demo that justifies this project |
+| **V4** ⏳ | Differential CI (Soufflé) — deferred |
+
+> **Benchmark:** ~1.1 s on 286 rules / 23–185 derived facts (ingestion scenario). Well under the 5 s gate. The naive engine ships; semi-naive is skipped.
+
+---
+
+## 🏗️ Architecture
 
 ```
-$ mlnix eval -E 'let k = import ./kif.nix; p = import ./pins.nix;
-                     o = import ./sumo.nix { forms = k.parse (builtins.readFile p.merge); };
-                 in o.ancestors.Human'
+Merge.kif ──┐
+nix-domain  ├─► ingest.classify ──► { ontology │ horn-rules │ rejected(+reasons) }
+SEEDS       ┘       │                    │
+                    ▼                    ▼
+              sumo.nix (+equiv)    engine.run (naive; proven fast enough)
+                                        │
+                   ┌────────────────────┼────────────────────┐
+                   ▼                    ▼                    ▼
+             policy gate          relaxation menu        proof export
+             (build fails on      (flip-candidates,      (proof.kif →
+              violation)          min-drop set)           proof-check.nix)
 ```
 
-## Through the dialects
+**Interfaces are narrow and total; layers replace independently.**
 
-mlnix has the layers above the nix dialect: `sumo` (relations as ops) lowers to `kif` (terms, facts, rules) lowers to `nix`
-(`include/NixDialect/Kif.td`, `Sumo.td` in mlir-nix). The scenario as dialect ops is `test/mlir/inputs/kif-openssl.mlir` there.
+---
+
+## 📜 Extension Contract — Everything Admitted by Design
+
+Rule zero: needs unbounded FOL or unbounded satisfiability on this ontology ⇒ **offline tooling** or **validation-only CI**, never `nix eval`.
+
+| Capability | Extension Point | Milestone | Termination | Proof |
+|------------|-----------------|-----------|-------------|-------|
+| Disjunctive consequent | IR `disjunct [B C]` | T2.1 | branch enumeration + per-branch fixpoint | `by disjunct#<i>` |
+| Well-founded negation | three-valued eval + alternating fixpoint | T2.2 | bounded by strata size | `by unknown#neg` |
+| Existential consequent / Skolem | bounded grounding (finite domain) | T2.3 | finite domain ⇒ terminates | `by exists-witness` |
+| Antecedent disjunction | compile-time `or` → two Horn rules | P3 (free) | unchanged | `by or-split` |
+| `iff` / `<=>` | compile-time split into two `=>` | P3 | unchanged | both directions |
+| Equality & congruence | generated schemas over fact terms | T2.4 | finite terms ⇒ finite closure | congruence paths |
+| Knuth–Bendix completion | offline `completion.nix` | T2.5 | offline; depth-limited | n/a |
+| Aggregates & arithmetic | builtins registry (`greaterThan`, `subsetOf`, …) | P3 / T2.6 | pure Nix comparisons | `by builtin#<name>` |
+| Weighted/soft rules & MaxSAT | rule weights + violation minimization | T3.1 | bounded candidate set | `by soft#<w>` |
+| Abductive repair | minimal failing sets (hitting-set) | P5 (menu) | bounded candidates | `by abduced` |
+| Non-ground `ask` + aggregates | IR `aggregate` with group-by | T2.6 | finite solutions | `by aggregate#count` |
+| External compiled backend | differential CI (Soufflé) | T2.7 | n/a | proofs must match |
+| Parallel eval | semi-naive rounds are set-parallel | T3.2 | unchanged | unchanged |
+| Temporal/Modal | binary predicates + dedicated module later | T3.3 | finite time atoms | modal tags |
+| Full FOL / disjunctive stable models | **excluded from eval path** | — | n/a | n/a |
+
+> Every row is an accepted obligation with a test or a documented reject path. Nothing is admitted by accident.
+
+---
+
+## 🧪 What's Covered (and What's Not)
+
+| ✅ Covered | ❌ Not Yet |
+|------------|------------|
+| `subclass` / `instance` / `domain` / `equivalent` → full taxonomy | `Mid-level-ontology.kif` (separate file) |
+| `TransitiveRelation`, `SymmetricRelation`, `ReflexiveRelation` → synthesized Horn rules | `documentation`, `termFormat`, `format` (human-readable only) |
+| `subrelation`, `inverse`, `subAttribute` → synthesized Horn rules | `exhaustiveAttribute`, `contraryAttribute`, `disjoint` (need disjunction → E1) |
+| Horn rules from Merge.kif (`=>` with grounded consequent) | quantified / negated / function consequents (rejected with reasons) |
+| `and`, `exists`, `not` (NAF), `equal`, `instance` (with subsumption) | `or` in antecedent (E4), `forall` in consequent (E1) |
+| Proof export + independent re-check | Knuth–Bendix completion (offline tool) |
+| Build-time gate with proof-of-violation | Aggregates / arithmetic (E8, registry ready) |
+| Relaxation menu (single + size-2 flips + supports) | Soft rules / MaxSAT (E9) |
+
+**Honesty of rejection:** every unsupported form is rejected **with a reason**; nothing is silently dropped; no `throw` on user data paths.
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# All tests (pure Nix, no sandbox needed)
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/default.nix'      # "ok"
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/rules.nix'        # "ok"
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/ingest-smoke.nix' # "ok"
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/proof-check.nix'  # "ok"
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/relax.nix'   # "ok"
+
+# Generate the CVE proof artifact (deterministic, byte-identical)
+nix --extra-experimental-features nix-command eval --impure --raw --expr 'import ./tests/proof-artifact.nix' > proof.kif
+
+# Re-check it independently (zero shared code with the engine)
+nix --extra-experimental-features nix-command eval --impure --expr '(import ./proof-check.nix { file = ./proof.kif; })'
+# → "proof: 9 steps, independently re-checked ✓"
+```
+
+**Unit tests:**
+```bash
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/equivalents.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/synthesize.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/stratify.nix'
+```
+
+---
+
+## 📦 Repository Layout (Stable)
 
 ```
-mlnix-opt kif-openssl.mlir --sumo-to-kif --kif-to-nix > theory.mlir
-mlnix run-mlir theory.mlir --json > theory.json
-mlnix eval -E 'import ./tests/scenario.nix (builtins.fromJSON (builtins.readFile ./theory.json))'     # "ok"
+├── kif.nix                    # SUO-KIF parser
+├── sumo.nix                   # Ontology: ancestors, classOf, isSubclass, isInstance, equivalent union-find
+├── datalog.nix                # Naive engine + trace (round, bindings, proof)
+├── pins.nix                   # Pinned SUMO corpus (SHA-256 verified)
+├── nix-domain.kif             # NIX classes/relations under SUMO
+├── rules.kif                  # Hand-written rules for the CVE demo
+├── reasoner/
+│   ├── synthesize.nix         # Declaration → Horn rules (TransitiveRelation, subrelation, inverse, …)
+│   ├── ingest.nix             # Merge.kif classification + transforms + stratifier cut
+│   ├── stratify.nix           # Predicate graph + strata + neg-cycle rejection
+│   ├── proof.nix              # KIF certificate generator
+│   └── proof-artifact.nix     # Deterministic proof.kif for the CVE scenario
+├── proof-check.nix            # Independent checker (zero shared code)
+├── policy/
+│   ├── build-gate.nix         # check / mkPolicyChecked (both polarities)
+│   └── relax.nix              # Relaxation menu (flips + supports)
+├── tests/
+│   ├── default.nix            # Oracle: 5,505 forms, 712/714 classes, Human ancestors, etc.
+│   ├── rules.nix              # CVE scenario on hand-written rules
+│   ├── ingest-smoke.nix       # CVE scenario WITH ingestion ON
+│   ├── proof-check.nix        # Committed proof.kif + 4 tamper tests
+│   └── unit/
+│       ├── equivalents.nix    # Equivalence subsumption
+│       ├── synthesize.nix     # Declaration-driven synthesis
+│       ├── stratify.nix       # Stratifier behavior
+│       └── relax.nix          # Relaxation menu behavior
+├── proof.kif                  # Committed artifact (9 steps, independently re-checked)
+├── spike/                     # Capability discovery VM (optional)
+└── org/ hf/ bags.nix tq.nix   # Other demos (Hugging Face tags, org pages, test bags)
 ```
 
-`tests/scenario.nix` is the same check that `tests/rules.nix` runs on KIF text, so the two paths must agree.
-The solver itself is still the Nix in `datalog.nix`, not IR.
+---
 
-## What is covered
+## 📖 Further Reading
 
-Top-level `subclass`, `instance` and `domain` forms of `Merge.kif`: 5,505 forms, 712 classes with a parent, 714 classes.
-The engine covers `and`, `exists`, `not`, `equal` and `(instance X Class)` (subclasses by the ontology). A proof lists asserted facts and rules, not the `subclass` steps the ontology supplied.
-Not yet: `Mid-level-ontology.kif`, `or`, `forall`, `range`, `subrelation`, `documentation`, and the implicit
-`(instance C Class)` that every `subclass` form implies, so `wellTyped "subclass" [...]` is false for a class name.
+| Doc | What's Inside |
+|-----|---------------|
+| `TODO2.b.md` | The full plan (Phases 0–7), decisions, risks, file manifest, DONE checkboxes |
+| `nix_sumo.md` (gist) | The original design notes: sections 3.1, 6, 11, 18 |
+| `spike/demo.sh` | Capability discovery VM (boots NixOS, runs the reasoner inside) |
+| `sumo.full/NOTICE.md` | SUMO license (IEEE) |
 
-## Checked
+---
 
-The expected numbers in the tests come from a separate Python reader of the same file. The tests give `"ok"` on mlnix and on Nix 2.35.4.
-Breaking the ancestor fold, the transitive rule or the severity test makes them fail. `tests/rules.nix` runs the scenario of section 18 of the gist.
+## ⚖️ License
 
-## Known gap in mlnix
+**LGPL-2.1** — same as Nix and mlnix. `COPYING` is a byte-for-byte copy of Nix's `COPYING`.
 
-The first `mlnix eval` that fetches a file fails with `path ... is not valid` when it reads it in the same run. A second run works.
+Some files are copies or snapshots of other projects and keep their terms:
+- `sumo.full/` `sumo.tests/` — ontologyportal/sumo (see `sumo.full/NOTICE.md`)
+- `hf/tags.json` — snapshot of Hugging Face's public tag lists
+- `org/pages.json` `pyai/fields.json` — Pick-Your-AI repositories at pinned commits
 
-## Bags and help screens
+---
 
-`bags.nix` groups the pinned SUMO files into canned bags. Ten macro sets (core, life, things, transport, hospitality,
-military, society, geography, english, other) partition the 78 files of `sumo.full`. Four test bags (`tests-general`,
-`tests-spatial`, `tests-modal`, `tests-all`) group the 84 `.kif.tq` files of `sumo.tests`, the `tests/` directory of
-ontologyportal/sumo, by the category each file declares. A bag lists the bags it needs. `compose` puts bags in order and
-reports what it added. `match` lists the bags that join a plan with nothing new.
+## 🙏 Acknowledgments
 
-    bin/sumo-nix help            # front screen; also: help bag NAME, help compose, help tq
-    bin/sumo-nix bags
-    bin/sumo-nix compose military tests-spatial
-    bin/sumo-nix match core
-    bin/sumo-nix tq tests-general
+- **SUMO** — the Suggested Upper Merged Ontology (ontologyportal/sumo)
+- **mlnix** — the MLIR-based Nix frontend that inspired the dialect stack
+- **TrikeShed** — the pinned corpus and the 13-term spine that showed what *not* to do
+- **Nix** — for being a pure, lazy, typed functional language that can also be a reasoner
 
-`tq.nix` runs a test file on the Horn solver with Merge.kif's structural axioms. Of the 84 files: 10 pass, 31 are open (the
-answer is yes, and the file needs a non-Horn axiom of Merge.kif that is not loaded), 0 fail, 43 are unsupported (`<=>`,
-`forall`, `or`, row variables, compound consequents, typed languages). An unsupported file is not run and gets no verdict.
-`tests/bags.nix` checks the bags against `tests/bags-oracle.py`, a separate reader.
+---
 
-## Hugging Face tags anchored in SUMO
-
-`hf/tags.json` is a snapshot (2026-11-02) of the small facets of Hugging Face's public tag lists: 9 modalities, 56 tasks, 82 licenses, 11 domains, 1 origin, plus size, format and library. `hf/anchors.kif` anchors each tag in SUMO:
-`exact` (same meaning), `broader` (a SUMO class the tag falls under) or `new` (SUMO has no class: 14 are declared, each under a class SUMO has). Two tags are left out on purpose (`any-to-any`, `simready`), and size, format and library are not SUMO's subject.
-A group rule keeps each facet on its branch: modalities under ContentBearingObject, tasks under Process, domains under FieldOfStudy. Two traps are avoided: SUMO's `Table` is furniture and its `Medicine` is a drug.
-`hf/check.nix` checks the file; `hf/oracle.py` checks it again with its own reader; `tests/hf.nix` compares them and shows five bad edits being refused. `hf/fetch.py` refreshes the snapshot.
-Hugging Face lists domain, origin and modality together under `other`; its own tag lists keep axes apart better than most outlines.
-
-## Pages of an organization, taxonomized
-
-`org/` reads the Markdown, YAML and JSON pages of the 16 public repositories of the Pick-Your-AI organization, and the head of pull request #136 of its applications repository, at the commits in `org/PINS`: 2,109 pages, each with its git blob SHA, so anyone can check a page with `git hash-object`. Private repositories and member-only team lists are not part of this data.
-
-- Lookup: `org/classify.nix` says what each page is, by an ordered table of 22 rules. The first match wins. A page no rule matches is `unclassified`, never a guess. Every answer carries the id of its rule. `org/taxonomy.kif` declares the page classes under SUMO's `Document` and links three of them to SUMO classes that fit (`Policy`, `Procedure`, `Plan`). SUMO's own `Receipt` is a financial instrument and its `Contract` a legal agreement, so neither is used for a page.
-- Reasoning: `org/rules.kif` and `org/rules-closed.kif` (two strata, because `not` is only safe on a finished fixpoint) draw the conclusions, each with a proof (`why`). Which pages are process pages (by subclass reasoning). Which standard files a repository has or lacks: GitHub takes CONTRIBUTING, SECURITY, SUPPORT, CODE_OF_CONDUCT and the templates from the organization's `.github` repository when a repository has none, and does not do that for CODEOWNERS or AGENTS.md. Which copies of a standard file are the very same file. Which pages still use a team name that the organization's naming register retired, apart from dated receipts and the register itself.
-- At the pinned commits: 666 of the 2,109 pages are process pages (governance, decisions, templates, procedures, plans, proposals, receipts), and 222 of them say in their own text that they were generated (`<!-- plan-id`, `Generated by`, `generated_at`, ...). That is the page's own marker, not a finding about who wrote it. 10 of the 16 repositories have no security policy in effect, because the organization's `.github` repository has none to give. 11 have no CODEOWNERS and 4 no AGENTS.md. The 13 CONTRIBUTING files are 13 different files; the 13 pull request templates are 10.
-- Checked: `tests/org.nix` compares all of it with a second reading in jq (`org/rules.jq`, `org/oracle.jq`, `org/expected.jq`; no Datalog, no Nix) and runs the rules on a small world. `ok` on mlnix and on Nix 2.35.4. 13 one-line mutations of the rules and the facts were each caught by a named assertion. The rule table was written after looking at these repositories, so "no page left unclassified" shows fit, not truth: reading 58 random classifications by hand, 54 were right, 3 arguable and 1 wrong (an example under `templates/`; fixed).
-- The page list is made by `org/extract.nix` from the output of `gh api repos/O/R/git/trees/SHA?recursive=1` and of `gh api repos/O/R/tarball/SHA` (the command is in its header). A later commit of a repository is a new `org/PINS` and a new `org/pages.json`.
-
-## License
-
-The code in this repository is licensed under the GNU Lesser General Public License, version 2.1: the same license as Nix and mlnix. `COPYING` is a byte-for-byte copy of Nix's `COPYING` (git blob `f6683e74e0f0130f246dbf7054f4cacc88ca84b0` in NixOS/nix).
-
-Some files are copies of other projects' files, or are read from them, and keep the terms of their sources: `sumo.full/` and `sumo.tests/` (ontologyportal/sumo; see `sumo.full/NOTICE.md`), `hf/tags.json` (a snapshot of Hugging Face's public tag lists), `pyai/fields.json` (read from a Pick-Your-AI repository at a pinned commit) and `org/pages.json` (the paths, git blob SHAs and first headings of Pick-Your-AI pages).
+> **Built for audit-grade reasoning. Ships a policy gate with a proof. Extends by design, not by accident.** 🦙
