@@ -26,4 +26,5 @@ if builtins.all (x: x) [
   (check "ancestors of a class contain the parents of its equivalent"
     (builtins.elem "Vehicle" o.ancestors.Car && builtins.elem "Vehicle" o.ancestors.TinyCar))
   (check "a class keeps itself" (o.isSubclass "Coupe" "Coupe"))
+  (check "isSubclass refuses non-string classes without throwing" (!(o.isSubclass [ "x" ] "Entity") && !(o.isSubclass "Entity" [ "x" ])))
 ] then "ok" else "failed"

@@ -27,7 +27,7 @@ let
   eqNodes = unique (concatMap (e: e) equivEdges);
   eqComponent = n: map (e: e.key) (builtins.genericClosure { startSet = [ { key = n; } ]; operator = x: map (t: { key = t; }) (eqAdj.${x.key} or [ ]); });
   eqRep = listToAttrs (map (n: { name = n; value = head (builtins.sort builtins.lessThan (eqComponent n)); }) eqNodes);
-  rep = c: eqRep.${c} or c;
+  rep = c: if isString c then eqRep.${c} or c else c;
 
   # (subclass Child Parent): a class can have several parents.
   parents = if frozen != null then frozen.parents else group (map (f: { ${elemAt f 1} = elemAt f 2; }) (filter (f: length f == 3 && isString (elemAt f 1) && isString (elemAt f 2)) (top "subclass")));
@@ -45,7 +45,9 @@ let
   # (instance Thing Class): a thing can be an instance of several classes.
   classOf = if frozen != null then frozen.classOf else group (map (f: { ${elemAt f 1} = elemAt f 2; }) (filter (f: length f == 3 && isString (elemAt f 1) && isString (elemAt f 2)) (top "instance")));
 
-  isSubclass = c: a: rep c == rep a || any (anc: rep anc == rep a) (ancestors.${rep c} or [ ]);
+  isSubclass = c: a:
+    if !(isString c) || !(isString a) then c == a
+    else rep c == rep a || any (anc: rep anc == rep a) (ancestors.${rep c} or [ ]);
   isInstance = x: c: any (k: isSubclass k c) (classOf.${x} or [ ]);
 
   # (domain Relation Position Class): the class the argument at Position must belong to.

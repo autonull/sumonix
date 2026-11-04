@@ -14,7 +14,7 @@ let
     forms = kif.parse (text ../sumo.full/Merge.kif) ++ kif.parse (text ../nix-domain.kif);
   };
 
-  forms = kif.parse (snapshot + "\n" + text ./vuln-rules.kif + "\n" + text ./capabilities.kif);
+  forms = kif.parse (snapshot + "\n" + text ./capability-rules.kif + "\n" + text ./capabilities.kif);
 
   isRule = f: builtins.isList f && f != [ ] && builtins.head f == "=>";
   rules = builtins.filter isRule forms;
