@@ -1,0 +1,14 @@
+{
+  "tree": [
+    { "path": "big.json", "mode": "100644", "type": "blob", "sha": "1111111111111111111111111111111111111111", "size": 62 },
+    { "path": "cues.md", "mode": "100644", "type": "blob", "sha": "2222222222222222222222222222222222222222", "size": 1000 },
+    { "path": "image.png", "mode": "100644", "type": "blob", "sha": "3333333333333333333333333333333333333333", "size": 10 },
+    { "path": "lexicon.md", "mode": "100644", "type": "blob", "sha": "7777777777777777777777777777777777777777", "size": 1500 },
+    { "path": "months.md", "mode": "100644", "type": "blob", "sha": "8888888888888888888888888888888888888888", "size": 1300 },
+    { "path": "only-dmy.md", "mode": "100644", "type": "blob", "sha": "9999999999999999999999999999999999999999", "size": 25 },
+    { "path": "only-mdy.md", "mode": "100644", "type": "blob", "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "size": 26 },
+    { "path": "rec.json", "mode": "100644", "type": "blob", "sha": "4444444444444444444444444444444444444444", "size": 700 },
+    { "path": "runs", "mode": "040000", "type": "tree", "sha": "5555555555555555555555555555555555555555" },
+    { "path": "runs/measure-2026-10-18.md", "mode": "100644", "type": "blob", "sha": "6666666666666666666666666666666666666666", "size": 40 }
+  ]
+}

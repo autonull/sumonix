@@ -1,0 +1,221 @@
+{
+  "byRepo": {
+    "github": {
+      "pages": 30,
+      "processPages": 14
+    },
+    "knowledge-base": {
+      "pages": 4,
+      "processPages": 0
+    },
+    "pick-your-ai-android": {
+      "pages": 271,
+      "processPages": 59
+    },
+    "pick-your-ai-apple": {
+      "pages": 160,
+      "processPages": 57
+    },
+    "pick-your-ai-applications": {
+      "pages": 1,
+      "processPages": 0
+    },
+    "pick-your-ai-applications-pr136": {
+      "pages": 177,
+      "processPages": 158
+    },
+    "pick-your-ai-catalog-pipeline": {
+      "pages": 130,
+      "processPages": 104
+    },
+    "pick-your-ai-cloud-agents": {
+      "pages": 9,
+      "processPages": 5
+    },
+    "pick-your-ai-datasets": {
+      "pages": 110,
+      "processPages": 95
+    },
+    "pick-your-ai-education": {
+      "pages": 4,
+      "processPages": 0
+    },
+    "pick-your-ai-leaderboard": {
+      "pages": 245,
+      "processPages": 55
+    },
+    "pick-your-ai-market": {
+      "pages": 9,
+      "processPages": 5
+    },
+    "pick-your-ai-papers": {
+      "pages": 78,
+      "processPages": 37
+    },
+    "pick-your-ai-research": {
+      "pages": 664,
+      "processPages": 30
+    },
+    "pick-your-ai-sustainability": {
+      "pages": 131,
+      "processPages": 29
+    },
+    "pick-your-ai-volunteers": {
+      "pages": 1,
+      "processPages": 0
+    },
+    "pick-your-ai-website": {
+      "pages": 85,
+      "processPages": 18
+    }
+  },
+  "copies": {
+    "AgentsGuide": {
+      "distinctBlobs": 13,
+      "divergentPairs": 156,
+      "identicalPairs": 0,
+      "largestIdentical": 1,
+      "pages": 13
+    },
+    "ConductCode": {
+      "distinctBlobs": 1,
+      "divergentPairs": 0,
+      "identicalPairs": 0,
+      "largestIdentical": 1,
+      "pages": 1
+    },
+    "ContributingGuide": {
+      "distinctBlobs": 13,
+      "divergentPairs": 156,
+      "identicalPairs": 0,
+      "largestIdentical": 1,
+      "pages": 13
+    },
+    "PullRequestTemplate": {
+      "distinctBlobs": 10,
+      "divergentPairs": 148,
+      "identicalPairs": 8,
+      "largestIdentical": 3,
+      "pages": 13
+    },
+    "SecurityPolicy": {
+      "distinctBlobs": 7,
+      "divergentPairs": 42,
+      "identicalPairs": 0,
+      "largestIdentical": 1,
+      "pages": 7
+    },
+    "SupportGuide": {
+      "distinctBlobs": 6,
+      "divergentPairs": 78,
+      "identicalPairs": 12,
+      "largestIdentical": 3,
+      "pages": 10
+    }
+  },
+  "generatedProcessPages": 222,
+  "kinds": {
+    "automation": 73,
+    "catalog": 128,
+    "config": 12,
+    "contract": 177,
+    "data": 123,
+    "decision": 22,
+    "doc": 321,
+    "evidence": 35,
+    "governance": 64,
+    "market": 195,
+    "package-data": 109,
+    "planning": 71,
+    "planning-record": 289,
+    "process": 120,
+    "prompt": 91,
+    "proposal": 9,
+    "readme": 72,
+    "receipt": 12,
+    "research": 106,
+    "taxonomy": 1,
+    "template": 79
+  },
+  "lacks": {
+    "AgentsGuide": [
+      "knowledge-base",
+      "pick-your-ai-applications",
+      "pick-your-ai-education",
+      "pick-your-ai-volunteers"
+    ],
+    "CodeOwnersFile": [
+      "github",
+      "knowledge-base",
+      "pick-your-ai-android",
+      "pick-your-ai-apple",
+      "pick-your-ai-applications",
+      "pick-your-ai-cloud-agents",
+      "pick-your-ai-datasets",
+      "pick-your-ai-education",
+      "pick-your-ai-market",
+      "pick-your-ai-papers",
+      "pick-your-ai-volunteers"
+    ],
+    "ConductCode": [],
+    "ContributingGuide": [],
+    "IssueTemplate": [],
+    "PullRequestTemplate": [],
+    "SecurityPolicy": [
+      "github",
+      "knowledge-base",
+      "pick-your-ai-android",
+      "pick-your-ai-apple",
+      "pick-your-ai-applications",
+      "pick-your-ai-cloud-agents",
+      "pick-your-ai-education",
+      "pick-your-ai-market",
+      "pick-your-ai-sustainability",
+      "pick-your-ai-volunteers"
+    ],
+    "SupportGuide": []
+  },
+  "pages": 2109,
+  "present": {
+    "AgentsGuide": 12,
+    "CodeOwnersFile": 5,
+    "ConductCode": 1,
+    "ContributingGuide": 12,
+    "IssueTemplate": 12,
+    "PullRequestTemplate": 12,
+    "SecurityPolicy": 6,
+    "SupportGuide": 10
+  },
+  "processPages": 666,
+  "staleNames": [
+    [
+      "pick-your-ai-applications-pr136:docs/ORGANIZATION_ALIGNMENT.md",
+      "research-lead-maintainers"
+    ],
+    [
+      "pick-your-ai-catalog-pipeline:docs/PROJECT_SETUP.md",
+      "mobile-devices"
+    ],
+    [
+      "pick-your-ai-datasets:docs/PROJECT_SETUP.md",
+      "research-lead-maintainers"
+    ],
+    [
+      "pick-your-ai-papers:docs/PROJECT_SETUP.md",
+      "research-lead-maintainers"
+    ],
+    [
+      "pick-your-ai-papers:docs/VALIDATION.md",
+      "research-lead-maintainers"
+    ],
+    [
+      "pick-your-ai-papers:planning/project-spec.json",
+      "research-lead-maintainers"
+    ],
+    [
+      "pick-your-ai-papers:planning/ruleset-spec.json",
+      "research-lead-maintainers"
+    ]
+  ],
+  "unclassified": []
+}
