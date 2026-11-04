@@ -89,16 +89,23 @@ let
 
   # --- Stratifier dry-run ---------------------------------------------------
   # Edges from the consequent predicate to antecedent predicates, signed by negation.
-  atomsOf = f: filter (s: isList s && s != [ ] && headOf s != "" && !isVar (headOf s)) (subforms f);
-  isStructural = h: elem h [ "and" "or" "not" "exists" "forall" "<=>" ];
-  bodyAtoms = ant: filter (s: !(isStructural (headOf s))) (atomsOf ant);
-  negAtoms = ant:
-    concatMap (s: if headOf s == "not" && isList (builtins.elemAt s 1) then [ (builtins.elemAt s 1) ] else [ ]) (subforms ant);
-  posAtoms = ant: filter (s: headOf s != "not") (bodyAtoms ant);
+  isStructural = h: elem h [ "and" "or" "not" "exists" "forall" "<=>" "=>" ];
+  # Atoms of an antecedent with their polarity: `not` flips it. (not (not P) = P.)
+  bodyWalk = ant: neg: f:
+    if !(isList f) then [ ]
+    else
+      let h = headOf f; in
+      if h == "not" then concatMap (bodyWalk ant (!neg)) (tail f)
+      else if isStructural h then concatMap (bodyWalk ant neg) (tail f)
+      else if h == "" || isVar h then [ ]
+      else [ { atom = f; inherit neg; } ];
+  atomsOf = ant: bodyWalk ant false ant;
+  posAtoms = ant: map (x: x.atom) (filter (x: !x.neg) (atomsOf ant));
+  negAtoms = ant: map (x: x.atom) (filter (x: x.neg) (atomsOf ant));
 
   edges = concatMap (r:
     let c = headOf (builtins.elemAt r 2); ant = builtins.elemAt r 1; in
-    (if isVar c then [ ] else map (a: { from = c; to = headOf a; neg = false; }) (posAtoms ant)
+    (if isVar c || isStructural c then [ ] else map (a: { from = c; to = headOf a; neg = false; }) (posAtoms ant)
     ++ map (a: { from = c; to = headOf a; neg = true; }) (negAtoms ant))) ruleForms;
   preds = unique (concatMap (e: [ e.from e.to ]) edges);
   edgeAll = listToAttrs (map (p: { name = p; value = map (e: e.to) (filter (e: e.from == p) edges); }) preds);
