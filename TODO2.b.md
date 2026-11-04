@@ -311,106 +311,35 @@ The core engine (Phases 0–6) is the **kernel**. The opportunities below are **
 
 ---
 
-### V-Milestones (Complete)
+### V-Milestones
 
 | Milestone | What Ships |
 |-----------|------------|
 | **V1** ✅ | Core engine (parser, ontology, synthesis, stratifier, ingestion, naive engine, proof, policy gate, relaxation) |
-| **V2** ✅ | V1 + 1 bootstrap (e.g., B3 json2kif + B12 env validator) + demo |
-| **V3** ✅ | V2 + policy product (build gate + relaxation menu) + 3 bootstraps composing |
-| **V4** ⏳ | V3 + **any 3 bootstraps** composing + T2.4/T2.6 |
+| **V2** | V1 + **1 bootstrap** (e.g., B3 json2kif + B12 env validator) + demo |
+| **V3** ✅ | V2 + policy product (build gate + relaxation menu) + **3 bootstraps** composing |
+| **V4** ⏳ | V3 + **3 bootstraps** composing + T2.4/T2.6 |
 | **V5** ⏳ | V4 + **all 26 bootstraps** + T2.1/T2.6/T3.1 + T2.7 (Soufflé CI) |
 
 ---
 
-### Usable System Checklist (Complete)
+### Usable System Checklist
 
 - [x] Core reasoning engine (Phases 0–6)
 - [x] Policy gate + proof + relaxation menu (V3)
-- [ ] Equality reasoning (T2.4) — B1, B8, B9, B10
-- [ ] Arithmetic/aggregates (T2.6) — B6, B7, B9, B16
-- [ ] Choice/disjunction (T2.1) — B4, B5, B11
-- [ ] Optimization (T3.1) — B4, B5, B11, B12
-- [ ] Temporal (T3.3) — B8, B9, B16, B19
-- [ ] Context-aware secrets (B20)
-- [ ] Semantic API governance (B21)
-- [ ] NixOS config logic prover (B22)
-- [ ] Compliance flakes (B23)
-- [ ] Native Nix integration (B24, B25)
-- [ ] Living documentation (B26)
+- [ ] Equality reasoning (T2.4)
+- [ ] Arithmetic/aggregates (T2.6)
+- [ ] Choice/disjunction (T2.1)
+- [ ] Optimization (T3.1)
+- [ ] Temporal (T3.3)
+- [ ] Context-aware secrets
+- [ ] Semantic API governance
+- [ ] NixOS config logic prover
+- [ ] Compliance flakes
+- [ ] Native Nix integration
+- [ ] Living documentation
 
 ---
-
-## 13. File manifest (✅ = done in Phases 0–5; ⏳ = Phase 6+; 📦 = Bootstrap modules)
-
-```
-TODO2.b.md                  # this plan (rev 2) — checkboxes updated ✅
-reasoner/ingest.nix         # P3 classification & horn filter ✅
-reasoner/stratify.nix       # P2 predicate graph → strata → reject/allow ✅
-reasoner/synthesize.nix     # P1 declaration → Horn synthesis ✅
-reasoner/proof.nix          # P4 proof export ✅
-reasoner/naive.nix          # T0 reference for parity (P6, tests only) ⏳
-reasoner/engine.nix         # created only if P6 triggers (semi-naive) ⏳
-policy/build-gate.nix       # P5 gate ✅
-policy/relax.nix            # P5 relaxation menu ✅
-proof-check.nix             # P4 independent checker ✅
-sumo.nix                    # P1: equivalent union-find subsumption ✅
-datalog.nix                 # thin façade (legacy API for tests) ✅
-tests/ingest-report.nix     # P0 committed histogram ✅
-tests/unit/*.nix            # stratify, equivalents, synthesis, builtins, relax ✅
-tests/semi-naive-parity.nix # P6 only ⏳
-tests/perf/bench.nix        # P6 ⏳
-# Bootstrap modules (to be created):
-bootstrap/
-  nixpkgs-ontology.nix      # B1: Nixpkgs → KIF
-  epistemic-flakes.nix      # B2: Compliance rules as flakes
-  json2kif.nix              # B3: Universal JSON/YAML → KIF
-  terraform-plan.nix        # B4: Terraform JSON → KIF
-  k8s-compose.nix           # B5: K8s/Compose → KIF
-  lockfile-osv.nix          # B6: Lockfiles + OSV → KIF
-  license-oracle.nix        # B7: SPDX + deps → KIF
-  openapi-diff.nix          # B8: OpenAPI v1/v2 → KIF
-  sql-dbt-lineage.nix       # B9: SQL/dbt → KIF
-  git-codeowners.nix        # B10: Git + CODEOWNERS → KIF
-  firewall-sg.nix           # B11: FW/SG → KIF
-  rbac-abac.nix             # B12: IAM → KIF
-  ci-optimizer.nix          # B13: CI YAML → KIF
-  env-validator.nix         # B14: .env + meta → KIF
-  git-hygiene.nix           # B15: Git files → KIF
-  semantic-grep.nix         # B16: Repo → KIF concepts
-  ontology-tasks.nix        # B17: Task decls → KIF
-  change-impact.nix         # B18: Graph → KIF
-  compliance-receipt.nix    # B19: Checks → receipt
-  proof-badges.nix          # B20: Checks → SVG badges
-  semantic-select.nix       # B21: Constraints → KIF query
-  crypto-epistemology.nix   # B22: HW/net/user → KIF
-  api-evolution.nix         # B23: OpenAPI + contracts → KIF
-  config-contradiction.nix  # B24: NixOS modules → KIF
-  policy-flakes.nix         # B25: Flake inputs → KIF
-  flake-check.nix           # B26: Nix flake checks
-  sumo-assert.nix           # B27: Nix assertions
-  semantic-select.nix       # B28: Requirements → pkg
-  why-exists.nix            # B29: Facts → docs
-```
-
-```
-TODO2.b.md                  # this plan (rev 2) — checkboxes updated ✅
-reasoner/ingest.nix         # P3 classification & horn filter ✅
-reasoner/stratify.nix       # P2 predicate graph → strata → reject/allow ✅
-reasoner/synthesize.nix     # P1 declaration → Horn synthesis ✅
-reasoner/proof.nix          # P4 proof export ✅
-reasoner/naive.nix          # T0 reference for parity (P6, tests only) ⏳
-reasoner/engine.nix         # created only if P6 triggers (semi-naive) ⏳
-policy/build-gate.nix       # P5 gate ✅
-policy/relax.nix            # P5 relaxation menu ✅
-proof-check.nix             # P4 independent checker ✅
-sumo.nix                    # P1: equivalent union-find subsumption ✅
-datalog.nix                 # thin façade (legacy API for tests) ✅
-tests/ingest-report.nix     # P0 committed histogram ✅
-tests/unit/*.nix            # stratify, equivalents, synthesis, builtins, relax ✅
-tests/semi-naive-parity.nix # P6 only ⏳
-tests/perf/bench.nix        # P6 ⏳
-```
 
 Also hygiene (P3 commit): delete unused `spike/cve-seed.kif`; rename `spike/vuln-rules.kif` → `spike/capability-rules.kif` **and update the `./vuln-rules.kif` reference in `spike/run-spike.nix`**; keep `default.nix` unchanged.
 
