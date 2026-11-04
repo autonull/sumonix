@@ -1,10 +1,8 @@
 # TODO2.b — The Reasoner (rev 2: fastest results first)
 
-**Status:** Rev 2 — reprioritized for speed to first product. Contract (§5) unchanged: this is a capable, SUMO-native reasoner, not a trimmed one.
-**Commit:** rev2 lands after this file is reviewed; rev1 is `3761675`.
-**Non-negotiable at every step:** `tests/` stays green; every unsupported form is rejected **with a reason**, never silently dropped; no `throw` on user data paths.
+**Status:** Phases 0–5 complete (V3 ships). Rev 2 — value-first order executed; Contract (§5) unchanged. Non-negotiable at every step: `tests/` green; every unsupported form rejected with a reason; no `throw` on user data paths.
 
-**Decisions needed (unchanged from rev 1; see §13):** slice start — Phase 0 only, Phases 0–2, or 0–5; Merge.kif stays pinned; ingestion default-on vs CLI-only; CI wiring (repo has none).
+**Decisions:** full 0–5 slice executed; Merge.kif pinned; ingestion default-on (verdict `ingestible`, Horn 302); local gates only.
 
 ---
 
@@ -164,12 +162,12 @@ Same facts+rules → Soufflé (or other checker); byte-equal derived predicates;
 
 **T-milestones** (each independently committed, all behind flags with tests): T2.1 disjunctive heads · T2.2 WFS negation · T2.3 bounded existentials · T2.4 congruence closure · T2.5 Knuth–Bendix tool · T2.6 builtins/aggregate full set · T2.7 Soufflé CI · T3.1 weights/MaxSAT · T3.2 parallel branches · T3.3 temporal modalities.
 
-### V-milestones (what “done enough to ship” looks like)
+### V-milestones (what "done enough to ship" looks like)
 
-- **V1** (after P3): Horn ingestion runs; report committed; full suite green.
-- **V2** (after P4): every spike fact has an exported, independently re-checked proof.
-- **V3** (after P5): **build-time enforcement with proof-of-violation + relaxation menu** — the demo that justifies this project.
-- **V4** (after P6/P7): sub-5 s closures on full universe; differential CI green.
+- **V1** ✅ (after P3): Horn ingestion runs; report committed; full suite green.
+- **V2** ✅ (after P4): every spike fact has an exported, independently re-checked proof.
+- **V3** ✅ (after P5): **build-time enforcement with proof-of-violation + relaxation menu** — the demo that justifies this project.
+- **V4** ⏳ (after P6/P7): sub-5 s closures on full universe; differential CI green.
 
 Cumulative to V3 ≈ 13–15 h. Cumulative to V4 ≈ 15–23 h (includes P6 semi-naive only if needed).
 
@@ -202,11 +200,11 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 
 ## 10. Definition of done
 
-- [ ] Phase 0 report committed
-- [ ] `tests/` green; ingestion reject reasons all enumerable; zero `throw` on user input paths
-- [ ] Equivalences subsumption correct; synthesis proven on a real declaration
-- [ ] Proof export + independent checker green
-- [ ] Build gate demonstrates a failing, proof-carrying policy violation; relaxation menu flips it
+- [x] Phase 0 report committed (`tests/ingest-report.json`, verdict `ingestible`: Horn 302)
+- [x] `tests/` green; ingestion reject reasons all enumerable; zero `throw` on user input paths
+- [x] Equivalences subsumption correct; synthesis proven on a real declaration (tests/unit/equivalents.nix, synthesize.nix)
+- [x] Proof export + independent checker green (proof.kif + proof-check.nix + tests/proof-check.nix)
+- [x] Build gate demonstrates a failing, proof-carrying policy violation; relaxation menu flips it (policy/build-gate.nix, policy/relax.nix, tests/unit/relax.nix)
 - [ ] Bench ≤ 5 s or ingestion default off + rationale committed (V4)
 - [ ] README updated: architecture, promises, limits, extension guide; `TODO2.b` checkboxes updated per commit
 
@@ -223,32 +221,32 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | P6 benchmark (+ semi-naive only if needed) | 0–6 h | 13–21 h |
 | P7 differential CI | 2 h | **V4** |
 
-## 12. File manifest
+## 12. File manifest (✅ = done in Phases 0–5; ⏳ = Phase 6+)
 
 ```
-TODO2.b.md                  # this plan (rev 2)
-reasoner/ingest.nix         # P3 classification & horn filter
-reasoner/stratify.nix       # P2 predicate graph → strata → reject/allow
-reasoner/synthesize.nix     # P1 declaration → Horn synthesis
-reasoner/proof.nix          # P4 proof export
-reasoner/naive.nix          # T0 reference for parity (P6, tests only)
-reasoner/engine.nix         # created only if P6 triggers (semi-naive)
-policy/build-gate.nix       # P5 gate
-policy/relax.nix            # P5 relaxation menu
-proof-check.nix             # P4 independent checker
-sumo.nix                    # P1: equivalent union-find subsumption
-datalog.nix                 # thin façade (legacy API for tests)
-tests/ingest-report.nix     # P0 committed histogram
-tests/unit/*.nix            # stratify, equivalents, synthesis, builtins
-tests/semi-naive-parity.nix # P6 only
-tests/perf/bench.nix        # P6
+TODO2.b.md                  # this plan (rev 2) — checkboxes updated ✅
+reasoner/ingest.nix         # P3 classification & horn filter ✅
+reasoner/stratify.nix       # P2 predicate graph → strata → reject/allow ✅
+reasoner/synthesize.nix     # P1 declaration → Horn synthesis ✅
+reasoner/proof.nix          # P4 proof export ✅
+reasoner/naive.nix          # T0 reference for parity (P6, tests only) ⏳
+reasoner/engine.nix         # created only if P6 triggers (semi-naive) ⏳
+policy/build-gate.nix       # P5 gate ✅
+policy/relax.nix            # P5 relaxation menu ✅
+proof-check.nix             # P4 independent checker ✅
+sumo.nix                    # P1: equivalent union-find subsumption ✅
+datalog.nix                 # thin façade (legacy API for tests) ✅
+tests/ingest-report.nix     # P0 committed histogram ✅
+tests/unit/*.nix            # stratify, equivalents, synthesis, builtins, relax ✅
+tests/semi-naive-parity.nix # P6 only ⏳
+tests/perf/bench.nix        # P6 ⏳
 ```
 
 Also hygiene (P3 commit): delete unused `spike/cve-seed.kif`; rename `spike/vuln-rules.kif` → `spike/capability-rules.kif` **and update the `./vuln-rules.kif` reference in `spike/run-spike.nix`**; keep `default.nix` unchanged.
 
-## 13. Decisions needed from you
+## 13. Decisions (made; see above)
 
-1. **Slice start**: Phase 0 alone, Phases 0–2, or full 0–5 (recommended for fastest product)?
-2. **Merge.kif**: keep the pinned corpus (recommended) or allow update after P0 (separate reviewed commit)?
-3. **Ingestion default**: if verdict is YES, default-on everywhere (recommended — suite is the oracle; any drift is a bug) or CLI-only until V4?
-4. **CI**: add workflow to run gates + bench, or keep local-gate? (Affects P7 and Phase 6 CI wiring.)
+1. **Slice start**: full 0–5 executed.
+2. **Merge.kif**: kept pinned.
+3. **Ingestion default**: default-on everywhere (verdict `ingestible`).
+4. **CI**: local gates only (no workflow added; P7 CI wiring deferred).
