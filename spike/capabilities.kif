@@ -1,0 +1,54 @@
+;; Capability composition seed facts
+;; These define which capabilities naturally compose together
+
+;; Web stack compositions
+(composesWith HTTPServer TLS)
+(composesWith HTTPServer ReverseProxy)
+(composesWith HTTPServer LoadBalancer)
+(composesWith ReverseProxy TLS)
+(composesWith LoadBalancer TLS)
+
+;; Data stack compositions
+(composesWith RelationalDB ACID)
+(composesWith RelationalDB SQL)
+(composesWith KeyValueStore PubSub)
+(composesWith KeyValueStore Cache)
+(composesWith EmbeddedDB SQL)
+
+;; Language runtime compositions
+(composesWith JavaScriptRuntime WebServer)
+(composesWith JavaScriptRuntime PackageManager)
+(composesWith Scripting DataScience)
+(composesWith Scripting WebFramework)
+(composesWith Scripting ML)
+(composesWith Compilation C)
+(composesWith Compilation "C++")
+
+;; System compositions
+(composesWith ServiceManagement InitSystem)
+(composesWith ServiceManagement IPC)
+(composesWith ServiceManagement ServiceDiscovery)
+(composesWith SSHServer RemoteAccess)
+(composesWith SSHClient SFTP)
+(composesWith TLS Crypto)
+(composesWith X509 Crypto)
+
+;; Build tool compositions
+(composesWith BuildAutomation BuildConfiguration)
+(composesWith BuildConfiguration DependencyDiscovery)
+(composesWith LibraryBuilding Compilation)
+
+;; Interactive compositions
+(composesWith TUI InteractiveCLI)
+(composesWith TextEditing PatternMatching)
+(composesWith TextEditing StreamEditing)
+(composesWith TextProcessing DataExtraction)
+
+;; Archive/Compression
+(composesWith ArchiveHandling Compression)
+(composesWith FileTransfer HTTPClient)
+(composesWith RecursiveDownload HTTPClient)
+
+;; Version control
+(composesWith VersionControl DistributedSync)
+(composesWith DistributedSync SSHClient)

@@ -39,7 +39,7 @@ in {
 
   # Run spike as oneshot service after facts exist
   systemd.services.sumo-spike = {
-    description = "Run sumo-nix vulnerability spike";
+    description = "Run sumo-nix capability discovery spike";
     after = [ "local-fs.target" ];
     wantedBy = [ "multi-user.target" ];
     serviceConfig = {
