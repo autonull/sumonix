@@ -1,0 +1,23 @@
+;; SUMO-aligned: NIXPackage subclasses SoftwareArtifact (per nix-domain.kif)
+;; dependsOn is a BinaryRelation; transitive closure via Datalog
+
+(=>
+  (and (dependsOn ?a ?b) (dependsOn ?b ?c))
+  (dependsOnTransitive ?a ?c))
+
+(=>
+  (and (dependsOn ?a ?b) (dependsOnTransitive ?b ?c))
+  (dependsOnTransitive ?a ?c))
+
+;; Vulnerability propagation via transitive deps
+(=>
+  (and
+    (instance ?pkg NIXPackage)
+    (dependsOnTransitive ?pkg ?dep)
+    (vulnerable ?dep ?cve))
+  (vulnerable ?pkg ?cve))
+
+;; Severity from SUMO's AttributeValue hierarchy
+(=>
+  (and (vulnerable ?pkg ?cve) (severity ?cve ?sev))
+  (vulnerableWithSeverity ?pkg ?cve ?sev))
