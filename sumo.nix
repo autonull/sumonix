@@ -15,16 +15,37 @@ let
   group = zipAttrsWith (_: vs: vs);
   unique = xs: attrNames (listToAttrs (map (name: { inherit name; value = null; }) xs));
 
+  # (equivalent A B): classes that denote the same class. Components under the equivalence edges;
+  # each node's representative is the least name of its component — deterministic, order-free.
+  equivEdges = concatMap
+    (f: if length f == 3 && isString (elemAt f 1) && isString (elemAt f 2) then [ [ (elemAt f 1) (elemAt f 2) ] ] else [ ])
+    (top "equivalent");
+  eqAdj = foldl' (m: e:
+      m // { ${elemAt e 0} = (m.${elemAt e 0} or [ ]) ++ [ (elemAt e 1) ];
+             ${elemAt e 1} = (m.${elemAt e 1} or [ ]) ++ [ (elemAt e 0) ]; })
+    { } equivEdges;
+  eqNodes = unique (concatMap (e: e) equivEdges);
+  eqComponent = n: map (e: e.key) (builtins.genericClosure { startSet = [ { key = n; } ]; operator = x: map (t: { key = t; }) (eqAdj.${x.key} or [ ]); });
+  eqRep = listToAttrs (map (n: { name = n; value = head (builtins.sort builtins.lessThan (eqComponent n)); }) eqNodes);
+  rep = c: eqRep.${c} or c;
+
   # (subclass Child Parent): a class can have several parents.
   parents = if frozen != null then frozen.parents else group (map (f: { ${elemAt f 1} = elemAt f 2; }) (filter (f: length f == 3 && isString (elemAt f 1) && isString (elemAt f 2)) (top "subclass")));
 
   # Every class above a class, itself not included. The knot is lazy: a class reads its parents' entries on demand.
-  ancestors = mapAttrs (_: ps: unique (ps ++ concatMap (p: ancestors.${p} or [ ]) ps)) parents;
+  # A class inherits the parents of every member of its equivalence component, and traversal
+  # goes through representatives, so an equivalent class stands in for every member.
+  compOf = c: if elem c eqNodes then eqComponent c else [ c ];
+  compParentsOf = c: unique (concatMap (m: parents.${m} or [ ]) (compOf c));
+  nodeNames = unique (attrNames parents ++ concatMap (ps: ps) (builtins.attrValues parents) ++ eqNodes);
+  ancestors = mapAttrs (c: _:
+      let ps = compParentsOf c; in unique (ps ++ concatMap (p: ancestors.${rep p} or [ ]) ps))
+    (listToAttrs (map (n: { name = n; value = null; }) nodeNames));
 
   # (instance Thing Class): a thing can be an instance of several classes.
   classOf = if frozen != null then frozen.classOf else group (map (f: { ${elemAt f 1} = elemAt f 2; }) (filter (f: length f == 3 && isString (elemAt f 1) && isString (elemAt f 2)) (top "instance")));
 
-  isSubclass = c: a: c == a || elem a (ancestors.${c} or [ ]);
+  isSubclass = c: a: rep c == rep a || any (anc: rep anc == rep a) (ancestors.${rep c} or [ ]);
   isInstance = x: c: any (k: isSubclass k c) (classOf.${x} or [ ]);
 
   # (domain Relation Position Class): the class the argument at Position must belong to.
@@ -37,7 +58,7 @@ let
     all (i: !(sig ? ${toString (i + 1)}) || isInstance (elemAt args i) sig.${toString (i + 1)}) (builtins.genList (i: i) (length args));
 in
 {
-  inherit parents ancestors classOf domains isSubclass isInstance wellTyped;
+  inherit parents ancestors classOf domains isSubclass isInstance wellTyped rep;
 
   # Every class is a predicate on things.
   classes = listToAttrs (map (c: { name = c; value = x: isInstance x c; })
