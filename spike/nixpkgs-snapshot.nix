@@ -1,6 +1,7 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
+  lib = pkgs.lib;
   targets = [
     "openssl" "curl" "nginx" "git" "python3" "nodejs" "postgresql" "redis"
     "libssh2" "wget" "zlib" "libxml2" "libxslt" "sqlite" "readline" "ncurses"
@@ -72,7 +73,7 @@ let
   toKIF = name: pkg:
     let
       deps = pkg.propagatedBuildInputs ++ pkg.buildInputs;
-      depNames = lib.map (d: d.pname) deps;
+      depNames = lib.map (d: d.pname or d.name or "unknown") deps;
       caps = capabilities.${name} or [];
       capFacts = lib.concatStringsSep "\n" (lib.map (c: "(providesCapability ${name} ${c})") caps);
     in ''

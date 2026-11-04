@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "🔨 Building NixOS VM (no flake, fast)..."
-nix build -f '<nixpkgs/nixos>' system.build.vm -I nixos-config=./vm.nix --impure -o vm-result
+nix --extra-experimental-features 'nix-command flakes' build -f '<nixpkgs/nixos>' system.build.vm -I nixos-config=./vm.nix --impure -o vm-result
 
 echo "🚀 Booting VM (headless, serial console, 60s timeout)..."
 echo "   Discovering what capabilities your packages can compose..."
