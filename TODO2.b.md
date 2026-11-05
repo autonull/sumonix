@@ -178,7 +178,7 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 | **T2.6 Builtins/Aggregates** | `greaterThan`, `subsetOf`, `compareVersions`, `count` with group-by | 2–4 h | "Count vulnerable packages per severity"; "filter packages by version range" |
 | **T2.1 Disjunctive Heads** | `A ⇒ B ∨ C` via branch enumeration + per-branch fixpoint (`maxBranches`) | 3–4 h | "A package either provides capability X or Y (or both)" |
 | **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection ✅ |
-| **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" |
+| **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" ✅ |
 | **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" |
 | **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" |
 | **T3.2 Parallel Eval** | Semi-naive rounds set-parallel (internal `deepSeq`) | 2–3 h | "2× speedup on large fact sets" |
@@ -247,6 +247,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] T2.1 Disjunctive Heads demo
 - [x] T3.1 Soft Rules / MaxSAT demo
 - [x] T2.2 WFS Negation demo (reasoner/wfs.nix + tests/unit/wfs.nix; three-valued eval for unstratifiable predicates)
+- [x] T2.3 Bounded Existentials demo (reasoner/existential.nix + tests/unit/existentials.nix; finite-domain Skolem grounding)
 
 ## 11. Effort estimate (to first product)
 
@@ -298,6 +299,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Choice/disjunction (T2.1)
 - [x] Optimization (T3.1)
 - [x] WFS negation (T2.2) — three-valued eval for cyclic negation
+- [x] Bounded existentials (T2.3) — finite-domain Skolem grounding
 - [ ] Temporal (T3.3)
 - [ ] Context-aware secrets
 - [ ] Semantic API governance
