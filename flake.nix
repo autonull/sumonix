@@ -11,7 +11,16 @@
       modules = [
         ({ config, pkgs, lib, ... }: {
           imports = [ ./demo/vm/vm.nix ];
-          # Pass the flake source as the repo root
+          _module.args.repoRoot = self.outPath;
+        })
+      ];
+    };
+
+    nixosConfigurations.demo-minimal = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        ({ config, pkgs, lib, ... }: {
+          imports = [ ./demo/vm/vm-minimal.nix ];
           _module.args.repoRoot = self.outPath;
         })
       ];
