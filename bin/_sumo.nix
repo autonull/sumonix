@@ -145,7 +145,8 @@ let
   toJSON = x:
     if isString x then "\"" + escapeJSON x + "\""
     else if isList x then "[" + concatStringsSep "," (map toJSON x) + "]"
-    else if headOf x == "true" || headOf x == "false" then x
+    else if builtins.isAttrs x then objToJSON x
+    else if x == true || x == false then if x then "true" else "false"
     else toString x;
 
   # Escape string for JSON

@@ -128,7 +128,12 @@ case "$cmd" in
     run_nix "$expr"
     ;;
   whatif)
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; }).whatif"
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).whatif"
     run_nix "$expr"
     ;;
   dashboard)
