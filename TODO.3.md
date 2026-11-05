@@ -1,141 +1,161 @@
-# TODO.3 — The Real 60-Second Demo: login on a NixOS VM, README from parts, and the big refactor
+# TODO.3 — The Real 60-Second Demo: a logged-in NixOS session and a sumonix dashboard
 
-**Status:** planned, not started. **Predecessors:** TODO2.b (V3 + 7 T-milestones), `demo/` package, `run-tests.sh`. **Non-negotiables:** `./run-tests.sh` green at every step; the VM demo must boot unattended and exit non-zero on failure; nothing on the login path that can hang a real session; README regeneration must be byte-identical to what we ship.
+**Status:** planned, not started. **Predecessors:** TODO2.b (V3 + 7 T-milestones), `demo/` package, `run-tests.sh`. **Non-negotiables:** `./run-tests.sh` green at every step; the VM must boot unattended and exit non-zero on failure; the demo must be explorable *interactively*, not only as a scripted transcript; never anything that can hang a real login; README regeneration must be byte-identical to what we ship.
 
 ---
 
 ## 0. Why this milestone exists
 
-The current demo (`./demo/run`) is a good *proof* the engine works; it is not what a user experiences. The missing piece is the moment a person **logs into a real NixOS machine and sumonix is what let them in** — the policy verdict, its proof, and the machine explaining itself as they arrive. That is the 60-second story. Two things block it today:
+The current demo (`./demo/run`) proves the engine works, but it is a *slideshow*, not a *product*. What is missing is the moment a **logged-in user, sitting at a real machine that sumonix reasons about, reaches for sumonix to answer questions about that machine** — installed packages, running services, what capabilities are present, why the policy verdict came out the way it did, what changes if one fact is different — and the payoff: **a dashboard UI, running inside the VM, showing the machine's live knowledge graph** instead of terminal scrollback. That is the 60-second story that makes people want this on their real hardware.
 
-1. **No live entry point on a real system** — no `sumo` command, no admission decision, no VM image that runs the story end-to-end.
-2. **Human-curated README** — the transcripts in `README.md` are hand-pasted and drift from reality on every edit; they must be generated, or editing them rots the doc.
+Two things block it today:
 
-A side effect of building this honestly is forced refactoring: the engine's shared helpers are copy-pasted across ~12 files; extracting them is the cheapest large code-quality win available, and it must happen on the way, not after.
+1. **No live, interactive entry point on a real system** — no `sumo` command, no machine that boots into a sumonix session, no way to *poke at the machine* and see the engine answer.
+2. **No face** — the engine speaks terminal; a real deployment wants a panel. The dashboard inside the VM is what turns "cool reasoner" into "I want this on my server."
 
----
-
-## 1. Non-goals (explicitly deferred)
-
-- No new reasoning capability (no T-milestones, no Soufflé, no parallel eval). The login demo must be built with what the engine already does.
-- No public network service, no hosted dashboard. VM-only and local.
-- No PAM rewrite for the demo. Custom `pam_exec` rules in NixOS are marked `[experimental]` and a misconfiguration locks the machine out — see §8 risk table. The admit decision is made by **SSH `ForceCommand`** (supported, config-level, no lockout beyond the demo account) with a getty/console path as fallback.
-- No real-user secrets handling. The demo VM is disposable, unprivileged UT `demo` with a dummy password, no network route to anything real.
-- No Windows/macOS. Serial console Linux VM only.
+A side effect of building this honestly is forced refactoring: the engine's shared helpers are copy-pasted across ~12 files; extracting them is the cheapest large code-quality win available, and it should happen on the way, not after.
 
 ---
 
-## 2. Current state (what we have, verified 2026-11-05)
+## 1. The demo, as a user experiences it
+
+A NixOS VM boots (2 vCPU / 2 GB, serial console). The `demo` account autologs in. The user is given a working machine with real software — `nginx`, `openssl`, `python3`, `redis`, `postgresql` and their closures — all as facts in a knowledge base. A MOTD shows:
+
+```
+╔════════════════════════════════════════════════════════════╗
+║  sumonix reasons about this machine.                       ║
+║  Try:  sumo status   sumo caps   sumo closure openssl      ║
+║        sumo query '(vulnerable nginx CVE-2026-9999)'       ║
+║        sumo whatif    sumo dashboard                       ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+The recording then wanders, non-linearly like a real demo:
+
+1. `sumo status` — machine overview: services, packages, capabilities, policy verdict + proof path.
+2. `sumo caps` — the capability atlas of the installed set ("what can this box do?").
+3. `sumo closure openssl` — dependency tree; then `--json`; then a piped query.
+4. `sumo query '(vulnerable nginx CVE-2026-9999)'` — the why subtree, printed.
+5. `sumo whatif` — drop one fact (the advisory), re-run the gate, watch the verdict flip; the interactive version of the relaxation menu.
+6. `sumo dashboard` — opens the UI in a browser via port-forwarded 8080 (or prints the URL); the panel shows services, capability atlas, counts of facts/rules/derived knowledge, the policy verdict with a link to the proof, and refreshes itself. **This is the scene the recording lands on.**
+
+The session is also fully explorable interactively — any command, any order, `--help` everywhere — because that is the point: it is not a tape, it is a world.
+
+## 2. Non-goals (explicitly deferred)
+
+- No new reasoning capability (no T-milestones, no Soufflé, no parallel eval). The whole session is built with what the engine already does.
+- No production hardening of the dashboard: no auth, no TLS, no persistence beyond `/run/sumo`, no multi-tenant anything. It is a demo surface, honestly labeled as such.
+- No real network dependency at runtime beyond local loopback inside the VM; the recording must be offline.
+- No Windows/macOS. Serial console Linux VM only. SSH access is provided for convenience, never required.
+- No PAM work. The login path is a plain NixOS account; nothing about authentication is being changed.
+- No live mutation of the host outside the VM. Nothing escapes `/run/sumo`.
+
+---
+
+## 3. Current state (verified 2026-11-05)
 
 | Thing | Where | State |
 |---|---|---|
-| 5-scene offline demo (proof, packages, pages, crosswalk, gate) | `demo/`, `./demo/run` | ships; casts committed; transcripts in README hand-pasted |
-| Pinned nixpkgs snapshot (rev `1d060086d60c`, fetched, cached, committed to `demo/facts/nixpkgs.kif`) | `demo/facts/` | offline, deterministic |
-| NixOS VM spike (boots headless, runs sumo inside, serial console) | `spike/vm.nix`, `spike/demo.sh` | works; not a user-facing demo; autologin not used |
-| nixpkgs in this environment | `/home/me/sumonix/.nix-store/a3q0rqv034l7g9d30hzhv9kzakak14jq-source` (rev `1d060086…`) | `git ls-remote` works; `builtins.getFlake "github:…"` works |
-| Test runner | `./run-tests.sh` | 21 tests, all green, one command |
-| Duplicated engine helpers (`show`, `headOf`, `flatten`, `isVar`, `ground`, `subst`, `varsOf`, `ruleVars`, `unique`, `index`) | `datalog.nix`, `stratify.nix`, `ingest.nix`, `wfs.nix`, `existential.nix`, `temporal.nix`, `congruence.nix`, `policy/*.nix` | ~8–10 sites each; `sumo.nix` partial; proof-check.nix deliberately standalone |
+| 5-scene offline demo (proof, packages, pages, crosswalk, gate) | `demo/`, `./demo/run` | ships; casts committed; transcripts in README are hand-pasted |
+| Pinned nixpkgs snapshot (rev `1d060086d60c`; facts committed) | `demo/facts/nixpkgs.kif` | offline, deterministic |
+| NixOS VM spike (boots headless, runs sumonix at boot, serial console) | `spike/vm.nix`, `spike/demo.sh` | works; but a *service*, not a *session*; no interactivity |
+| nixpkgs in this environment | `/nix-store/a3q0…-source` | `getFlake` works; `git ls-remote` works |
+| Test runner | `./run-tests.sh` | 21 tests, all green |
+| Duplicated engine helpers (`show`, `headOf`, `flatten`, `isVar`, `ground`, `subst`, `varsOf`, `ruleVars`, `unique`, `index`) | `datalog.nix`, `stratify.nix`, `ingest.nix`, `wfs.nix`, `existential.nix`, `temporal.nix`, `congruence.nix`, `policy/*.nix` | ~8–10 sites each; `proof-check.nix` deliberately standalone |
 | README gate | none (manual edit) | transcripts drift |
 
 ---
 
-## 3. Workstream A — The login VM demo (the centerpiece)
+## 4. Workstream A — The logged-in VM + sumonix dashboard (the centerpiece)
 
-### 3.1 The user journey the recording shows
+### 4.1 What ships, in order of visible payoff
 
 ```
-$ just boot the VM           # ./demo/vm.sh   (or: nix run)
-... kernel boots, sshd starts ...
-$ ssh demo@localhost -p 2222          # password: demo
-╔════════════════════════════════════════════════════════════╗
-║  sumonix evaluates this login…                             ║
-║  host facts: 61 packages · 2 services · 1 profile (web)    ║
-║  policy: login-admit                                     ║
-║  verdict: ADMITTED (proof: 23 steps, re-checked in 0.4s)  ║
-╚════════════════════════════════════════════════════════════╝
-demo@sumo-nix-demo:~$ sumo caps           # what can this machine do?
-demo@sumo-nix-demo:~$ sumo closure openssl  # what does openssl pull in?
-demo@sumo-nix-demo:~$ sumo gate           # why am I in — show the proof
-demo@sumo-nix-demo:~$ exit
-$ ./demo/vm.sh --record                  # asciinema cast
+A1  bin/sumo — the command the user reaches for           (foundation)
+A2  machine facts — the VM's own world, as facts          (foundation)
+A3  the VM — boots, autologin, MOTD, sshd for humans      (foundation)
+A4  scripted tour — deterministic, recordable walkthrough (visible demo)
+A5  sumo dashboard v1 — static UI, generated from eval    (the scene)
+A6  sumo dashboard v2 — live/auto-refresh + activity log  (the product taste)
+A7  recordings — cast(s) + browser screenshot(s)           (the artifact)
+A8  sumo dashboard --serve flag; systemd timer; cleanup   (polish)
 ```
 
-A second recording flashes the *deny* path (`./demo/vm.sh --deny` → synthesized advisory hits the running web service → login refused, proof printed, no shell).
+### 4.2 Components and the missing functionality to build
 
-### 3.2 The mechanism (decision + rationale)
+**A1. `sumo` command** — `bin/sumo`, pure bash + `nix`, on PATH in the VM. Subcommands (deterministic, cached after first run via `/run/sumo/cache/`):
 
-**Chosen: sshd + `ForceCommand`.** In `vm.nix`:
+| Subcommand | What it does | Uses |
+|---|---|---|
+| `sumo status` | Machine overview: services, package count, capability count, policy verdict + proof path | `status.nix` digest (new) |
+| `sumo caps` | What this machine can do — the capability atlas of the installed closure | `spike/nixpkgs-snapshot.nix` capability map, baked facts |
+| `sumo closure <pkg>` | Dependency tree (indented); `--json` for scripts | `closure.nix` (new digest) |
+| `sumo query <goal …>` | Ground goal → engine verdict + `why` subtree | `datalog.nix` |
+| `sumo why <finding…>` | Explain an org/policy finding with its proof (reuses `org/check.nix`-style `why`) | existing `why` machinery |
+| `sumo whatif` | Interactive: drop one fact, re-run gate, show verdict flip + proof | `policy/relax.nix` patterns |
+| `sumo dashboard` | Build (or rebuild) and serve the dashboard | A5–A8 |
+| `sumo version`, `sumo help` | self-explanatory | — |
 
-```nix
-services.openssh.enable = true;
-services.openssh.extraConfig = ''
-  Match User demo
-    ForceCommand /run/wrappers/bin/sumo-login-gate
-    PasswordAuthentication yes
-'';
-environment.systemPackages = [ sumo-cmd ];   # the `sumo` CLI
-```
+**A2. Machine facts** — `demo/vm/host-facts.nix` + committed `demo/vm/facts.kif`:
+- 61 packages with `dependsOn` / `providesCapability` / `hasLicense` (reuse `spike/nixpkgs-snapshot.nix`);
+- `nginx` as `NIXService`, `serviceState nginx running`;
+- one critical advisory against `openssl` (`CVE-2026-9999`) so the policy verdict in the demo is non-trivial;
+- `/run/sumo/facts.kif` written by a oneshot unit before any login.
 
-`sumo-login-gate` is a small bash launcher that runs the gate decision (`nix eval`, cached) and either execs the user's shell (admit) or prints the refusal proof and `exit 1` (deny). The decision is **never** an exception you can't see: it prints the verdict and where the proof lives. Console fallback for humans without ssh: `services.getty.autologinUser = "demo"` + `demo`'s shell profile runs the same gate banner before the prompt (does not block, non-secret).
-
-**Rejected:** custom PAM `pam_exec` / `rules.*` — experimental upstream, misconfig = locked out, zero diagnostic value for a screen recording. **Rejected for now:** replacing `getty`'s `login` binary — invasive for marginal gain.
-
-### 3.3 Missing functionality to implement (the actual work)
-
-**A1. `sumo` user command** — `bin/sumo` (pure bash + `nix`), installed via `environment.systemPackages` in the VM. Subcommands (all deterministic, all cached after first call):
-- `sumo caps` — capability summary of the *running* machine's package set (reuses `spike/nixpkgs-snapshot.nix` capability map, but facts generated from the VM's own `profile.toplevel` or a pinned list — see A4 decision).
-- `sumo closure <pkg>` — transitive `dependsOn` closure, rendered as a tree (`libq` style indent), with `--json` for scripting.
-- `sumo query <goal …>` — pass a ground goal (e.g. `vulnerable nginx CVE-2026-9999`), print the engine's verdict + `why` subtree.
-- `sumo gate` — re-run the login-admission policy; print verdict + proof path (`/run/sumo/login-proof.txt`).
-- `sumo version` / `sumo help` — self-explanatory.
-
-**A2. Login-admission policy** — `policy/login-gate.nix`. Input: machine facts (A4). Goal predicate: `policyViolation <any running service> <any unresolved critical advisory>` must be **underivable**. Output: `{ pass; verdict; proof; tree; }` (shape of `policy/build-gate.nix` `check`). When it passes, proof says "admitted because …"; when it fails, includes the `why` subtree. This is the only new policy; reuses existing machinery verbatim.
-
-**A3. Machine-facts generator** — `demo/vm/host-facts.nix`. Two modes: `--baked` (default, deterministic): a pinned synthetic host — 61 packages, `nginx` running as `NIXService`, one open advisory against `openssl` → the deny path exists and is recordable; or the same facts minus the advisory → admit path. `--live` (optional, not in the recording): evaluates facts from the VM's actual system closure (slower, varies). Baked facts are committed as `demo/vm/facts.kif`.
-
-**A4. The VM** — `demo/vm/vm.nix` (+ `demo/vm/build.sh`). Extends the `spike/vm.nix` pattern, not a new architecture:
+**A3. The VM** — `demo/vm/vm.nix` (+ `demo/vm/build.sh`), extending the `spike/` pattern, not a new architecture:
 - NixOS, `boot.loader.grub.enable = false`, tmpfs root, direct kernel boot, `console=ttyS0`, 2 cores / 2048 MB, `virtualisation.memorySize`.
-- `users.users.demo = { isNormalUser = true; password = "demo"; }` (documented throwaway credential).
-- `services.openssh.enable = true` with the `ForceCommand` block above; serial getty for console fallback.
-- `sumo` package on PATH; `/etc/bashrc.d` or user profile export `SUMO_FACTS=/run/sumo/facts.kif`, `SUMO_PROOF_DIR=/run/sumo`.
-- Oneshot `sumo-facts.service` runs before sshd: writes `/run/sumo/facts.kif` from `demo/vm/host-facts.nix`.
-- `sumo-login-gate` (from A1) on PATH; `systemd` journal is the log (`console` gets it).
-- No network: `networking.useDHCP = false` for the login demo; ssh works over `user-mode` forwarding to host port 2222.
-- `./demo/vm.sh` — build, boot, wait for `sshd`, run the scripted transcript via `ssh -o … demo@127.0.0.1 -p 2222`, capture, exit; `--record` wraps it in `asciinema rec`; `--deny` toggles the baked advisory fact on/off; `--live` selects live mode; hard `timeout 180`.
+- `users.users.demo = { isNormalUser = true; password = "demo"; extraGroups = [ "wheel" ]; }` (documented throwaway).
+- `services.getty.autologinUser = "demo"` for the console experience; `services.openssh.enable = true` for humans who prefer ssh; no forced command — login behaves like any NixOS box.
+- MOTD (`/etc/profile.d/sumo-motd.sh` or `environment.etc."bashrc.d/sumo.sh"`): the ASCII panel above, plus `export SUMO_FACTS=/run/sumo/facts.kif`.
+- `systemd` unit `sumo-facts.service` (before `getty`): writes facts + seeds `/run/sumo/cache/`.
+- `systemd` unit `sumo-dashboard.service` (A8): serves the dashboard on `127.0.0.1:8080`.
+- `./demo/vm.sh` — build / boot / wait-for-ssh-or-console / `--record` / `--check` / `--teardown`. Hard `timeout 300`.
 
-**A5. Deterministic session transcript** — scripted stdin (fixed commands, fixed order) → byte-stable output for README. Interactive logins keep working for humans; the *recording* is scripted.
+**A4. Scripted tour** — `demo/vm/session.sh`: deterministic command sequence, stdin-driven, byte-stable output (timestamps stripped). Interactive mode unaffected.
 
-**A6. CI-less smoke gate** — `./demo/vm.sh --check`: boot, ssh in, run `sumo version`, expect exit 0 inside 60 s, hard kill. Added to `run-tests.sh` behind a flag (off by default — requires KVM; opt-in on machines that can).
+**A5. `sumo dashboard` v1 — static, honest, small**
+- `demo/vm/dashboard.nix` — evaluates the gate, the capability atlas, the counts (facts/rules/rounds/derived), embeds the proof *verbatim*.
+- Emits `/run/sumo/www/index.html` (self-contained: no external CSS/JS; inline a small `<style>`; ~120 lines).
+- Served by `services.nginx` (127.0.0.1:8080, `root /run/sumo/www`).
+- `sumo dashboard` command = regenerate + report the URL + exit.
 
-**A7. Recordings** — two casts committed: `docs/demo/login-admit.cast`, `docs/demo/login-deny.cast`. README embeds the transcripts (see Workstream B).
+**A6. `sumo dashboard` v2 — feels alive**
+- systemd timer every 5 s re-runs the digest (derivations are cached; ~0.5 s warm).
+- `<meta http-equiv="refresh" content="5">` on the page; no JS framework.
+- An "activity" strip: last few derivations with round numbers (from `trace`), scrolling.
+- A "policy" card verdict with a `<details>` block containing the raw proof.
+- Optional, if time: `sumo dashboard --watch` in the terminal prints the same data as an updating TUI (ncurses-ish; or just `watch -n1 cat`).
 
-### 3.4 Tasks
+**A7. Recordings**
+- `docs/demo/tour.cast` — asciinema of the scripted session (autologin console, not ssh, for the "just works" feel).
+- `docs/demo/dashboard.png` — one screenshot of the dashboard page from the host browser (or `import` from a headless Xvfb inside the VM).
+- README embeds both (after Workstream B lands).
+
+**A8. Polish** — `sumo dashboard` prints URL; nginx logs suppressed in demo; teardown clean; `--check` mode for KVM; docs updated.
+
+### 4.3 Tasks
 
 | # | Task | Files | Acceptance |
 |---|---|---|---|
-| A1a | `bin/sumo` with `caps`/`closure`/`query`/`gate`/`version`/`help` | `bin/sumo`, `demo/vm/sumo-pkg.nix` | each subcommand runs against baked facts; `sumo query '(vulnerable openssl CVE-2026-9999)'` prints the gate subtree |
-| A1b | `sumo-login-gate` launcher | `bin/sumo-login-gate` | exit 0 + `exec /bin/bash -l` on pass; exit 1 + proof to stderr on fail; never swallows the gate's exit code |
-| A2 | login-admission policy | `policy/login-gate.nix`, `tests/unit/login-gate.nix` | admit case passes; deny case fails with proof containing `policyViolation` |
-| A3 | baked host facts + generator | `demo/vm/host-facts.nix`, `demo/vm/facts.kif` | deterministic across runs; `--live` works when network available |
-| A4 | VM definition + `demo/vm.sh` | `demo/vm/vm.nix`, `demo/vm.sh` | boots headless; ssh works with `demo/demo`; forced command in effect; `--deny` shows refusal; timeout enforced |
-| A5 | scripted session | `demo/vm/session.sh` | output byte-identical across two runs (modulo timestamps, which are stripped or fixed) |
-| A6 | check mode | `demo/vm.sh`, `run-tests.sh --vm` | passes on KVM hosts; clean skip otherwise with a clear message |
-| A7 | record both casts | `docs/demo/*.cast` | committed; playable |
+| A1 | `sumo` CLI (all subcommands) | `bin/sumo`, `demo/vm/sumo-pkg.nix` | each subcommand runs against baked facts; `sumo query '(vulnerable nginx CVE-2026-9999)'` prints the proof subtree; `--help` complete |
+| A2 | machine facts (baked) | `demo/vm/host-facts.nix`, `demo/vm/facts.kif` | regenerate deterministically; includes nginx service + running state + one advisory |
+| A3 | VM + `demo/vm.sh` | `demo/vm/vm.nix`, `demo/vm.sh` | boots headless; `demo` autologs in; MOTD shows; ssh works too; `sumo` on PATH; timeout enforced |
+| A4 | scripted tour | `demo/vm/session.sh` | byte-identical output across two runs (timestamps stripped) |
+| A5 | dashboard v1 | `demo/vm/dashboard.nix`, `demo/vm/dashboard.service`, nginx config | `sumo dashboard` builds and serves; page renders services/caps/proof; port 8080 |
+| A6 | dashboard v2 | same + timer unit | refreshes ≤5 s; activity strip visible; proof `<details>` works |
+| A7 | recordings | `docs/demo/tour.cast`, `docs/demo/dashboard.png` | committed; playable/viewable |
+| A8 | `--check` mode + docs | `demo/vm.sh`, `run-tests.sh` | exits 0 on KVM; clear SKIP otherwise |
 
-### 3.5 Verification of the whole workstream
+### 4.4 Why this is the demo
 
-```bash
-./demo/vm.sh                # boots, ssh session runs, transcript printed
-./demo/vm.sh --deny         # shows refused login with proof
-./demo/vm.sh --check        # exits 0 (KVM) or prints "SKIP: no KVM" and exits 0
-run-tests.sh                # all 21 (+ login-gate unit) green
-```
+- **Interactive**, not a tape: the user can wander off-script and the machine answers.
+- **Honest**: every number on the dashboard traces to an eval of the real engine; nothing is mocked.
+- **Compelling**: the terminal builds appetite; the dashboard delivers it; the proof keeps it.
+- **Extensible**: the same page structure scales to real deployments (multi-host, persistence, auth) — each next step is obvious.
 
----
+## 5. Workstream B — README from parts (no hand-pasted transcripts)
 
-## 4. Workstream B — README from parts (no hand-pasted transcripts)
-
-### 4.1 Layout
+### 5.1 Layout
 
 ```
 docs/readme/            # prose, one file per section, emitted in lexicographic order
@@ -149,42 +169,40 @@ docs/demo/              # generated transcripts + casts (from ./demo/run, ./demo
   02-pages.md
   03-crosswalk.md
   04-policy.md
-  05-login-admit.md     # from ./demo/vm.sh
-  05-login-deny.md
+  05-tour.md            # the VM session transcript
+  05-dashboard.md       # dashboard transcript + screenshot link
 tools/gen-demo.sh       # runs each scene, writes docs/demo/*.md (txt), writes .cast files
-tools/build-readme.sh   # concatenates docs/readme/*.md; expands <!-- include:demo/05-login-admit.md --> markers
+tools/build-readme.sh   # concatenates docs/readme/*.md; expands <!-- include:demo/05-tour.md --> markers
 tools/check-readme.sh   # re-renders to a temp file, diffs against README.md, exits non-zero on drift
 README.md               # generated; header says "DO NOT EDIT — run ./tools/build-readme.sh"
 ```
 
-### 4.2 Marker rules (kept minimal)
+### 5.2 Marker rules (kept minimal)
 
-- `<!-- include:demo/05-login-admit.md -->` → replaced by the file contents.
-- `<!-- run: ./demo/run 02-capabilities.sh -->` → replaced by the **captured output** of the command (used when regeneration is desired without pre-committed transcripts).
+- `<!-- include:demo/05-tour.md -->` → replaced by the file contents.
+- `<!-- run: ./demo/run 02-capabilities.sh -->` → replaced by the **captured output** of the command.
 - Everything else is literal prose.
 - The generator is a ~60-line bash script using `awk`; no external deps.
 
-### 4.3 Migration checklist
+### 5.3 Migration checklist
 
 | # | Task | Acceptance |
 |---|---|---|
 | B1 | Split current README into `docs/readme/*.md` | byte-identical output after one `./tools/build-readme.sh` run |
 | B2 | Extract the five existing demo transcripts into `docs/demo/*.md`; rewrite `10-demo.md` to `<!-- include: -->` them | `./demo/run` output unchanged; README section renders identically |
-| B3 | Add `login-*` transcripts once A7 lands | they are generated, not pasted |
+| B3 | Add `tour` and `dashboard` transcripts once A7 lands | generated, not pasted |
 | B4 | Header comment in generated README: `<!-- generated by tools/build-readme.sh; do not edit -->` | present |
 | B5 | `./tools/check-readme.sh` exits 0 | added to `run-tests.sh` |
 | B6 | `tools/gen-demo.sh` re-records everything (`asciinema` required; degrades to txt-only if absent, with a warning) | committed casts change only when output changes |
 | B7 | Delete `docs/demo/*.txt` after migration (keep `.md`) | no stale duplicates |
 
-### 4.4 Why this matters
+### 5.4 Why this matters
 
 Every future edit to a demo transcript becomes a `git diff` of a generated file, not a hand-edited block; README can never silently disagree with the code; `./tools/check-readme.sh` in the test runner makes drift a failing test.
 
----
+## 6. Workstream C — Low-hanging refactor (do this first)
 
-## 5. Workstream C — Low-hanging refactor (do this *before* A if the diff gets big)
-
-**Order rule:** extract in order of risk, verify `./run-tests.sh` after each extraction, and require a byte-identical `./demo/run` transcript (modulo nothing — it should not change at all).
+**Order rule:** extract in order of risk, verify `./run-tests.sh` after each extraction, require a byte-identical `./demo/run` transcript.
 
 ### C1. Shared Nix helper library — `lib/kif.nix`
 
@@ -199,91 +217,84 @@ Extract, do not change semantics:
 }
 ```
 
-**Sites:** `datalog.nix`, `stratify.nix`, `ingest.nix`, `wfs.nix`, `existential.nix`, `temporal.nix`, `congruence.nix`, `synthesize.nix`, `policy/relax.nix`, `policy/soft-rules.nix` (and any others found by grep). Expected deletion: ~300 lines of duplication.
+**Sites:** `datalog.nix`, `stratify.nix`, `ingest.nix`, `wfs.nix`, `existential.nix`, `temporal.nix`, `congruence.nix`, `synthesize.nix`, `policy/relax.nix`, `policy/soft-rules.nix`. Expected deletion: ~300 lines.
 
-`proof-check.nix` is intentionally **zero-shared-code with the engine** — it keeps its own copies, with a comment saying so. Do not wire it to `lib/kif.nix`.
+`proof-check.nix` keeps its own copies — zero-shared-code checker is the trust anchor.
 
 ### C2. Test boilerplate — `tests/lib.nix`
 
-Every `tests/unit/*.nix` repeats `check = what: ok: …`. Extract `tests/lib.nix` exporting `check` (and if it stays tiny, nothing else). Unit tests shrink by ~4 lines each; more importantly they stop diverging.
+Every `tests/unit/*.nix` repeats `check = what: ok: …`. Extract `tests/lib.nix` exporting `check`. Unit tests shrink; they stop diverging.
 
 ### C3. Shell environment — `tools/env.sh`
 
-`nix-eval.sh`, `run-tests.sh`, `demo/lib.sh`, `spike/demo.sh` each export `NIX_STORE_DIR`/`NIX_STATE_DIR` differently (absolute vs relative, duplicated). One `tools/env.sh` sourced everywhere; `nix-eval.sh` becomes a 6-line wrapper. No behavior change; one place to change if the store layout ever moves.
+`nix-eval.sh`, `run-tests.sh`, `demo/lib.sh`, `spike/demo.sh` each export `NIX_STORE_DIR`/`NIX_STATE_DIR` differently. One `tools/env.sh` sourced everywhere; `nix-eval.sh` becomes a 6-line wrapper.
 
 ### C4. `show` as the single pretty-printer
 
-Once `lib/kif.nix` exists, give it `show` and delete the ~6 local copies. This is the one that unblocks consistent proof formatting everywhere.
+Once `lib/kif.nix` exists, give it `show` and delete the ~6 local copies.
 
 ### C5. Verification of C
 
 ```bash
 ./run-tests.sh                 # 21+ tests green
 ./demo/run > /tmp/after.txt
-diff <(cat /tmp/before.txt) /tmp/after.txt   # MUST be empty
+diff /tmp/before.txt /tmp/after.txt   # MUST be empty
 git diff --stat                # expect ~-300 lines
 ```
 
-If any `diff` is non-empty, stop and revert the extraction — do not patch forward.
+If the diff is non-empty, stop and revert the extraction — do not patch forward.
 
----
-
-## 6. Workstream D — Tools directory coherence (small, do last)
+## 7. Workstream D — Tools directory coherence (small, do last)
 
 - `tools/` holds `env.sh`, `gen-demo.sh`, `build-readme.sh`, `check-readme.sh`.
-- Root keeps only user-facing entry points: `nix-eval.sh`, `run-tests.sh`, `demo/run`, `demo/vm.sh`, `bin/sumo`.
-- `spike/` stays as the *exploration* area; anything reused by the VM moves to `demo/vm/` or `lib/`, spike imports it (do not fork it).
+- Root keeps only user-facing entry points: `nix-eval.sh`, `run-tests.sh`, `demo/run`, `bin/sumo`.
+- `spike/` stays as exploration; anything reused by the VM moves to `demo/vm/` or `lib/`, spike imports it.
 
----
-
-## 7. Milestones, order, and effort
+## 8. Milestones, order, and effort
 
 | Order | Milestone | Effort | Gate |
 |---|---|---|---|
-| 1 | C3 (`tools/env.sh`) + C1 extraction, one module at a time | 1–2 h | suite green after each |
-| 2 | C4 (`show`) + C2 (`tests/lib.nix`) | 30–45 min | suite green |
-| 3 | A2 (policy) + A3 (facts) + A1 (`sumo` CLI) | 1.5–2 h | unit test green |
-| 4 | A4 (VM + `demo/vm.sh`) + A5 (scripted session) | 2–3 h | `--check` passes on KVM |
-| 5 | A7 (record both casts) | 30 min | casts committed |
-| 6 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green; README diff ~0 lines of substance |
-| 7 | D (tools coherence) | 20 min | links updated, nothing else changes |
+| 1 | C3 + C1, one module at a time | 1–2 h | suite green after each |
+| 2 | C4 + C2 | 30–45 min | suite green |
+| 3 | A1 (`sumo` CLI) + A2 (facts) | 1–1.5 h | sumo runs in-repo |
+| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; sumo on PATH |
+| 5 | A5 (dashboard v1) | 1–2 h | page renders in a browser on 8080 |
+| 6 | A6 (dashboard v2) | 45–60 min | auto-refresh + proof panel visible |
+| 7 | A7 (record) | 30 min | casts committed |
+| 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green |
+| 9 | D | 20 min | links updated |
 
-Total ≈ **7–10 h**, independent of the deferred Soufflé/parallel work.
+Total ≈ **8–11 h**.
 
----
-
-## 8. Risks and mitigations
+## 9. Risks and mitigations
 
 | Risk | L | Impact | Mitigation |
 |---|---|---|---|
-| sshd `ForceCommand` breaks normal interactive login expectations | med | annoyance | demo account only; console fallback (getty autologin + profile banner, no blocking) |
-| VM too heavy for laptop/CI | med | demo unusable | 2 vCPU / 2048 MB; `--check` skippable; offline baked facts; `timeout 180` |
-| PAM temptation / scope creep | high | lockout, schedule | §1 non-goal; §3.2 decision table; no PAM in this milestone |
+| Dashboard is scope creep (turns into a product) | high | schedule | §2 non-goal; v1 is static HTML, v2 adds refresh *only*; no auth, no JS framework |
+| VM build too heavy | med | demo unusable | 2 vCPU / 2048 MB; offline facts; `--check` skippable; `timeout 300` |
+| Refactor breaks subtle semantics (`show`, `subst`) | med | silent wrong proofs | extract one helper at a time; byte-identical demo diff required; suite after every commit |
 | README drift returns | high | doc rots | generated files + header + `check-readme.sh` in the suite |
-| Refactor breaks subtle semantics (`show`, `subst`) | med | silent wrong proofs | extract one helper at a time; byte-identical demo diff required; suite after each commit |
-| Login gate becomes a real auth path someone copies | low | misuse | `demo/vm/` README warning; demo creds never leave the VM; no secrets anywhere in facts |
-| nixpkgs pin drifts | med | demo rots with time | pin in `demo/vm/vm.nix` (`1d060086…`), `gen-facts.sh` refreshes explicitly |
+| Demo session not byte-stable | med | README re-diff churn | scripted stdin, stripped timestamps, fixed locale |
+| "login" misunderstood again | — | wasted hour | §1 and §4 are explicit: it is a *session*, a *world*, a *panel* — not an auth handshake |
 
----
+## 10. Definition of done
 
-## 9. Definition of done
+- [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand.
+- [ ] `sumo dashboard` serves a rendered page on 127.0.0.1:8080 showing services, capabilities, policy verdict + proof, and auto-refreshes.
+- [ ] `docs/demo/tour.cast` and `docs/demo/dashboard.png` committed.
+- [ ] `README.md` is generated; `./tools/check-readme.sh` passes and is in `./run-tests.sh`.
+- [ ] `lib/kif.nix` exists; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical.
+- [ ] `./run-tests.sh` passes (including new VM smoke gate when `--vm`).
+- [ ] `TODO.3.md` updated to track completion.
 
-- [ ] `./demo/vm.sh` boots a real NixOS VM, sshd login succeeds with `demo`/`demo`, transcript shows `ADMITTED` + proof; `--deny` shows refusal + proof; both casts committed and playable.
-- [ ] `sumo` command exists in the VM: `caps`, `closure`, `query`, `gate`, `version` all work.
-- [ ] `README.md` is generated (`./tools/build-readme.sh`); header says do-not-edit; `./tools/check-readme.sh` passes and is wired into `./run-tests.sh`.
-- [ ] `lib/kif.nix` exists; engine/policy modules import from it; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical to before.
-- [ ] `./run-tests.sh` passes including the new `tests/unit/login-gate.nix`.
-- [ ] `TODO.3.md` updated to track completion (checkboxes ticked, as-built notes).
+## 11. Open questions (with recommendations)
 
-## 10. Open questions (with recommendations)
+1. **Dashboard implementation** — recommend v1 static HTML (no framework, nginx) + v2 meta-refresh; no React, no build step. A TUI variant is a stretch goal, not a blocker.
+2. **Baked vs live facts** — recommend baked for the recording (deterministic), `--live` as an option.
+3. **Where does `sumo` live?** — `bin/sumo`, consistent with `bin/sumo-nix`.
+4. **One VM or two recordings?** — one VM; `tour.cast` (terminal) and `dashboard.png` (browser) from it; README shows both.
+5. **Should the dashboard be a real product later?** — out of scope; the §4 structure keeps the door open (auth, multi-host, persistence) without committing to it.
 
-1. **Baked vs live facts for the admit decision** — recommend baked (deterministic, offline, recordable) with `--live` as an option; live makes the recording flaky.
-2. **Where should `sumo` live?** — recommend top-level `bin/sumo`, consistent with `bin/sumo-nix`; not `tools/` (user-facing, not dev tooling).
-3. **Should the login gate sign the verdict?** — no for this milestone; proof file + re-check is the trust anchor; signing is a separate, later decision.
-4. **One VM or two recordings?** — recommend two committed casts (admit, deny) from one VM definition; the README shows both.
+## 12. Sequencing summary
 
----
-
-## 11. Effort and sequencing summary
-
-Refactor first (C) — it makes A and B smaller. Then A (the demo). Then B (README from parts) using A's transcripts. Then D (coherence). Each step is independently revertable; every step ends with the suite green and the demo transcript byte-identical, except A5 and A7 which intentionally add output.
+Refactor first (C) → VM + `sumo` CLI (A1–A4) → dashboard (A5–A6) → record (A7) → README from parts (B) → tools coherence (D). Each step ends with the suite green and the demo transcript byte-identical, except A5–A8 which intentionally add surface.
