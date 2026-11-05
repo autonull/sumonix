@@ -55,7 +55,7 @@ let
   predArityObserved = listToAttrs (map (p: { name = p; value = predArity p; }) allPredicates1);
 
   # Arity from domains/ranges
-  domainPredicates = unique (concatMap (f: [ elemAt f 1 ]) (domainForms ++ rangeForms));
+  domainPredicates = unique (concatMap (f: [ (elemAt f 1) ]) (domainForms ++ rangeForms));
   domainArity = listToAttrs (map (R:
     let pos = map (f: toInt (elemAt f 2)) (filter (f: headOf f == "domain" && length f >= 4 && elemAt f 1 == R) domainForms);
         pos2 = map (f: toInt (elemAt f 2)) (filter (f: headOf f == "range" && length f >= 4 && elemAt f 1 == R) rangeForms);
@@ -72,6 +72,7 @@ let
   varN = n: "?v${toString n}";
 
   # Generate rules for a single predicate - avoid elemAt by generating vars directly
+  # Only forward direction per position; reverse is covered by cong/symmetry bridging rule
   rulesForPred = R: let
     n = arityOf R;
   in if n == null || n < 1 then [ ] else
@@ -80,17 +81,13 @@ let
       y = varN n;
       # Generate vars list with y at position pos
       vars1 = genList (i: if i == pos then y else varN i) n;
-      # Generate vars list with x at position pos (which is just the standard vars)
+      # Standard vars for antecedent
       vars2 = genList varN n;
       a = [ R ] ++ vars2;
       consequent = [ R ] ++ vars1;
       antecedent = [ "and" [ "cong" x y ] a ];
-      # For reverse direction: swap x and y at position pos
-      vars3 = genList (i: if i == pos then x else varN i) n;
-      consequent2 = [ R ] ++ vars3;
-      antecedent2 = [ "and" [ "cong" y x ] a ];
     in
-    [ { declaration = "congruence ${R}/${toString (pos + 1)} (arity ${toString n})"; rules = [ [ "=>" antecedent consequent ] [ "=>" antecedent2 consequent2 ] ]; }
+    [ { declaration = "congruence ${R}/${toString (pos + 1)} (arity ${toString n})"; rules = [ [ "=>" antecedent consequent ] ]; }
     ])) (genList (i: i) n);
 
   # Congruence predicate bridging rules - only symmetry, no transitivity to avoid deep recursion
