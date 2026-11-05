@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export NIX_STORE_DIR="$ROOT/.nix-store" NIX_STATE_DIR="$ROOT/.nix-state"
+source "$ROOT/tools/env.sh"
 
 say()  { printf '\033[1;36m│\033[0m %s\n' "$*"; }
 cmd()  { printf '\033[1;32m$\033[0m %s\n' "$*"; }

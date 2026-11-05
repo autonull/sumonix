@@ -3,7 +3,7 @@
 # Exits non-zero on the first failure, after printing what failed.
 set -euo pipefail
 cd "$(dirname "$0")"
-export NIX_STORE_DIR="$(pwd)/.nix-store" NIX_STATE_DIR="$(pwd)/.nix-state"
+source "./tools/env.sh"
 
 tests=(
   tests/default.nix
