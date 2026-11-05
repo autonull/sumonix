@@ -1,7 +1,8 @@
 # Phase 5 — Policy product: the build gate (both polarities) and the relaxation menu.
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/relax.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  lib = import ../lib.nix { };
+  kif = import ../../lib/kif.nix { };
   text = builtins.readFile;
 
   facts = kif.parse ''
@@ -72,29 +73,28 @@ let
     passWhen = "derivable";
     candidates = [ ];
   };
-  checkResult = what: ok: if ok then true else throw "failed: ${what}";
   menuNames = map (m: m.name) menu.menu;
 in
 if builtins.all (x: x) [
   # --- gate -------------------------------------------------------------------
-  (checkResult "violation is derivable; gate fails (underivable polarity)" (!violation.pass))
-  (checkResult "the gate report carries the why subtree" (violation.tree != null && violation.proof != ""))
-  (checkResult "a required goal is derivable; gate passes (derivable polarity)" required.pass)
-  (checkResult "the required goal proof reaches the advisory" (builtins.match ".*CVE-2026-9999.*" required.proof != null))
+  (lib.check "violation is derivable; gate fails (underivable polarity)" (!violation.pass))
+  (lib.check "the gate report carries the why subtree" (violation.tree != null && violation.proof != ""))
+  (lib.check "a required goal is derivable; gate passes (derivable polarity)" required.pass)
+  (lib.check "the required goal proof reaches the advisory" (builtins.match ".*CVE-2026-9999.*" required.proof != null))
   # --- relaxation menu ----------------------------------------------------------
-  (checkResult "the menu lists exactly the true single-flip overrides"
+  (lib.check "the menu lists exactly the true single-flip overrides"
     (menuNames == [ "drain nginx (not running)" "remove the policy rule" ]))
-  (checkResult "the unrelated edge flips nothing and is not offered" (!(builtins.elem "drop an unrelated edge" menuNames)))
-  (checkResult "every menu entry carries a proof sketch" (builtins.all (m: m.proof != "") menu.menu))
-  (checkResult "every listed override really breaks derivability" (builtins.all (m: !m.derived) menu.menu))
-  (checkResult "menu diagnostics account for the candidates" (menu.diagnostics.candidates == 7 && menu.diagnostics.flips == builtins.length menu.menu))
+  (lib.check "the unrelated edge flips nothing and is not offered" (!(builtins.elem "drop an unrelated edge" menuNames)))
+  (lib.check "every menu entry carries a proof sketch" (builtins.all (m: m.proof != "") menu.menu))
+  (lib.check "every listed override really breaks derivability" (builtins.all (m: !m.derived) menu.menu))
+  (lib.check "menu diagnostics account for the candidates" (menu.diagnostics.candidates == 7 && menu.diagnostics.flips == builtins.length menu.menu))
   # --- size-2 flips when no single flip exists ---------------------------------
-  (checkResult "no single advisory flips (two independent CVEs), four pairs flip"
+  (lib.check "no single advisory flips (two independent CVEs), four pairs flip"
     (pairMenu.menu == [ ] && builtins.length pairMenu.minFlipsGroups == 4))
   # --- supports (inverse direction) --------------------------------------------
-  (checkResult "a holding goal reports its load-bearing proof leaves"
+  (lib.check "a holding goal reports its load-bearing proof leaves"
     (supportsMenu.basePass && builtins.length supportsMenu.supports > 0))
-  (checkResult "dropping the app->curl edge alone breaks the required goal"
+  (lib.check "dropping the app->curl edge alone breaks the required goal"
     (builtins.any (s: s.fact == "(dependsOn app curl)" && s.flip) supportsMenu.supports))
-  (checkResult "the policy failure proof names the violating rule" (builtins.match ".*policyViolation#4.*" violation.proof != null))
+  (lib.check "the policy failure proof names the violating rule" (builtins.match ".*policyViolation#4.*" violation.proof != null))
 ] then "ok" else "failed"
