@@ -307,7 +307,7 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 | 1 | C1 (one module at a time) + C3 | 1–2 h | suite green after each; demo diff empty | ✅ |
 | 2 | C2, C4 | 30 min | suite green | ✅ (C2 done, C4 deferred to A1) |
 | 3 | A1 (`sumo` CLI) + A2 (facts, curated mode) | 1–1.5 h | every subcommand runs in-repo | ✅ |
-| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 config + build script complete; **build needs mount namespaces** (see §4.5) |
+| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 config complete; **build blocked on kernel namespaces** (see §4.5) |
 | 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ✅ dump mode works |
 | 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | ✅ implemented (sparkline, auto-refresh, what-if card) |
 | 7 | A7 (record + screenshot) | 30 min | casts + png committed | ✅ `docs/demo/{tour.cast,dashboard.png}` via `tools/{tour,shot}.sh` |
@@ -334,8 +334,8 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 
 ## 10. Definition of done
 
-- [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand. *(config complete; needs mount namespaces — §4.4)*
-- [ ] `sumo dashboard` renders the TUI in the terminal: services, capabilities, policy verdict + proof, a chart; `q` quits; `h` shows the topology.
+- [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand. *(config complete; **blocked on kernel namespaces** — §4.5)*
+- [x] `sumo dashboard` renders the TUI in the terminal: services, capabilities, policy verdict + proof, a chart; `q` quits; `h` shows the topology.
 - [x] `docs/demo/tour.cast` and `docs/demo/dashboard.png` committed; the png is the TUI's own rendering.
 - [x] `README.md` is generated; `./tools/check-readme.sh` passes and is in `./run-tests.sh`.
 - [x] `lib/kif.nix` exists; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical.
