@@ -92,7 +92,7 @@ let
   # Counts for status
   serviceCount = length (filter (f: headOf f == "instance" && length f == 3 && elemAt f 2 == "NIXService") factForms);
   packageCount = length (filter (f: headOf f == "instance" && length f == 3 && elemAt f 2 == "NIXPackage") factForms);
-  capabilityCount = length (filter (f: headOf f == "providesCapability") factForms);
+  capabilityCount = length enabledCaps;
   roundCount = length (attrNames datalog.trace);
 
   # Format functions

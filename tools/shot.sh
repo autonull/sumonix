@@ -1,28 +1,42 @@
 #!/usr/bin/env bash
-# tools/shot.sh — Capture TUI screenshot via vt10x
-# Usage: ./tools/shot.sh <output.png>
-
+# tools/shot.sh [out.png] — render `sumo dashboard --dump` to a PNG.
+#
+# The screenshot is the TUI's own output stream: no browser rendering of a
+# separate HTML dashboard, no Xvfb. Chromium is only the text rasteriser.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUTPUT="${1:-$ROOT/docs/demo/dashboard.png}"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+OUT="${1:-$ROOT/docs/demo/dashboard.png}"
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
 
-if ! command -v vt10x &> /dev/null; then
-  echo "ERROR: vt10x not found. Install with: go install github.com/gdamore/vt10x@latest"
-  exit 1
-fi
+mkdir -p "$(dirname "$OUT")"
 
-# Run the TUI in dump mode and capture the output
-TUI_BIN="/home/me/sumonix/demo/vm/tui/sumo-tui"
-if [ ! -f "$TUI_BIN" ]; then
-  echo "Building TUI..."
-  cd "$ROOT/demo/vm/tui" && go build -o "$TUI_BIN" .
-fi
+"$ROOT/demo/vm/tui/sumo-tui" --dump --sumo="$ROOT/bin/sumo" > "$TMP/dump.txt"
+[ -s "$TMP/dump.txt" ] || { echo "empty TUI dump" >&2; exit 1; }
 
-# Capture the TUI output
-"$TUI_BIN" --dump --sumo "$ROOT/bin/sumo" > /tmp/tui-output.txt 2>&1
+python3 - "$TMP/dump.txt" "$TMP/dash.html" <<'PY'
+import html, sys
+src, dst = sys.argv[1], sys.argv[2]
+text = open(src, encoding="utf-8").read()
+page = """<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;padding:0;background:#0b0f14;}
+pre{margin:0;padding:24px;color:#d8dee9;background:#0b0f14;
+    font:14px/1.4 "Noto Sans Mono","Noto Color Emoji",monospace;
+    white-space:pre;}
+</style></head><body><pre>%s</pre></body></html>""" % html.escape(text)
+open(dst, "w", encoding="utf-8").write(page)
+PY
 
-# Convert to PNG using vt10x
-vt10x -i /tmp/tui-output.txt -o "$OUTPUT"
+cols=$(awk '{ if (length > m) m = length } END { print m + 4 }' "$TMP/dump.txt")
+rows=$(wc -l < "$TMP/dump.txt")
+w=$(( cols * 9 + 48 ))
+h=$(( rows * 20 + 48 ))
 
-echo "Screenshot saved to $OUTPUT"
+chromium --headless --no-sandbox --disable-gpu --hide-scrollbars \
+  --force-device-scale-factor=2 \
+  --window-size="${w},${h}" \
+  --screenshot="$OUT" "file://$TMP/dash.html" >/dev/null 2>&1
+
+[ -s "$OUT" ] || { echo "screenshot failed" >&2; exit 1; }
+echo "wrote $OUT (${w}x${h} @2x)"

@@ -2,3 +2,8 @@
 .nix-state/
 result
 vm-result
+.nix-root/
+demo/vm/result-vm
+demo/vm/vm-disk.qcow2
+.nix-conf/
+.nix-log/

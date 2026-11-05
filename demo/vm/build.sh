@@ -1,28 +1,29 @@
 #!/usr/bin/env bash
-# demo/vm/build.sh — Build the sumonix demo VM
-# Builds the NixOS VM with the repo source using system store with binary substitutes.
-
+# demo/vm/build.sh — build the sumonix demo VM.
+#
+# Uses a *root store* under the repo ($SUMONIX_BUILD_ROOT). Nix keeps logical
+# paths as /nix/store/... so cache.nixos.org substitutes match, but every NAR
+# is stored inside the repository. No writes to /nix, no root required.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-VM_DIR="$(dirname "$0")"
+VM_DIR="$ROOT/demo/vm"
+source "$ROOT/tools/env.sh"
 
-echo "Building sumonix demo VM..."
-echo "Repo: $ROOT"
+mkdir -p "$SUMONIX_BUILD_ROOT"
 
-# Use system nix store with binary substitutes from cache.nixos.org
-# The local .nix-conf/nix.conf has the substituters configured
+echo "Building sumonix demo VM"
+echo "  repo : $ROOT"
+echo "  store: $SUMONIX_BUILD_STORE"
 
-# Build the VM using nix
-export SUMONIX_REPO_ROOT="$ROOT"
-nix --extra-experimental-features 'nix-command flakes' \
-  --option sandbox false \
-  --option build-users-group "" \
-  build --expr "(import $VM_DIR/vm-wrapper.nix { pkgs = import <nixpkgs> { }; repoRoot = \"$ROOT\"; configFile = \"$VM_DIR/vm.nix\"; })" \
-  -I nixpkgs=channel:nixos-unstable \
-  -I nixos-config=$VM_DIR/vm.nix \
-  --impure \
-  -o "$VM_DIR/result-vm"
+export NIX_CONFIG="substituters = ${SUMONIX_SUBSTITUTERS}
+trusted-public-keys = ${SUMONIX_TRUSTED_KEYS}
+sandbox = false
+build-users-group ="
 
-echo "VM built at $VM_DIR/result-vm"
-echo "Run with: $VM_DIR/result-vm/bin/run-*-vm"
+exec nix --extra-experimental-features 'nix-command flakes' \
+  --store "$SUMONIX_BUILD_STORE" \
+  --max-jobs "${SUMONIX_MAX_JOBS:-4}" \
+  build "$ROOT#nixosConfigurations.demo.config.system.build.vm" \
+  -o "$VM_DIR/result-vm" \
+  --print-out-paths

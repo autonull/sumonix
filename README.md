@@ -74,6 +74,19 @@ Menu — which single override flips the verdict?
 ```
 
 Record your own: `./demo/record` re-records every scene (needs `asciinema`). Full script and cast index: `demo/README.md`.
+
+**6 · The panel** — the same digest, rendered as a live TUI (`sumo dashboard`): services, capability atlas, the policy verdict with its proof, and a chart:
+
+![sumo dashboard](docs/demo/dashboard.png)
+
+**7 · The session, recorded** — `sumo status`, `sumo caps`, `sumo closure nginx`, `sumo query`, `sumo whatif`, captured as an asciicast:
+
+```console
+$ asciinema play docs/demo/tour.cast
+```
+
+Both artifacts are generated, not pasted: `./tools/shot.sh` (TUI dump → PNG) and `./tools/tour.sh` (asciinema).
+
 ## 🎯 What This Is
 
 | Layer | What It Does |

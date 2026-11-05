@@ -164,7 +164,38 @@ Facts: `SUMO_FACTS` or `/run/sumo/facts.kif` (or `demo/vm/facts.kif` in-repo). R
 | A7 | recordings | `docs/demo/tour.cast`, `docs/demo/dashboard.png`, `tools/shot.sh` | committed; screenshot is the real TUI stream (no browser) |
 | A8 | `--check` + docs | `demo/vm.sh`, `run-tests.sh` | KVM gate exits 0 with KVM, prints a clear SKIP otherwise, in `tests/vm/` (outside `run-tests.sh` unless `--vm`) |
 
-### 4.4 Why this is the demo
+### 4.4 Local stores: what works, and why
+
+Two different mechanisms, and mixing them costs hours:
+
+| Mechanism | Logical paths | Substitutes from cache.nixos.org | Builds | Use |
+|---|---|---|---|---|
+| `NIX_STORE_DIR=$ROOT/.nix-store` | `$ROOT/.nix-store/...` | **no** — hashes differ, every fetch 404s | yes (no namespace needed) | eval-only, pre-populated closures (tests, `demo/run`, `sumo`) |
+| `--store local?root=$ROOT/.nix-root` | `/nix/store/...` | **yes** | only with mount namespaces | anything that must fetch or build (the VM) |
+
+The hard rule: a store path hash is computed over a derivation whose inputs already carry their store paths, so the store *directory string* is baked into every hash. Binary caches are keyed on `/nix/store/...`.
+
+Verified on this host:
+
+```
+$ ./demo/vm.sh --check
+KVM: available
+user namespaces: UNAVAILABLE
+  Nix cannot build in a diverted store without mount namespaces.
+  Substitution still works into /home/me/sumonix/.nix-root/nix/store.
+  To enable: sudo sysctl -w kernel.unprivileged_userns_clone=1
+SKIP: VM build/boot prerequisites not met
+```
+
+Substitution into the repo was verified (`hello` fetched from `cache.nixos.org` into `.nix-root/nix/store`). Building the VM additionally needs one of:
+
+1. `sudo sysctl -w kernel.unprivileged_userns_clone=1` (one line, unblocks `demo/vm.sh build` as-is), or
+2. a one-time root-created `/nix/store` (the standard Nix install), or
+3. a from-source build in `.nix-store` (no namespaces, but the full NixOS closure — hours).
+
+Until then A3/A4 are config-complete and `--check` is honest about the SKIP. A7 does not depend on the VM: `tools/tour.sh` records the identical command sequence against the curated facts, and `tools/shot.sh` renders `sumo dashboard --dump`.
+
+### 4.5 Why this is the demo
 
 - **Interactive**, not a tape: the user wanders off-script and the machine answers.
 - **Honest**: every number on the TUI traces to an eval of the real engine; the same digest feeds the CLI and the panes; nothing is mocked.
@@ -276,10 +307,10 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 | 1 | C1 (one module at a time) + C3 | 1–2 h | suite green after each; demo diff empty | ✅ |
 | 2 | C2, C4 | 30 min | suite green | ✅ (C2 done, C4 deferred to A1) |
 | 3 | A1 (`sumo` CLI) + A2 (facts, curated mode) | 1–1.5 h | every subcommand runs in-repo | ✅ |
-| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 **Config complete; build blocked by env (no writable /nix/store + no binary substitutes in local store)** |
+| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 config + build script complete; **build needs mount namespaces** (see §4.5) |
 | 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ✅ dump mode works |
 | 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | ✅ implemented (sparkline, auto-refresh, what-if card) |
-| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM (blocked by env) |
+| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ✅ `docs/demo/{tour.cast,dashboard.png}` via `tools/{tour,shot}.sh` |
 | 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ✅ |
 | 9 | D | 20 min | links updated | ✅ |
 
@@ -297,14 +328,15 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 | README drift returns | high | doc rots | generated files + header + `check-readme.sh` in the suite |
 | Demo session not byte-stable | med | README churn | scripted stdin, stripped timestamps, fixed locale, normalized MOTD/prompt |
 | "login" misunderstood again | — | wasted hour | §1 and §4 are explicit: it is a *session*, a *world*, a *panel* — not an auth handshake |
-| **Writing to /nix/store** | **high** | **breaks in CI/no-KVM env** | **ALL work stays in repo (./bin, ./demo, ./lib, ./tools). VM build is the ONLY thing that touches /nix/store — gate it behind --check that SKIPs when KVM/store unavailable. Never run nix build in main flow.** |
-| **VM build needs bootstrap binaries / binary cache** | **high** | **build fails in clean env** | **VM config is complete and correct. Building requires: (1) writable /nix/store OR local store populated with substitutes from cache.nixos.org, (2) stage0-posix bootstrap binaries. Document as env requirement; `--check` validates KVM + store + cache access.** |
+| **Writing to /nix/store** | **high** | **breaks in CI/no-KVM env** | **ALL work stays in repo (./bin, ./demo, ./lib, ./tools). Builds go to a *root store* (`local?root=$ROOT/.nix-root`), never to /nix. `--check` reports the prerequisites and SKIPs; `nix build` is never in the test flow.** |
+| **Store dir rewrites break substitutes** | **high** | **every cache fetch 404s** | `NIX_STORE_DIR=<dir>` changes every path hash (proved: `.drv` embeds the local prefix). Eval-only work uses it; building uses `--store local?root=...`, which keeps logical `/nix/store` paths. Never point `NIX_STORE_DIR` at a store you expect to substitute from. |
+| **Diverted-store builds need namespaces** | **high** | **VM build fails on this host** | Nix refuses to build in a diverted store without mount namespaces; this host has `kernel.unprivileged_userns_clone=0`. Substitution works. Unblock: `sudo sysctl -w kernel.unprivileged_userns_clone=1`, or a one-time root `/nix/store`, or a from-source build in the plain local store (hours). See §4.5. |
 
 ## 10. Definition of done
 
-- [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand.
+- [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand. *(config complete; needs mount namespaces — §4.4)*
 - [ ] `sumo dashboard` renders the TUI in the terminal: services, capabilities, policy verdict + proof, a chart; `q` quits; `h` shows the topology.
-- [ ] `docs/demo/tour.cast` and `docs/demo/dashboard.png` committed; the png is the TUI's own rendering.
+- [x] `docs/demo/tour.cast` and `docs/demo/dashboard.png` committed; the png is the TUI's own rendering.
 - [x] `README.md` is generated; `./tools/check-readme.sh` passes and is in `./run-tests.sh`.
 - [x] `lib/kif.nix` exists; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical.
 - [x] `./run-tests.sh` passes; the two-run `status` budget holds; `./demo/vm.sh --check` passes on KVM, SKIPs elsewhere.

@@ -33,15 +33,17 @@ type QueryJSON struct {
 	Proof   string `json:"proof"`
 }
 
+type WhatIfCandidate struct {
+	Name  string `json:"name"`
+	Flip  bool   `json:"flip"`
+	Proof string `json:"proof"`
+}
+
 type WhatIfJSON struct {
-	BasePass   bool `json:"basePass"`
-	BaseDerived bool `json:"baseDerived"`
-	Flips      int  `json:"flips"`
-	Candidates []struct {
-		Name  string `json:"name"`
-		Flip  bool   `json:"flip"`
-		Proof string `json:"proof"`
-	} `json:"candidates"`
+	BasePass    bool              `json:"basePass"`
+	BaseDerived bool              `json:"baseDerived"`
+	Flips       int               `json:"flips"`
+	Candidates  []WhatIfCandidate `json:"candidates"`
 }
 
 type TopologyJSON struct {
@@ -215,10 +217,12 @@ func renderDump(data *DashboardData) {
 			}
 		}
 		fmt.Println()
-		fmt.Println("Other candidates:")
-		for _, c := range data.WhatIf.Candidates {
-			if !c.Flip {
-				fmt.Printf("  ✗ %s (flips nothing)\n", c.Name)
+		if hasNonFlip(data.WhatIf.Candidates) {
+			fmt.Println("Other candidates:")
+			for _, c := range data.WhatIf.Candidates {
+				if !c.Flip {
+					fmt.Printf("  ✗ %s (flips nothing)\n", c.Name)
+				}
 			}
 		}
 	}
@@ -268,15 +272,15 @@ func (dui *DashboardUI) buildHeader() tui.Widget {
 	var verdictBadge string
 	if dui.data.Status != nil {
 		if dui.data.Status.Verdict == "violation" {
-			verdictBadge = "🚦 VIOLATION"
+			verdictBadge = "POLICY: VIOLATION"
 		} else {
-			verdictBadge = "🚦 PASS"
+			verdictBadge = "POLICY: PASS"
 		}
 	} else {
-		verdictBadge = "🚦 UNKNOWN"
+		verdictBadge = "POLICY: UNKNOWN"
 	}
 
-	headerText := fmt.Sprintf("  sumonix dashboard  |  nginx  |  pkgs: %d  |  caps: %d  |  rules: %d  |  %s",
+	headerText := fmt.Sprintf("  sumonix dashboard | nginx | pkgs %d | caps %d | rules %d | %s",
 		dui.getPackageCount(), dui.getCapabilityCount(), dui.getRuleCount(), verdictBadge)
 
 	header := tui.NewLabel(headerText)
@@ -454,13 +458,24 @@ func (dui *DashboardUI) getWhatIfContent() string {
 			sb.WriteString(fmt.Sprintf("  ✓ %s\n", c.Name))
 		}
 	}
-	sb.WriteString("\n  No-flip candidates:\n")
-	for _, c := range dui.data.WhatIf.Candidates {
-		if !c.Flip {
-			sb.WriteString(fmt.Sprintf("  ✗ %s\n", c.Name))
+	if hasNonFlip(dui.data.WhatIf.Candidates) {
+		sb.WriteString("\n  No-flip candidates:\n")
+		for _, c := range dui.data.WhatIf.Candidates {
+			if !c.Flip {
+				sb.WriteString(fmt.Sprintf("  ✗ %s\n", c.Name))
+			}
 		}
 	}
 	return sb.String()
+}
+
+func hasNonFlip(candidates []WhatIfCandidate) bool {
+	for _, c := range candidates {
+		if !c.Flip {
+			return true
+		}
+	}
+	return false
 }
 
 func (dui *DashboardUI) buildBottomPane() tui.Widget {

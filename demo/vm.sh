@@ -11,6 +11,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+source "$ROOT/tools/env.sh"
 VM_DIR="$ROOT/demo/vm"
 BUILD_SCRIPT="$VM_DIR/build.sh"
 VM_RESULT="$VM_DIR/result-vm"
@@ -31,13 +32,30 @@ cleanup() {
 trap cleanup EXIT
 
 check_kvm() {
+  local ok=0
   if [ -e /dev/kvm ] && [ -r /dev/kvm ] && [ -w /dev/kvm ]; then
-    echo "KVM available"
-    return 0
+    echo "KVM: available"
   else
-    echo "KVM not available (SKIP)"
-    return 1
+    echo "KVM: MISSING (/dev/kvm not read-write) — the VM will not boot"
+    ok=1
   fi
+
+  # Nix needs mount namespaces to build in the repo-local root store
+  # (logical /nix/store). Without them, substitutes work but builds do not.
+  if unshare -r true 2>/dev/null; then
+    echo "user namespaces: available"
+  else
+    echo "user namespaces: UNAVAILABLE"
+    echo "  Nix cannot build in a diverted store without mount namespaces."
+    echo "  Substitution still works into ${SUMONIX_BUILD_ROOT}/nix/store."
+    echo "  To enable: sudo sysctl -w kernel.unprivileged_userns_clone=1"
+    ok=1
+  fi
+
+  if [ "$ok" -ne 0 ]; then
+    echo "SKIP: VM build/boot prerequisites not met"
+  fi
+  return "$ok"
 }
 
 build_vm() {
@@ -144,7 +162,7 @@ case "$cmd" in
     record_tour
     ;;
   --check)
-    check_kvm
+    check_kvm || true
     ;;
   --teardown)
     teardown
