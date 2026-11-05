@@ -164,6 +164,9 @@ Files: `reasoner/engine.nix` (move + upgrade), `reasoner/naive.nix` (kept, tests
 ### Phase 7 — Differential CI — **DEFERRED (no CI wiring in this repo)**
 Same facts+rules → Soufflé (or other checker); byte-equal derived predicates; any divergence fails; never runtime. Add as CI job; document for manual use.
 
+### Phase 8 — Parallel Eval — **DEFERRED (premature optimization)**
+Semi-naive rounds set-parallel (internal `deepSeq`); bench gate >2× speedup or drop. Not needed at current scale (~1.1s).
+
 ---
 
 ### 🚀 Remaining Work — Cool Demos & Usable System
@@ -180,8 +183,8 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 | **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection ✅ |
 | **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" ✅ |
 | **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" ✅ |
-| **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" |
-| **T3.2 Parallel Eval** | Semi-naive rounds set-parallel (internal `deepSeq`) | 2–3 h | "2× speedup on large fact sets" |
+| **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" ⏸️ **DEFERRED** |
+| **T3.2 Parallel Eval** | Semi-naive rounds set-parallel (internal `deepSeq`) | 2–3 h | "2× speedup on large fact sets" ⏸️ **DEFERRED** |
 | **T3.3 Temporal/Modal** | `during`, `before` as binary predicates + dedicated module | 3–4 h | "Vulnerability was introduced between version X and Y" ✅ |
 
 #### V-Milestones (Updated)
@@ -273,8 +276,8 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | **T2.2 WFS Negation** | B10, B11, B22 | `unknown` verdicts for cyclic policies | ✅ |
 | **T2.3 Bounded Existentials** | B6, B8, B16 | Finite-domain Skolem (depth ≤ 1) | ✅ |
 | **T3.1 Soft Rules / MaxSAT** | B4, B5, B11, B12, B17 | Rule weights, violation minimization | ✅ |
-| **T2.7 Soufflé CI** | All | Differential CI (byte-equal) | ⏳ |
-| **T3.2 Parallel Eval** | B1, B6, B9 | Set-parallel semi-naive | ⏳ |
+| **T2.7 Soufflé CI** | All | Differential CI (byte-equal) | ⏸️ **DEFERRED** |
+| **T3.2 Parallel Eval** | B1, B6, B9 | Set-parallel semi-naive | ⏸️ **DEFERRED** |
 | **T3.3 Temporal/Modal** | B8, B9, B16, B19 | `during`, `before`, `validFrom/Until` | ✅ |
 
 ---
@@ -287,7 +290,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | **V2** | V1 + **1 bootstrap** (e.g., B3 json2kif + B12 env validator) + demo |
 | **V3** ✅ | V2 + policy product (build gate + relaxation menu) + **3 bootstraps** composing |
 | **V4** ⏳ | V3 + **3 bootstraps** composing + T2.4/T2.6/T2.1/T2.2/T2.3/T3.1/T3.3 |
-| **V5** ⏳ | V4 + **all 26 bootstraps** + T2.7 (Soufflé CI) + T3.2 |
+| **V5** ⏳ | V4 + **all 26 bootstraps** + T2.7 (Soufflé CI) ⏸️ + T3.2 ⏸️ |
 
 ---
 
