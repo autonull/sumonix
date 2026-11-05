@@ -177,7 +177,7 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 | **T2.4 Congruence Closure** | `equal a b ⇒ P(…a…) ≡ P(…b…)` for all predicates | 2–3 h | "If two packages are equal, all their dependencies, vulnerabilities, and capabilities are equal" |
 | **T2.6 Builtins/Aggregates** | `greaterThan`, `subsetOf`, `compareVersions`, `count` with group-by | 2–4 h | "Count vulnerable packages per severity"; "filter packages by version range" |
 | **T2.1 Disjunctive Heads** | `A ⇒ B ∨ C` via branch enumeration + per-branch fixpoint (`maxBranches`) | 3–4 h | "A package either provides capability X or Y (or both)" |
-| **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection |
+| **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection ✅ |
 | **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" |
 | **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" |
 | **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" |
@@ -246,6 +246,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] T2.6 Builtins/Aggregates demo (reasoner/builtins.nix + tests/unit/builtins.nix; greaterThan, lessThan, notEqual, subsetOf, supersetOf, compareVersionsRel)
 - [x] T2.1 Disjunctive Heads demo
 - [x] T3.1 Soft Rules / MaxSAT demo
+- [x] T2.2 WFS Negation demo (reasoner/wfs.nix + tests/unit/wfs.nix; three-valued eval for unstratifiable predicates)
 
 ## 11. Effort estimate (to first product)
 
@@ -296,6 +297,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Arithmetic/aggregates (T2.6)
 - [x] Choice/disjunction (T2.1)
 - [x] Optimization (T3.1)
+- [x] WFS negation (T2.2) — three-valued eval for cyclic negation
 - [ ] Temporal (T3.3)
 - [ ] Context-aware secrets
 - [ ] Semantic API governance
