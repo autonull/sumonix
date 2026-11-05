@@ -281,7 +281,7 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 | 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | ✅ implemented (sparkline, auto-refresh, what-if card) |
 | 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM (blocked by env) |
 | 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ✅ |
-| 9 | D | 20 min | links updated | ⏳ |
+| 9 | D | 20 min | links updated | ✅ |
 
 Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser panel, the transcript source makes B1 risk-free, the VM does not spend its boot building two policy closures, and what-if is two runs, not a menu of one.)
 
@@ -315,6 +315,7 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 - [x] `demo/vm/vm.nix` NixOS VM configuration
 - [x] `demo/vm.sh` VM management script
 - [x] `demo/vm/session.sh` scripted tour
+- [x] `tools/` coherence: `env.sh`, `gen-demo.sh`, `build-readme.sh`, `check-readme.sh`, `shot.sh`; root entry points source `tools/env.sh`
 
 ## 11. Open questions (with recommendations)
 
