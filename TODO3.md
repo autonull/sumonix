@@ -297,6 +297,7 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 | README drift returns | high | doc rots | generated files + header + `check-readme.sh` in the suite |
 | Demo session not byte-stable | med | README churn | scripted stdin, stripped timestamps, fixed locale, normalized MOTD/prompt |
 | "login" misunderstood again | — | wasted hour | §1 and §4 are explicit: it is a *session*, a *world*, a *panel* — not an auth handshake |
+| **Writing to /nix/store** | **high** | **breaks in CI/no-KVM env** | **ALL work stays in repo (./bin, ./demo, ./lib, ./tools). VM build is the ONLY thing that touches /nix/store — gate it behind --check that SKIPs when KVM/store unavailable. Never run nix build in main flow.** |
 
 ## 10. Definition of done
 
