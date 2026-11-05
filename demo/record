@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# Record each scene to an asciinema cast. Creates ./demo/casts/*.cast (gitignored ok).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+mkdir -p demo/casts
+for scene in demo/scenes/*.sh; do
+  name="$(basename "$scene" .sh)"
+  cast="demo/casts/${name}.cast"
+  echo "recording ${name} -> ${cast}"
+  asciinema rec --cols 110 --rows 50 --overwrite --command "./demo/run ${name}.sh" "$cast" >/dev/null
+done
+echo "casts in ./demo/casts"

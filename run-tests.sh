@@ -1,53 +1,47 @@
 #!/usr/bin/env bash
-# Run sumo-nix tests with local Nix store
+# Run the full sumo-nix test suite with the local store (same as ./demo/lib.sh).
+# Exits non-zero on the first failure, after printing what failed.
+set -euo pipefail
+cd "$(dirname "$0")"
+export NIX_STORE_DIR="$(pwd)/.nix-store" NIX_STATE_DIR="$(pwd)/.nix-state"
 
-export NIX_STORE_DIR=/home/me/sumonix/.nix-store
-export NIX_STATE_DIR=/home/me/sumonix/.nix-state
+tests=(
+  tests/default.nix
+  tests/rules.nix
+  tests/ingest-smoke.nix
+  tests/ingest-report.nix
+  tests/bags.nix
+  tests/decide.nix
+  tests/hf.nix
+  tests/org.nix
+  tests/pyai.nix
+  tests/proof-check.nix
+  tests/unit/equivalents.nix
+  tests/unit/synthesize.nix
+  tests/unit/stratify.nix
+  tests/unit/relax.nix
+  tests/unit/congruence.nix
+  tests/unit/builtins.nix
+  tests/unit/disjunctive.nix
+  tests/unit/soft-rules.nix
+  tests/unit/wfs.nix
+  tests/unit/existentials.nix
+  tests/unit/temporal.nix
+)
 
-nix_cmd="nix --extra-experimental-features nix-command"
-
-run_test() {
-    local name=$1
-    local expr=$2
-    echo -n "  $name... "
-    if eval "$nix_cmd eval --impure --expr '$expr'" > /dev/null 2>&1; then
-        echo "✓"
-    else
-        echo "✗"
-        eval "$nix_cmd eval --impure --expr '$expr'"
-        return 1
-    fi
-}
-
-run_json() {
-    local name=$1
-    local expr=$2
-    echo -n "  $name... "
-    if eval "$nix_cmd eval --impure --json --expr '$expr'" > /dev/null 2>&1; then
-        echo "✓"
-    else
-        echo "✗"
-        eval "$nix_cmd eval --impure --json --expr '$expr'"
-        return 1
-    fi
-}
-
-echo "Running sumo-nix test suite..."
-
-# Core tests
-run_test "default" 'import ./tests/default.nix'
-run_test "rules" 'import ./tests/rules.nix'
-run_test "ingest-smoke" 'import ./tests/ingest-smoke.nix'
-
-# Unit tests
-run_test "equivalents" 'import ./tests/unit/equivalents.nix'
-run_test "synthesize" 'import ./tests/unit/synthesize.nix'
-run_test "stratify" 'import ./tests/unit/stratify.nix'
-run_test "relax" 'import ./tests/unit/relax.nix'
-run_test "congruence" 'import ./tests/unit/congruence.nix'
-run_test "builtins" 'import ./tests/unit/builtins.nix'
-
-# Proof check
-run_test "proof-check" 'import ./tests/proof-check.nix'
-
-echo "All tests passed!"
+fail=0
+for t in "${tests[@]}"; do
+  printf '  %-44s ' "$t…"
+  if out="$(./nix-eval.sh --expr "import ./$t" 2>&1)"; then
+    echo "✓"
+  else
+    echo "✗"
+    printf '%s\n' "$out" | sed 's/^/      /'
+    fail=1
+  fi
+done
+if [ "$fail" -ne 0 ]; then
+  echo "✗ suite failed"
+  exit 1
+fi
+echo "✓ all ${#tests[@]} tests passed"

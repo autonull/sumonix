@@ -1,0 +1,11 @@
+{"version":3,"term":{"cols":80,"rows":24},"timestamp":1793888051,"command":"./demo/run 04-crosswalk.sh","env":{"SHELL":"/usr/bin/fish"}}
+[0.005, "o", "\r\n"]
+[0.002, "o", "\u001b[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\r\n\u001b[1;35m🧭 THE CROSSWALK KNOWS WHAT IT KNOWS\u001b[0m\r\n"]
+[0.000, "o", "\u001b[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\r\n"]
+[0.000, "o", "\u001b[1;36m│\u001b[0m PyAI fields ↔ Hugging Face tags ↔ SUMO classes. Answers are 0/1 plus an explicit null.\r\n"]
+[0.025, "o", "\u001b[?25l"]
+[0.000, "o", "\r\u001b[0m\u001b[K"]
+[0.009, "o", "\r\u001b[K\u001b[?25h\r\nA PyAI field: “Dataset Modality = Text” — which axis is it, and what does it mean?\r\n    q1: modality\r\n    q2: Text\r\n    q3: yes\r\n\r\nThe same question about the HF tag  modality:text — anchored?\r\n    q4: yes\r\n    q5: exact\r\n    q6: Text\r\n\r\nA deliberately hard one:  task:any-to-any  (“input and output vary”) — the crosswalk answers… “I don't know”, on purpose:\r\n    q7: no\r\n    q8: unknown (null probability 1.000000)\r\n"]
+[0.001, "o", "\u001b[1;36m│\u001b[0m \r\n"]
+[0.000, "o", "\u001b[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\u001b[0m\r\n"]
+[0.001, "x", "0"]

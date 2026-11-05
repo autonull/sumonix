@@ -10,6 +10,74 @@
 
 ---
 
+## 🎬 The 60-second demo
+
+`./demo/run` plays the same five scenes every time — no setup, no network, ~30 seconds. Each is a standalone recording in `demo/casts/` (`asciinema play demo/casts/<scene>.cast`). Nothing here is a mock: every line is the real engine answering a real question, and the output below is pasted verbatim from `./demo/run`.
+
+```bash
+./demo/run    # all five, in order
+./demo/run 02-capabilities.sh   # just one
+```
+
+**1 · The 30-second proof** — the build fails; the engine knows why; the why is a file you can re-check, and the checker shares no code with the engine:
+
+```console
+│ Step 2 — re-check the certificate with a checker that shares no code with the engine.
+$ ./nix-eval.sh --expr '(import ./proof-check.nix { file = /tmp/proof.kif; })'
+"proof: 9 steps, independently re-checked ✓"
+│ Step 3 — alter the certified goal; the checker must refuse it.
+│ refused ✓  (the checker exits non-zero and says which line broke)
+```
+
+**2 · Your package set, reasoned over** — real nixpkgs facts (60 packages, committed, pinned, offline) answer questions a README cannot: which capabilities compose, which your transitive closure unlocks, and where 3+ capabilities combine:
+
+```console
+📦 DIRECT COMPOSITIONS (6) — package + immediate deps:
+  🔗 nginx composes HTTPServer + TLS
+🌐 ENABLED CAPABILITIES (10) — via transitive dependency closure:
+  ✨ nginx enables X509 via dependency closure
+💡 SYNERGIES (2):
+  🚀 nginx synergy: Crypto + TLS + X509
+```
+
+**3 · Your organization, reasoned over** — the Pick Your AI repositories, pinned and taxonomized under SUMO: 2,109 pages, 666 of them process documents by *class reasoning*, zero unclassified, identical copies and retired team names found by hash, every finding carrying its proof:
+
+```console
+Total pages taxonomized:            2109
+Identical copies found:             SupportGuide: 3 of 10 identical
+Former team names still in use: 7
+(staleName …)    by staleName#1
+  (usesFormerName …)    asserted
+```
+
+**4 · The crosswalk knows what it knows** — typed questions over PyAI fields ↔ HF tags ↔ SUMO classes. Answers are 0/1 *plus an explicit null* — when there is no rule, you get "I don't know", never a silent no:
+
+```console
+A PyAI field: “Dataset Modality = Text” — which axis is it, and what does it mean?
+    q1: modality
+    q2: Text
+task:any-to-any  (“input and output vary”) — …"I don't know", on purpose:
+    q8: unknown (null probability 1.000000)
+```
+
+**5 · The build fails — and here is why** — the gate, the proof it emits, and the relaxation menu answering the question "what do I actually have to change?":
+
+```console
+GATE — the build fails:
+(policyViolation nginx NoCriticalRunningCVE)    by policyViolation#4
+  (vulnerable nginx CVE-2026-9999)    by vulnerable#3
+…
+Menu — which single override flips the verdict?
+  ✓ ignore the advisory
+  ✓ drain nginx
+  ✓ reclassify as low
+  ✓ remove the policy rule
+```
+
+Record your own: `./demo/record` re-records every scene (needs `asciinema`). Full script and cast index: `demo/README.md`.
+
+---
+
 ## 🎯 What This Is
 
 | Layer | What It Does |
@@ -156,27 +224,28 @@ Each bootstrap = converter + policy pack (KIF rules) + demo query. Pure Nix, no 
 ## 🚀 Quick Start
 
 ```bash
-# All tests (pure Nix, no sandbox needed)
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/default.nix'      # "ok"
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/rules.nix'        # "ok"
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/ingest-smoke.nix' # "ok"
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/proof-check.nix'  # "ok"
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/relax.nix'   # "ok"
+# All tests in one go (uses the local store; safe to re-run)
+./run-tests.sh
+
+# Or individually (this wrapper sets the local store dirs and --impure for you)
+./nix-eval.sh --expr 'import ./tests/default.nix'       # "ok"
+./nix-eval.sh --expr 'import ./tests/rules.nix'          # "ok"
+./nix-eval.sh --expr 'import ./tests/ingest-smoke.nix'   # "ok"
+./nix-eval.sh --expr 'import ./tests/proof-check.nix'    # "ok"
+./nix-eval.sh --expr 'import ./tests/unit/relax.nix'     # "ok"
+
+# Replay the 60-second demo
+./demo/run
 
 # Generate the CVE proof artifact (deterministic, byte-identical)
-nix --extra-experimental-features nix-command eval --impure --raw --expr 'import ./tests/proof-artifact.nix' > proof.kif
+./nix-eval.sh --raw --expr 'import ./tests/proof-artifact.nix' > proof.kif
 
 # Re-check it independently (zero shared code with the engine)
-nix --extra-experimental-features nix-command eval --impure --expr '(import ./proof-check.nix { file = ./proof.kif; })'
+./nix-eval.sh --expr '(import ./proof-check.nix { file = ./proof.kif; })'
 # → "proof: 9 steps, independently re-checked ✓"
 ```
 
-**Unit tests:**
-```bash
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/equivalents.nix'
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/synthesize.nix'
-nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/stratify.nix'
-```
+**Unit tests:** `./run-tests.sh` runs every test in `tests/`, including the unit suites (`equivalents`, `synthesize`, `stratify`, `relax`, `congruence`, `builtins`, `disjunctive`, `soft-rules`, `wfs`, `existentials`, `temporal`).
 
 ---
 
@@ -210,6 +279,15 @@ nix --extra-experimental-features nix-command eval --impure --expr 'import ./tes
 │       ├── stratify.nix       # Stratifier behavior
 │       └── relax.nix          # Relaxation menu behavior
 ├── proof.kif                  # Committed artifact (9 steps, independently re-checked)
+├── demo/                      # The 60-second demo: scenes, transcripts, asciinema casts
+│   ├── run                    # ./demo/run [scene ...] — replay the whole demo
+│   ├── record                 # Re-record all scenes (asciinema)
+│   ├── gen-facts.sh           # Refresh demo/facts/nixpkgs.kif from pinned nixpkgs
+│   ├── scenes/                # 01-30-seconds, 02-capabilities, 03-pages, 04-crosswalk, 05-when-the-build-breaks
+│   ├── nix/                   # Nix-side digests the scenes print (org digest, crosswalk, policy)
+│   └── facts/nixpkgs.kif      # Pinned real-nixpkgs facts (committed, offline)
+├── nix-eval.sh                # Convenience wrapper (local store dirs, --impure)
+├── run-tests.sh               # Whole suite in one go
 ├── spike/                     # Capability discovery VM (optional)
 └── org/ hf/ bags.nix tq.nix   # Other demos (Hugging Face tags, org pages, test bags)
 ```
@@ -220,6 +298,7 @@ nix --extra-experimental-features nix-command eval --impure --expr 'import ./tes
 
 | Doc | What's Inside |
 |-----|---------------|
+| `demo/README.md` | The 60-second demo: how it works, how to record, the cast index |
 | `TODO2.b.md` | The full plan (Phases 0–7), decisions, risks, file manifest, DONE checkboxes |
 | `nix_sumo.md` (gist) | The original design notes: sections 3.1, 6, 11, 18 |
 | `spike/demo.sh` | Capability discovery VM (boots NixOS, runs the reasoner inside) |

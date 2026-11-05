@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# ./demo/run [scene ...]   run one or more demo scenes; with no arguments, run them all in order.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+list=$(ls demo/scenes/*.sh | sort)
+if [ "$#" -eq 0 ]; then scenes="$list"; else scenes="$@"; fi
+for s in $scenes; do
+  case "$s" in
+    demo/scenes/*.sh) ;;
+    scenes/*.sh) s="demo/$s" ;;
+    *.sh) s="demo/scenes/$s" ;;
+    *) s="demo/scenes/$s.sh" ;;
+  esac
+  echo
+  bash "$s"
+done

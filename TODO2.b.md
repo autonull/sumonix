@@ -171,6 +171,8 @@ Semi-naive rounds set-parallel (internal `deepSeq`); bench gate >2× speedup or 
 
 ### 🚀 Remaining Work — Cool Demos & Usable System
 
+**Demo package (2026-11-05):** `./demo/run` — five standalone scenes (30-second proof, real-nixpkgs capability atlas, org pages taxonomy, PyAI/HF/SUMO crosswalk, policy gate + relaxation menu), committed asciinema casts, transcript in README (§🎬 The 60-second demo). `./run-tests.sh` runs the whole suite in one go.
+
 All Phases 0–6 complete (V3 ships). The remaining work is organized as **independent milestones** that each unlock a new capability or demo. No CI, no GitHub workflow, no external deps — just pure Nix modules you can pick up and run.
 
 #### T-Milestones (Extension Contract, §5)
