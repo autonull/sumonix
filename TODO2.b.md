@@ -197,7 +197,7 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 #### Usable System Checklist (What "Done" Looks Like for a Real User)
 
 - [x] **Equality reasoning** (T2.4) — rule generation complete; engine integration requires iterative fixpoint
-- [ ] **Arithmetic/aggregates** (T2.6) — version ranges, counts, filters
+- [x] **Arithmetic/aggregates** (T2.6) — version ranges, counts, filters
 - [ ] **Choice/disjunction** (T2.1) — "either this capability or that one"
 - [ ] **Optimization** (T3.1) — "minimize violations" instead of "fail on any"
 - [ ] **Temporal** (T3.3) — "this held at time T1 but not T2"
@@ -243,7 +243,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Bench ≤ 5 s (P6 passed: ~1.1 s)
 - [x] README updated: architecture, promises, limits, extension guide; `TODO2.b` checkboxes updated per commit
 - [x] T2.4 Congruence Closure demo (reasoner/congruence.nix + tests/unit/congruence.nix; rule generation complete; engine integration blocked by naive fixpoint recursion limit — requires iterative fixpoint or recursion limit increase)
-- [ ] T2.6 Builtins/Aggregates demo
+- [x] T2.6 Builtins/Aggregates demo (reasoner/builtins.nix + tests/unit/builtins.nix; greaterThan, lessThan, notEqual, subsetOf, supersetOf, compareVersionsRel)
 - [ ] T2.1 Disjunctive Heads demo
 - [ ] T3.1 Soft Rules / MaxSAT demo
 
