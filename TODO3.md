@@ -280,7 +280,7 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 | 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ✅ dump mode works |
 | 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | 🟡 partial (auto-refresh, what-if card) |
 | 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM |
-| 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ⏳ |
+| 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ✅ |
 | 9 | D | 20 min | links updated | ⏳ |
 
 Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser panel, the transcript source makes B1 risk-free, the VM does not spend its boot building two policy closures, and what-if is two runs, not a menu of one.)
@@ -303,7 +303,7 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 - [ ] `./demo/vm.sh` boots; `demo` autologs into a working machine; MOTD shows; `sumo` works for every subcommand.
 - [ ] `sumo dashboard` renders the TUI in the terminal: services, capabilities, policy verdict + proof, a chart; `q` quits; `h` shows the topology.
 - [ ] `docs/demo/tour.cast` and `docs/demo/dashboard.png` committed; the png is the TUI's own rendering.
-- [ ] `README.md` is generated; `./tools/check-readme.sh` passes and is in `./run-tests.sh`.
+- [x] `README.md` is generated; `./tools/check-readme.sh` passes and is in `./run-tests.sh`.
 - [x] `lib/kif.nix` exists; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical.
 - [x] `./run-tests.sh` passes; the two-run `status` budget holds; `./demo/vm.sh --check` passes on KVM, SKIPs elsewhere.
 - [x] `TODO.3.md` updated to track completion.

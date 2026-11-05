@@ -3,12 +3,9 @@
 # Based on spike/vm.nix pattern: copies repo source, uses host nixpkgs.
 # Build with: nix build -f '<nixpkgs/nixos>' vm -I nixos-config=./demo/vm/vm.nix
 
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, repoRoot, ... }:
 
 let
-  # Repository root (passed from build script)
-  repoRoot = let env = builtins.getEnv "SUMONIX_REPO_ROOT"; in if env != "" then env else "/home/me/sumonix";
-
   # Copy the repository source into the VM (drop VCS, local stores, build outputs)
   repo = builtins.path {
     path = repoRoot;
@@ -91,6 +88,16 @@ in
   # Nix configuration
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
   nix.settings.trusted-users = [ "root" "demo" ];
+
+  # Override gnu-config to fix broken URLs (upstream savannah.gnu.org returns 404)
+  nixpkgs.config.packageOverrides = pkgs: {
+    gnu-config = pkgs.gnu-config.overrideAttrs (old: {
+      urls = [
+        "https://ftpmirror.gnu.org/gnu/config/config.guess-948ae97"
+        "https://ftpmirror.gnu.org/gnu/config/config.sub-948ae97"
+      ];
+    });
+  };
 
   # MOTD showing sumo commands
   environment.etc."profile.d/sumo-motd.sh".text = ''

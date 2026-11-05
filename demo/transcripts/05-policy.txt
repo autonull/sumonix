@@ -1,0 +1,9 @@
+GATE — the build fails:
+(policyViolation nginx NoCriticalRunningCVE)    by policyViolation#4
+  (vulnerable nginx CVE-2026-9999)    by vulnerable#3
+…
+Menu — which single override flips the verdict?
+  ✓ ignore the advisory
+  ✓ drain nginx
+  ✓ reclassify as low
+  ✓ remove the policy rule

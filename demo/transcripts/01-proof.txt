@@ -1,0 +1,5 @@
+│ Step 2 — re-check the certificate with a checker that shares no code with the engine.
+$ ./nix-eval.sh --expr '(import ./proof-check.nix { file = /tmp/proof.kif; })'
+"proof: 9 steps, independently re-checked ✓"
+│ Step 3 — alter the certified goal; the checker must refuse it.
+│ refused ✓  (the checker exits non-zero and says which line broke)

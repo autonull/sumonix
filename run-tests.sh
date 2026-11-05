@@ -40,8 +40,18 @@ for t in "${tests[@]}"; do
     fail=1
   fi
 done
+
+# Check README generation
+printf '  %-44s ' "README generation…"
+if ./tools/check-readme.sh > /dev/null 2>&1; then
+  echo "✓"
+else
+  echo "✗"
+  fail=1
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "✗ suite failed"
   exit 1
 fi
-echo "✓ all ${#tests[@]} tests passed"
+echo "✓ all ${#tests[@]} tests passed (+ README check)"

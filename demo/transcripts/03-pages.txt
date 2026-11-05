@@ -1,0 +1,5 @@
+Total pages taxonomized:            2109
+Identical copies found:             SupportGuide: 3 of 10 identical
+Former team names still in use: 7
+(staleName …)    by staleName#1
+  (usesFormerName …)    asserted

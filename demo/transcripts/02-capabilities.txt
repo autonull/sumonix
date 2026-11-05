@@ -1,0 +1,6 @@
+📦 DIRECT COMPOSITIONS (6) — package + immediate deps:
+  🔗 nginx composes HTTPServer + TLS
+🌐 ENABLED CAPABILITIES (10) — via transitive dependency closure:
+  ✨ nginx enables X509 via dependency closure
+💡 SYNERGIES (2):
+  🚀 nginx synergy: Crypto + TLS + X509

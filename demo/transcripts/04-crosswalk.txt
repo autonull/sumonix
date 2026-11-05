@@ -1,0 +1,5 @@
+A PyAI field: “Dataset Modality = Text” — which axis is it, and what does it mean?
+    q1: modality
+    q2: Text
+task:any-to-any  (“input and output vary”) — …"I don't know", on purpose:
+    q8: unknown (null probability 1.000000)
