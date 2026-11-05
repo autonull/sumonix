@@ -1,11 +1,15 @@
 # Forward chaining over KIF Horn rules, with a proof for every derived fact (nix_sumo.md, sections 5.3, 14, 29).
 #
-#   engine { ontology; rules; facts; } -> { facts, holds, ask, why }
+#   engine { ontology; rules; facts; builtinRegistry ? { }; } -> { facts, holds, ask, why }
 #
 # rules are the top-level (=> antecedent consequent) forms; facts are ground forms. An antecedent may use and,
 # exists, not (negation as failure: keep it out of a cycle), equal, and (instance X Class), which holds for an
 # instance of any subclass of Class by the ontology. A rule whose consequent keeps a variable is refused.
-{ ontology, rules, facts }:
+#
+# Builtins: a set of predicate-name -> { arity: int; eval: bindings -> args -> bool; description: string }.
+# During step, if a premise's head is a builtin, it's evaluated via the builtin's eval function instead of
+# fact lookup. Builtins receive substituted arguments and return true/false.
+{ ontology, rules, facts, builtinRegistry ? { } }:
 let
   inherit (builtins) all any attrNames concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString length mapAttrs substring tail;
 
@@ -36,6 +40,9 @@ let
       byFirst = builtins.groupBy (e: headOf e.fact + " " + toString (elemAt e.fact 1)) (filter (e: isList e.fact && length e.fact > 1 && isString (elemAt e.fact 1)) entries);
     };
 
+  # Check if a predicate name is a builtin
+  isBuiltin = p: builtinRegistry ? ${p};
+
   # The entries that can match premise p under bindings b: the one fact when p is ground, else the narrowest group.
   candidates = ix: b: p:
     let q = subst b p; h = headOf q; in
@@ -54,6 +61,13 @@ let
     else if h == "not" then (if step ix s (elemAt p 1) == [ ] then [ s ] else [ ])
     else if h == "equal" then
       (let a = subst s.b (elemAt p 1); c = subst s.b (elemAt p 2); in if a == c then [ s ] else [ ])
+    else if isBuiltin h then
+      # Builtin predicate: evaluate with substituted arguments
+      (let b = s.b;
+           builtin = builtinRegistry.${h};
+           args = map (a: subst b a) (tail p);
+           result = builtin.eval b args;
+       in if result then [ s ] else [ ])
     else if h == "instance" && ontology != null && length p == 3 && !(isVar (subst s.b (elemAt p 2))) then
       let c = subst s.b (elemAt p 2); in
       concatMap
