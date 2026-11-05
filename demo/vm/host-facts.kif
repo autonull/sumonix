@@ -1,0 +1,34 @@
+;; Curated machine facts for the demo VM (A2 curated mode).
+;; Regenerated deterministically; ~30 lines.
+;; kernel: runningKernel 6.6
+;; services: nginx (running, NIXService, listensOn 80, runningAs nginx)
+;; packages: nginx, openssl, curl, python3, redis, postgresql + closure mirrors
+;; advisory: vulnerable openssl CVE-2026-9999 (severity critical) → policy verdict non-trivial
+
+;; Kernel
+(runningKernel "6.6")
+
+;; NIXService: nginx
+(instance nginx NIXPackage)
+(instance nginx NIXService)
+(serviceState nginx running)
+(listensOn nginx 80)
+(runningAs nginx nginx)
+
+;; Installed packages (core set)
+(instance openssl NIXPackage)
+(instance curl NIXPackage)
+(instance python3 NIXPackage)
+(instance redis NIXPackage)
+(instance postgresql NIXPackage)
+
+;; Dependencies (closure mirrors of demo facts)
+(dependsOn nginx openssl)
+(dependsOn curl openssl)
+(dependsOn python3 openssl)
+(dependsOn redis openssl)
+(dependsOn postgresql openssl)
+
+;; Advisory
+(vulnerable openssl CVE-2026-9999)
+(severity CVE-2026-9999 critical)

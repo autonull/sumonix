@@ -1,6 +1,6 @@
 # TODO.3 — The Real 60-Second Demo: a logged-in NixOS session and a real sumonix TUI dashboard
 
-**Status:** planned, not started. **Predecessors:** TODO2.b (V3 + 7 T-milestones), `demo/` package, `run-tests.sh`. **Non-negotiables:** `./run-tests.sh` green at every step; the VM boots unattended and exits non-zero on failure; the demo is explorable *interactively*, not only a scripted tape; never anything that can hang a real login; README regeneration is byte-identical to what we ship.
+**Status:** in progress. **Predecessors:** TODO2.b (V3 + 7 T-milestones), `demo/` package, `run-tests.sh`. **Non-negotiables:** `./run-tests.sh` green at every step; the VM boots unattended and exits non-zero on failure; the demo is explorable *interactively*, not only a scripted tape; never anything that can hang a real login; README regeneration is byte-identical to what we ship.
 
 **Rev 2 — what changed and why** (each line saves time or buys surface):
 
@@ -275,11 +275,11 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 |---|---|---|---|---|
 | 1 | C1 (one module at a time) + C3 | 1–2 h | suite green after each; demo diff empty | ✅ |
 | 2 | C2, C4 | 30 min | suite green | ✅ (C2 done, C4 deferred to A1) |
-| 3 | A1 (`sumo` CLI) + A2 (facts, curated mode) | 1–1.5 h | every subcommand runs in-repo | ⏳ |
-| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | ⏳ |
-| 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ⏳ |
-| 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | ⏳ |
-| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ |
+| 3 | A1 (`sumo` CLI) + A2 (facts, curated mode) | 1–1.5 h | every subcommand runs in-repo | ✅ |
+| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 VM config done, build blocked by env |
+| 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ✅ dump mode works |
+| 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | 🟡 partial (auto-refresh, what-if card) |
+| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM |
 | 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ⏳ |
 | 9 | D | 20 min | links updated | ⏳ |
 
@@ -307,6 +307,13 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 - [x] `lib/kif.nix` exists; `proof-check.nix` untouched; suite green; `./demo/run` output byte-identical.
 - [x] `./run-tests.sh` passes; the two-run `status` budget holds; `./demo/vm.sh --check` passes on KVM, SKIPs elsewhere.
 - [x] `TODO.3.md` updated to track completion.
+- [x] `bin/sumo` CLI with all subcommands (status, caps, closure, query, whatif, dashboard, version, --help)
+- [x] `bin/_sumo.nix` dispatcher with JSON output for all subcommands
+- [x] `demo/vm/host-facts.kif` curated machine facts
+- [x] `demo/vm/tui/` Go TUI with `--dump` mode for screenshot capture
+- [x] `demo/vm/vm.nix` NixOS VM configuration
+- [x] `demo/vm.sh` VM management script
+- [x] `demo/vm/session.sh` scripted tour
 
 ## 11. Open questions (with recommendations)
 

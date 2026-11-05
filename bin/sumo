@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# sumo — the command the user reaches for in the VM.
+# Pure bash + nix eval (the two stores from tools/env.sh), on PATH in the VM.
+# All evaluation flows through bin/_sumo.nix, a read-only dispatcher that returns the digest as an attrset.
+# Local API sketch: s cmd [status], s topology, s proof [goal].
+
+set -euo pipefail
+
+# Source shared environment (NIX_STORE_DIR, NIX_STATE_DIR)
+source "$(dirname "$0")/../tools/env.sh"
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+# Default fact/rules locations
+SUMO_FACTS="${SUMO_FACTS:-/run/sumo/facts.kif}"
+SUMO_RULES="${SUMO_RULES:-${ROOT}/demo/vm/rules.kif}"
+
+# If the default facts file doesn't exist, fall back to in-repo curated facts
+if [ ! -f "$SUMO_FACTS" ]; then
+  SUMO_FACTS="${ROOT}/demo/vm/host-facts.kif"
+fi
+
+# If rules file doesn't exist or is empty/placeholder, fall back to root rules.kif
+if [ ! -f "$SUMO_RULES" ] || [ ! -s "$SUMO_RULES" ]; then
+  SUMO_RULES="${ROOT}/rules.kif"
+fi
+
+# Build the dispatcher with the current fact/rules paths
+DISPATCHER="${ROOT}/bin/_sumo.nix"
+
+usage() {
+  cat <<'EOF'
+sumo — reason about this machine
+
+Usage: sumo <command> [args...]
+
+Commands:
+  status [--json]         Machine overview: services, packages, capabilities, rounds; verdict + proof file
+  caps [--json]           Capability atlas of the installed closure
+  closure <pkg> [--json]  Dependency tree (indented)
+  query <goal> [--json]   Ground goal → verdict + why subtree
+  whatif                  One counterfactual from the proof: two warm runs, exit 1 when a flip
+  dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
+  version                 Show version
+  --help                  Show this help
+
+Environment:
+  SUMO_FACTS   Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
+  SUMO_RULES   Path to rules KIF (default: demo/vm/rules.kif, then rules.kif)
+
+Examples:
+  sumo status
+  sumo status --json
+  sumo caps
+  sumo closure openssl
+  sumo closure openssl --json
+  sumo query '(vulnerable nginx CVE-2026-9999)'
+  sumo whatif
+  sumo dashboard
+EOF
+}
+
+version() {
+  echo "sumo 0.1.0 (sumonix)"
+}
+
+run_nix() {
+  "$ROOT/nix-eval.sh" --raw --expr "$1"
+}
+
+# Parse subcommand
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  ""|--help|help)
+    usage
+    exit 0
+    ;;
+  version)
+    version
+    exit 0
+    ;;
+  status)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).status"
+    run_nix "$expr"
+    ;;
+  caps)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).caps"
+    run_nix "$expr"
+    ;;
+  closure)
+    pkg="${1:-}"
+    if [ -z "$pkg" ]; then
+      echo "sumo closure: missing package argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).closure \"${pkg}\""
+    run_nix "$expr"
+    ;;
+  query)
+    goal="${1:-}"
+    if [ -z "$goal" ]; then
+      echo "sumo query: missing goal argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"${goal}\""
+    run_nix "$expr"
+    ;;
+  whatif)
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; }).whatif"
+    run_nix "$expr"
+    ;;
+  dashboard)
+    # Build and run the TUI
+    # The TUI binary is at /run/sumo/bin/sumo-tui in the VM
+    if [ -x /run/sumo/bin/sumo-tui ]; then
+      exec /run/sumo/bin/sumo-tui
+    else
+      echo "sumo dashboard: TUI binary not found at /run/sumo/bin/sumo-tui" >&2
+      echo "Run 'sumo dashboard' inside the VM, or build the VM first." >&2
+      exit 1
+    fi
+    ;;
+  *)
+    echo "sumo: unknown command '$cmd'" >&2
+    echo "Run 'sumo --help' for usage." >&2
+    exit 2
+    ;;
+esac
