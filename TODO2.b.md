@@ -174,15 +174,15 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 
 | Milestone | What It Unlocks | Effort | Demo Idea |
 |-----------|-----------------|--------|-----------|
-| **T2.4 Congruence Closure** | `equal a b ⇒ P(…a…) ≡ P(…b…)` for all predicates | 2–3 h | "If two packages are equal, all their dependencies, vulnerabilities, and capabilities are equal" |
-| **T2.6 Builtins/Aggregates** | `greaterThan`, `subsetOf`, `compareVersions`, `count` with group-by | 2–4 h | "Count vulnerable packages per severity"; "filter packages by version range" |
-| **T2.1 Disjunctive Heads** | `A ⇒ B ∨ C` via branch enumeration + per-branch fixpoint (`maxBranches`) | 3–4 h | "A package either provides capability X or Y (or both)" |
+| **T2.4 Congruence Closure** | `equal a b ⇒ P(…a…) ≡ P(…b…)` for all predicates | 2–3 h | "If two packages are equal, all their dependencies, vulnerabilities, and capabilities are equal" ✅ |
+| **T2.6 Builtins/Aggregates** | `greaterThan`, `subsetOf`, `compareVersions`, `count` with group-by | 2–4 h | "Count vulnerable packages per severity"; "filter packages by version range" ✅ |
+| **T2.1 Disjunctive Heads** | `A ⇒ B ∨ C` via branch enumeration + per-branch fixpoint (`maxBranches`) | 3–4 h | "A package either provides capability X or Y (or both)" ✅ |
 | **T2.2 WFS Negation** | Three-valued eval + alternating fixpoint on unstratifiable predicates | 3–5 h | "Unknown" verdicts for truly cyclic negation instead of rejection ✅ |
 | **T2.3 Bounded Existentials** | Finite-domain Skolem terms (depth ≤ 1) | 4–6 h | "There exists a dependency chain of length ≤ N" ✅ |
-| **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" |
+| **T3.1 Soft Rules / MaxSAT** | Rule weights + violation minimization (reuses relaxation machinery) | 4–6 h | "Minimize policy violations by dropping lowest-weight rules" ✅ |
 | **T2.7 Soufflé CI** | Differential CI — byte-equal derived predicates vs Soufflé | 2–3 h + Soufflé install | "Every commit proves engine ≡ Soufflé" |
 | **T3.2 Parallel Eval** | Semi-naive rounds set-parallel (internal `deepSeq`) | 2–3 h | "2× speedup on large fact sets" |
-| **T3.3 Temporal/Modal** | `during`, `before` as binary predicates + dedicated module | 3–4 h | "Vulnerability was introduced between version X and Y" |
+| **T3.3 Temporal/Modal** | `during`, `before` as binary predicates + dedicated module | 3–4 h | "Vulnerability was introduced between version X and Y" ✅ |
 
 #### V-Milestones (Updated)
 
@@ -248,6 +248,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] T3.1 Soft Rules / MaxSAT demo
 - [x] T2.2 WFS Negation demo (reasoner/wfs.nix + tests/unit/wfs.nix; three-valued eval for unstratifiable predicates)
 - [x] T2.3 Bounded Existentials demo (reasoner/existential.nix + tests/unit/existentials.nix; finite-domain Skolem grounding)
+- [x] T3.3 Temporal/Modal demo (reasoner/temporal.nix + tests/unit/temporal.nix; before/during transitivity, Allen's interval algebra)
 
 ## 11. Effort estimate (to first product)
 
@@ -264,17 +265,17 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 
 ## 12. Extension Contract Coverage (Mapping to §5)
 
-| T-Milestone | Bootstraps Enabled | Engine Extension |
-|-------------|-------------------|------------------|
-| **T2.4 Congruence Closure** | B1, B8, B9, B10 | `equal` → predicate interchangeability |
-| **T2.6 Builtins/Aggregates** | B6, B7, B9, B16 | `count`, `subsetOf`, `compareVersions`, `groupBy` |
-| **T2.1 Disjunctive Heads** | B4, B5, B11 | `A ⇒ B ∨ C` (choice in configs) |
-| **T2.2 WFS Negation** | B10, B11, B22 | `unknown` verdicts for cyclic policies |
-| **T2.3 Bounded Existentials** | B6, B8, B16 | Finite-domain Skolem (depth ≤ 1) |
-| **T3.1 Soft Rules / MaxSAT** | B4, B5, B11, B12, B17 | Rule weights, violation minimization |
-| **T2.7 Soufflé CI** | All | Differential CI (byte-equal) |
-| **T3.2 Parallel Eval** | B1, B6, B9 | Set-parallel semi-naive |
-| **T3.3 Temporal/Modal** | B8, B9, B16, B19 | `during`, `before`, `validFrom/Until` |
+| T-Milestone | Bootstraps Enabled | Engine Extension | Status |
+|-------------|-------------------|------------------|--------|
+| **T2.4 Congruence Closure** | B1, B8, B9, B10 | `equal` → predicate interchangeability | ✅ |
+| **T2.6 Builtins/Aggregates** | B6, B7, B9, B16 | `count`, `subsetOf`, `compareVersions`, `groupBy` | ✅ |
+| **T2.1 Disjunctive Heads** | B4, B5, B11 | `A ⇒ B ∨ C` (choice in configs) | ✅ |
+| **T2.2 WFS Negation** | B10, B11, B22 | `unknown` verdicts for cyclic policies | ✅ |
+| **T2.3 Bounded Existentials** | B6, B8, B16 | Finite-domain Skolem (depth ≤ 1) | ✅ |
+| **T3.1 Soft Rules / MaxSAT** | B4, B5, B11, B12, B17 | Rule weights, violation minimization | ✅ |
+| **T2.7 Soufflé CI** | All | Differential CI (byte-equal) | ⏳ |
+| **T3.2 Parallel Eval** | B1, B6, B9 | Set-parallel semi-naive | ⏳ |
+| **T3.3 Temporal/Modal** | B8, B9, B16, B19 | `during`, `before`, `validFrom/Until` | ✅ |
 
 ---
 
@@ -285,8 +286,8 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 | **V1** ✅ | Core engine (parser, ontology, synthesis, stratifier, ingestion, naive engine, proof, policy gate, relaxation) |
 | **V2** | V1 + **1 bootstrap** (e.g., B3 json2kif + B12 env validator) + demo |
 | **V3** ✅ | V2 + policy product (build gate + relaxation menu) + **3 bootstraps** composing |
-| **V4** ⏳ | V3 + **3 bootstraps** composing + T2.4/T2.6 |
-| **V5** ⏳ | V4 + **all 26 bootstraps** + T2.1/T2.6/T3.1 + T2.7 (Soufflé CI) |
+| **V4** ⏳ | V3 + **3 bootstraps** composing + T2.4/T2.6/T2.1/T2.2/T2.3/T3.1/T3.3 |
+| **V5** ⏳ | V4 + **all 26 bootstraps** + T2.7 (Soufflé CI) + T3.2 |
 
 ---
 
@@ -300,7 +301,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Optimization (T3.1)
 - [x] WFS negation (T2.2) — three-valued eval for cyclic negation
 - [x] Bounded existentials (T2.3) — finite-domain Skolem grounding
-- [ ] Temporal (T3.3)
+- [x] Temporal (T3.3) — `before`/`during` as binary predicates + dedicated module
 - [ ] Context-aware secrets
 - [ ] Semantic API governance
 - [ ] NixOS config logic prover
