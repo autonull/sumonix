@@ -199,7 +199,7 @@ All Phases 0–6 complete (V3 ships). The remaining work is organized as **indep
 - [x] **Equality reasoning** (T2.4) — rule generation complete; engine integration requires iterative fixpoint
 - [x] **Arithmetic/aggregates** (T2.6) — version ranges, counts, filters
 - [x] **Choice/disjunction** (T2.1) — "either this capability or that one"
-- [ ] **Optimization** (T3.1) — "minimize violations" instead of "fail on any"
+- [x] **Optimization** (T3.1) — "minimize violations" instead of "fail on any"
 - [ ] **Temporal** (T3.3) — "this held at time T1 but not T2"
 
 > **No CI, no GitHub, no external deps.** Each milestone is a pure Nix module behind a flag, with its own test and demo. Pick the one that unlocks your next use case.
@@ -245,7 +245,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] T2.4 Congruence Closure demo (reasoner/congruence.nix + tests/unit/congruence.nix; rule generation complete; engine integration blocked by naive fixpoint recursion limit — requires iterative fixpoint or recursion limit increase)
 - [x] T2.6 Builtins/Aggregates demo (reasoner/builtins.nix + tests/unit/builtins.nix; greaterThan, lessThan, notEqual, subsetOf, supersetOf, compareVersionsRel)
 - [x] T2.1 Disjunctive Heads demo
-- [ ] T3.1 Soft Rules / MaxSAT demo
+- [x] T3.1 Soft Rules / MaxSAT demo
 
 ## 11. Effort estimate (to first product)
 
@@ -295,7 +295,7 @@ Every engine run returns `diagnostics = { rulesIngested; rulesRejected: [{rule,r
 - [x] Equality reasoning (T2.4) — rule generation complete; engine integration requires iterative fixpoint
 - [x] Arithmetic/aggregates (T2.6)
 - [x] Choice/disjunction (T2.1)
-- [ ] Optimization (T3.1)
+- [x] Optimization (T3.1)
 - [ ] Temporal (T3.3)
 - [ ] Context-aware secrets
 - [ ] Semantic API governance
