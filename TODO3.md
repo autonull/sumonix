@@ -443,6 +443,107 @@ Self-containment:
 | N4 | runner | `demo/container.sh`, `tools/env.sh` | `--check`/`--estimate`/`build`/`run`/`exec`/`--tour`/`--teardown`; Podman storage in `.runtime`; no QEMU | **todo** |
 | N5 | TUI + recordings | `demo/tui/`, `tools/shot.sh`, `tools/tour.sh`, `docs/demo/` | `sumo dashboard` runs in container; `--dump` matches CLI digest; cast/PNG regenerated from container | **partial** |
 | N6 | verification/report | this file, `docs/` | §8 and §14 complete with measured values | **todo** |
+| N7 | fixture facts | `demo/fixtures/policy.kif`, `demo/fixtures/rules.kif` | nginx/CVE advisory + pinned nixpkgs capability atlas; labelled `source: fixture` | **todo** |
+| N8 | CLI integration | `bin/sumo`, `bin/_sumo.nix`, `tools/env.sh` | `sumo dashboard` finds TUI in container; `sumo refresh` re-runs exporter; `sumo guard` exists; `tools/env.sh` respects pre-set NIX_* vars | **partial** |
+| N9 | flake + repo wiring | `flake.nix`, `nix/sumo-packages.nix` | `nixosConfigurations.sumonix-container` + `nixosModules.default` exported; repo copied with `.git/.nix-store/.nix-root/.artifacts/.runtime/result*` filtered | **todo** |
+| N10 | docs + cleanup | `docs/readme/10-demo.md`, `demo/transcripts/*.txt`, `demo/README.md` | no VM/QEMU claims; container-based; live/fixture labels; fixture tour byte-stable; live tour explicit | **todo** |
+
+### 4.9 Complete file manifest (turn-key target)
+
+These files must exist for `./demo/container.sh build && ./demo/container.sh run && ./demo/container.sh exec` to work end-to-end.
+
+**New NixOS module + packages (`nixos/`, `nix/`):**
+
+| File | Purpose |
+|---|---|
+| `nixos/sumo.nix` | NixOS module: `services.sumonix.enable`, `repo`, `factsFile`, `advisoryFile`, `guard.enable`, `guard.failOnViolation` |
+| `nix/sumo-cli.nix` | Derivation for `sumo` shell wrapper + `_sumo.nix` dispatcher; filters repo; sets NIX_* in wrapper |
+| `nix/sumo-tui.nix` | Derivation for `sumo-tui` Go binary via `buildGoModule`; real `vendorHash`/`modSha256` |
+| `nix/sumo-facts.nix` | Derivation for `sumo-facts` exporter script; reads systemd/nix-store/proc/ss; writes `/run/sumo/facts.kif` |
+| `nix/sumo-packages.nix` | Aggregates the four packages; used by module and flake |
+| `flake.nix` | Adds `nixosConfigurations.sumonix-container`; exports `nixosModules.default`; repoRoot = self.outPath |
+
+**Container configuration (`demo/container/`):**
+
+| File | Purpose |
+|---|---|
+| `demo/container/container.nix` | Minimal NixOS: `boot.isContainer=true`, nginx, `services.sumonix.enable`, `sumoPackages = pkgs.callPackage ../nix/sumo-packages.nix {}`; demo user; `system.stateVersion` |
+
+**Runner + scripts (`demo/`, `tools/`, `bin/`):**
+
+| File | Purpose |
+|---|---|
+| `demo/container.sh` | `--check`, `--estimate`, `build`, `run`, `exec`, `--tour`, `--teardown`; Podman storage in `.runtime/podman/` |
+| `tools/env.sh` | Respects pre-set `NIX_STORE_DIR`, `NIX_STATE_DIR`, `NIX_PATH`, `NIX_REMOTE` (uses `${VAR:-default}`) |
+| `bin/sumo` | `sumo dashboard` resolves TUI via `command -v sumo-tui` → `/run/sumo/bin/sumo-tui` → `demo/tui/sumo-tui` |
+| `bin/_sumo.nix` | Adds `sumo refresh` (re-runs exporter), `sumo guard` (policy check); source counts in `--json` |
+| `demo/fixtures/policy.kif` | Advisory: `(vulnerable openssl CVE-2026-9999)` + `(severity CVE-2026-9999 critical)`; header `source: fixture` |
+| `demo/fixtures/rules.kif` | Copy of `rules.kif` for the container; header `source: fixture` |
+
+**TUI + recordings:**
+
+| File | Purpose |
+|---|---|
+| `demo/tui/` | Moved from `demo/vm/tui/`; `go.mod`/`go.sum`/`main.go`; builds to `sumo-tui` |
+| `tools/shot.sh` | Updated: `podman exec sumonix-demo sumo-tui --dump` → PNG |
+| `tools/tour.sh` | Updated: `asciinema rec podman exec -it -u demo sumonix-demo bash -lc 'source /run/sumo/tour.sh'` |
+| `demo/tour.sh` | Container tour script (like `demo/vm/session.sh` but for container) |
+
+**Container tour script — `demo/tour.sh`:**
+
+```bash
+#!/usr/bin/env bash
+# /run/sumo/tour.sh — scripted tour inside the NixOS container.
+# Installed by sumo-facts.service (or module) at /run/sumo/tour.sh.
+# Run: podman exec -it -u demo sumonix-demo bash -lc 'source /run/sumo/tour.sh'
+
+set -euo pipefail
+export TZ=UTC LANG=C
+PS1='demo@sumonix:~$ '
+
+run() { printf '%s%s\n' "$PS1" "$1"; eval "$1"; printf '\n'; }
+
+printf '%s\n' 'sumonix reasons about this NixOS system.'
+printf '%s\n' 'Facts: live NixOS state + labelled nixpkgs/CVE fixture.'
+printf '\n'
+
+run 'sumo status'
+run 'sumo caps'
+run 'sumo closure openssl'
+run "sumo query '(vulnerable nginx CVE-2026-9999)'"
+run 'sumo whatif'
+run 'echo "Starting dashboard (press q to quit)..."'
+run 'timeout 10 sumo dashboard || true'
+
+printf '%s\n' 'Tour complete. Interactive session ready.'
+```
+
+Installed by `nix/sumo-facts.nix` to `/run/sumo/tour.sh` in the container.
+
+**Cleanup targets (delete after container works):**
+
+```
+demo/vm.sh demo/vm/build.sh demo/vm/vm.nix demo/vm/session.sh demo/vm/vm-wrapper.nix
+demo/vm/sumo-tui.nix demo/vm/tui/  (moved to demo/tui/)
+flake.nix VM output (nixosConfigurations.demo)
+```
+
+**Verification additions (§7):**
+
+```bash
+# NixOS module test
+nix build .#nixosConfigurations.sumonix-container.config.system.build.tarball
+podman import result/tarball/nixos-system-*.tar.xz localhost/sumonix-demo-test
+podman run --name test --systemd=always --rm -d localhost/sumonix-demo-test
+podman exec test cat /etc/os-release
+podman exec test systemctl is-system-running
+podman exec test systemctl status nginx
+podman exec test nix eval --expr '1+1'
+podman exec test nix-store -q --requisites /run/current-system
+podman exec test sumo status --json
+podman exec -it -u demo test bash -lc 'sumo dashboard --dump'
+podman stop test
+```
 
 ---
 
