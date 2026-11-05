@@ -6,7 +6,7 @@
 { snapshot ? builtins.readFile /run/sumo-facts.kif }:
 
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   text = builtins.readFile;
 
   # SUMO + the NIX domain ontology (tests/scenario.nix pattern)

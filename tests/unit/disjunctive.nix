@@ -1,7 +1,7 @@
 # T2.1 — Disjunctive Heads: branch enumeration + per-branch fixpoint.
 # Usage: ./nix-eval.sh --expr 'import ./tests/unit/disjunctive.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   datalog = import ../../datalog.nix;
   ingest = import ../../reasoner/ingest.nix { };
 

@@ -1,7 +1,7 @@
 # Phase 1 — Ontology equivalence subsumption (G3). From-scratch ontology with equivalent class pairs.
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/equivalents.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   forms = kif.parse ''
     (subclass Vehicle Entity)
     (subclass Car Vehicle)

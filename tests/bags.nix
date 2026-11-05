@@ -3,7 +3,7 @@
 let
   root = ../.;
   b = import ../bags.nix { inherit root; };
-  tq = import ../tq.nix { ontology = (import ../kif.nix).parse (builtins.readFile ../sumo.full/Merge.kif); };
+  tq = import ../tq.nix { ontology = (import ../lib/kif.nix { }).parse (builtins.readFile ../sumo.full/Merge.kif); };
   exp = builtins.fromJSON (builtins.readFile ./bags.expected.json);
   inherit (builtins) all any attrNames elem filter length;
   sort = builtins.sort builtins.lessThan;

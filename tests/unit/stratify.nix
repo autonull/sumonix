@@ -1,7 +1,7 @@
 # Phase 2 — Stratifier. Crafted unstratifiable/stratifiable rule sets + the pinned corpus.
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/stratify.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   pins = import ../../pins.nix;
 
   crafted = kif.parse ''

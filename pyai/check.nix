@@ -5,7 +5,7 @@
 { merge, midLevel }:
 let
   inherit (builtins) all attrNames concatMap elem elemAt filter fromJSON genList head isList isString length listToAttrs map readFile sort lessThan;
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   fields = (fromJSON (readFile ./fields.json)).fields;
   cw = (fromJSON (readFile ./crosswalk.json)).values;
   tags = fromJSON (readFile ../hf/tags.json);

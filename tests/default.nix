@@ -3,7 +3,7 @@
 # The expected numbers come from outside this repository: a separate Python reader of the same pinned Merge.kif
 # (paren-depth scan, transitive closure by recursion) printed them. Change them only when the pin changes.
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   pins = import ../pins.nix;
   forms = kif.parse (builtins.readFile pins.merge);
   o = import ../sumo.nix { inherit forms; };

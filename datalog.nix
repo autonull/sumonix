@@ -13,8 +13,10 @@
 let
   inherit (builtins) all any attrNames concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString length mapAttrs substring tail;
 
-  isVar = s: isString s && substring 0 1 s == "?";
-  show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
+  # Shared KIF helpers
+  kif = import ./lib/kif.nix { };
+  inherit (kif) show headOf isEngineVar ground subst unique;
+  isVar = isEngineVar;  # engine only uses ? variables
 
   # Match pattern p against ground f under bindings b: new bindings or null.
   unify = b: p: f:
@@ -25,12 +27,6 @@ let
     else if isList f && length p == length f then
       foldl' (acc: i: if acc == null then null else unify acc (elemAt p i) (elemAt f i)) b (genList (i: i) (length p))
     else null;
-
-  subst = b: s: if isString s then (if isVar s then b.${s} or s else s) else map (subst b) s;
-
-  ground = s: if isString s then !isVar s else all ground s;
-
-  headOf = p: if isList p && p != [ ] then head p else "";
 
   # What a round looks like to a premise: the facts, by relation and by relation with its first argument.
   index = idx:
@@ -88,8 +84,6 @@ let
         vs = attrNames b;
         needed = unique (filter isVar (flatten ant ++ flatten cons));
     in builtins.listToAttrs (map (v: { name = v; value = b.${v}; }) (filter (v: elem v needed) vs));
-
-  unique = xs: builtins.attrNames (builtins.listToAttrs (map (n: { name = n; value = null; }) xs));
 
   # Each rule, with a name from its consequent and its place among the rules.
   named = genList

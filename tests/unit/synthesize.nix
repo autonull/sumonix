@@ -1,7 +1,7 @@
 # Phase 1 — Declaration-driven Horn synthesis (G4). Crafted declarations + the pinned corpus.
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/synthesize.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   text = builtins.readFile;
   pins = import ../../pins.nix;
 

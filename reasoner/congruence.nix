@@ -16,14 +16,11 @@ let
   concatStringsSep = builtins.concatStringsSep;
   toString = builtins.toString;
 
-  headOf = f: if isList f && f != [ ] then head f else "";
-  show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
-  # unique: keep both strings and integers
+  # Shared KIF helpers (congruence keeps its own unique for type-aware dedupe)
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show headOf flatten subforms isVar varsOf isKifOp;
+  # unique: keep both strings and integers (diverges from shared)
   unique = xs: let s = foldl' (m: x: if isString x || builtins.typeOf x == "int" then m // { ${toString x} = x; } else m) { } xs; in attrValues s;
-  flatten = f: if isList f then concatMap flatten f else [ f ];
-  subforms = f: if isList f then [ f ] ++ concatMap subforms (tail f) else [ ];
-  isVar = s: isString s && (builtins.substring 0 1 s == "?" || builtins.substring 0 1 s == "@");
-  varsOf = f: filter isVar (flatten f);
 
   # --- collect predicate arities from forms ---
   domainForms = filter (f: headOf f == "domain" && length f >= 4) forms;

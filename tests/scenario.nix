@@ -3,7 +3,7 @@
 # The same checks run on facts read from KIF text (rules.nix) and on facts that went through the dialects (kif.mlir).
 { facts, rules }:
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   pins = import ../pins.nix;
   text = builtins.readFile;
   ontology = import ../sumo.nix {

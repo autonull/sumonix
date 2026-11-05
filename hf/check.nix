@@ -3,7 +3,7 @@
 { merge, midLevel, anchorsText ? builtins.readFile ./anchors.kif }:
 let
   inherit (builtins) all any attrNames concatMap elem filter foldl' fromJSON head isList isString length listToAttrs map readFile sort lessThan;
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   snap = fromJSON (readFile ./tags.json);
   mine = kif.parse anchorsText;
   base = kif.parse (readFile merge) ++ kif.parse (readFile midLevel);

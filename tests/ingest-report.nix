@@ -9,7 +9,7 @@
 # The verdict gate (recorded in TODO2.b.md): Horn >= 300 & rejects enumerable => ingestion allowed;
 # Horn < 100 => features.hornIngest = false, everything else proceeds.
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   pins = import ../pins.nix;
   forms = kif.parse (builtins.readFile pins.merge);
 

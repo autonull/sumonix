@@ -1,7 +1,7 @@
 # T2.6 — Builtins: test greaterThan, lessThan, notEqual, subsetOf, supersetOf
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/builtins.nix'
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   facts = kif.parse ''
     (instance a NIXPackage)
     (instance b NIXPackage)

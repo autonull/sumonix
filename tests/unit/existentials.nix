@@ -1,7 +1,7 @@
 # T2.3 — Bounded Existentials: finite-domain Skolem terms (depth ≤ 1)
 # Usage: ./nix-eval.sh --expr 'import ./tests/unit/existentials.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   datalog = import ../../datalog.nix;
   existential = import ../../reasoner/existential.nix { };
 

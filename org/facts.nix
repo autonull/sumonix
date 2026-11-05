@@ -13,7 +13,7 @@
 { pages, pins }:
 let
   inherit (builtins) concatMap concatStringsSep elemAt filter head isList isString length listToAttrs map match readFile split;
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   cls = import ./classify.nix;
 
   lines = s: filter isString (split "\n" s);

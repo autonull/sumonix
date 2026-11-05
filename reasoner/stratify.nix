@@ -21,11 +21,13 @@
 let
   inherit (builtins) all any attrNames concatMap elem elemAt filter foldl' genList head isList isString length listToAttrs map sort tail;
 
-  headOf = f: if isList f && f != [ ] then head f else "";
+  # Shared KIF helpers (engine's isVar is ? only; stratify keeps its own isVar for ?/@)
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show headOf flatten subforms ground count isKifOp;
+  # stratify's isVar is ? or @, plus members starting @ are not vars — keep local
   isVar = s: isString s && (builtins.substring 0 1 s == "?" || builtins.substring 0 1 s == "@");
-  count = xs: foldl' (m: x: m // { ${x} = (m.${x} or 0) + 1; }) { } xs;
+  # stratify's unique uses count (keeps non-strings) — keep local
   unique = xs: attrNames (count xs);
-  subforms = f: if isList f then [ f ] ++ concatMap subforms (tail f) else [ ];
   isStructural = h: elem h [ "and" "or" "not" "exists" "forall" "<=>" "=>" ];
   # Atoms of an antecedent with their polarity: `not` flips it. (not (not P) = P.)
   bodyWalk = neg: f:

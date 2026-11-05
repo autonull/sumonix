@@ -6,7 +6,7 @@
 #
 # Usage: nix --extra-experimental-features nix-command eval --impure --json --expr 'import ./tests/unit/congruence.nix'
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   text = builtins.readFile;
 
   facts = kif.parse ''

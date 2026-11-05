@@ -30,26 +30,19 @@
 # predicate sits on a negative cycle, with reason `unstratified-negation`.
 { pins ? import ../pins.nix }:
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   forms = kif.parse (builtins.readFile pins.merge);
 
   inherit (builtins) all any attrNames concatMap elem elemAt filter foldl' genList head isList isString length listToAttrs map sort tail;
 
-  headOf = f: if isList f && f != [ ] then head f else "";
-  show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
+  inherit (kif) show headOf flatten isVar unique subforms varsOf isKifOp count;
   concatStringsSep = builtins.concatStringsSep;
-  flatten = f: if isList f then concatMap flatten f else [ f ];
-  isVar = s: isString s && (builtins.substring 0 1 s == "?" || builtins.substring 0 1 s == "@");
-  count = xs: foldl' (m: x: m // { ${x} = (m.${x} or 0) + 1; }) { } xs;
-  unique = xs: attrNames (count xs);
-  subforms = f: if isList f then [ f ] ++ concatMap subforms (tail f) else [ ];
-  varsOf = f: filter isVar (flatten f);
-  isStructural = h: elem h [ "and" "or" "not" "exists" "forall" "<=>" "=>" ];
   quantifiedVars = f:
     concatMap (s:
       if isList s && (headOf s == "exists" || headOf s == "forall") && length s >= 2 && isList (elemAt s 1)
       then filter isVar (flatten (elemAt s 1))
       else [ ]) (subforms f);
+  isStructural = h: elem h [ "and" "or" "not" "exists" "forall" "<=>" "=>" ];
   # Atoms of an antecedent with polarity: `not` flips; (not (not P) = P.)
   bodyWalk = neg: f:
     if !(isList f) then [ ]

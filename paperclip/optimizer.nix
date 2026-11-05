@@ -5,7 +5,7 @@
 # merge and midLevel are the paths of Merge.kif and Mid-level-ontology.kif, world is world.kif's. The rules are analysis.kif and decision.kif; the solver is ../datalog.nix.
 { merge, midLevel, world, protect ? null, without ? [ ] }:
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   text = builtins.readFile;
   rules = file: builtins.filter (f: builtins.head f == "=>") (kif.parse (text file));
 

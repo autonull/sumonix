@@ -20,20 +20,9 @@ let
   concatStringsSep = builtins.concatStringsSep;
   toString = builtins.toString;
 
-  show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
-  headOf = f: if isList f && f != [ ] then head f else "";
-  unique = xs: attrNames (foldl' (m: x: m // { ${toString x} = x; }) { } xs);
-  flatten = f: if isList f then concatMap flatten f else [ f ];
-  isVar = s: isString s && (builtins.substring 0 1 s == "?" || builtins.substring 0 1 s == "@");
-  ground = f: if !(isList f) then false else all (x: !(isVar x)) (flatten f);
-  subst = b: f: if !(isList f) then f
-    else let h = headOf f; in
-    if h == "" || isVar h then (b.${f} or f)
-    else map (subst b) f;
-  varsOf = f: filter isVar (flatten f);
-  ruleVars = ant: cons: b: let
-    cv = varsOf cons; av = concatMap varsOf (flatten ant);
-    in listToAttrs (map (v: { name = v; value = b.${v} or v; }) (unique (cv ++ av)));
+  # Shared KIF helpers
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show headOf flatten isVar ground subst varsOf unique isKifOp;
 
   # --- index helpers ---
   index = idx: listToAttrs (map (k:

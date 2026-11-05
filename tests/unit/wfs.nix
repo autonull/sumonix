@@ -1,7 +1,7 @@
 # T2.2 — WFS Negation: three-valued eval + alternating fixpoint on unstratifiable predicates
 # Usage: ./nix-eval.sh --expr 'import ./tests/unit/wfs.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   wfs = import ../../reasoner/wfs.nix;
   stratify = import ../../reasoner/stratify.nix;
 

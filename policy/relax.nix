@@ -13,7 +13,10 @@
 # "goal underivable" as the explanation of the new verdict).
 { ontology ? null, facts ? [ ], rules ? [ ], goal ? [ ], passWhen ? "underivable", candidates ? [ ] }:
 let
-  show = s: if builtins.isString s then s else "(" + builtins.concatStringsSep " " (map show s) + ")";
+  # Shared KIF helpers (type-aware show for int/string/list)
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show;
+
   namedRules = builtins.genList
     (i:
       let r = builtins.elemAt rules i; c = builtins.elemAt r 2;

@@ -1,7 +1,7 @@
 # mlnix eval tests/rules.nix  ->  "ok" or a failed assertion
 # The scenario of tests/scenario.nix, with facts and rules read from KIF text.
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   text = builtins.readFile;
   facts = kif.parse ''
     (instance hello NIXPackage)

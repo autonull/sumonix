@@ -5,7 +5,9 @@
 #   Returns: { bestSet; minWeight; allOptions; }
 { ontology ? null, facts ? [ ], rules ? [ ], goal ? [ ] }:
 let
-  show = s: if builtins.isString s then s else "(" + builtins.concatStringsSep " " (builtins.map show s) + ")";
+  # Shared KIF helpers (type-aware show for int/string/list)
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show;
   datalog = import ../datalog.nix;
 
   # Extract weights and rule ids

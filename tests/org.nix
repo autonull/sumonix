@@ -9,7 +9,7 @@ let
   check = what: ok: if ok then true else throw "failed: ${what}";
 
   # Every class named in (pageAbout CLASS SUMO-CLASS) must be a class of the SUMO files.
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   forms = kif.parse (builtins.readFile ../sumo.full/Merge.kif) ++ kif.parse (builtins.readFile ../sumo.full/Mid-level-ontology.kif);
   onto = import ../sumo.nix { forms = builtins.filter (f: builtins.isList f && f != [ ] && builtins.head f == "subclass" && builtins.length f == 3 && builtins.all builtins.isString f) forms; };
   about = builtins.filter (f: builtins.isList f && f != [ ] && builtins.head f == "pageAbout") (kif.parse (builtins.readFile ../org/taxonomy.kif));

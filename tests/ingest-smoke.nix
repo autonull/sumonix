@@ -4,7 +4,7 @@
 # declaration alone via synthesize.nix — no hand-written rule.
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/ingest-smoke.nix'  -> "ok"
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   pins = import ../pins.nix;
   text = builtins.readFile;
   facts = kif.parse ''

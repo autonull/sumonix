@@ -19,11 +19,10 @@
 let
   inherit (builtins) all any attrNames concatMap elem elemAt filter foldl' genList head isList isString length listToAttrs map sort tail;
 
-  headOf = f: if isList f && f != [ ] then head f else "";
-  show = s: if isString s then s else "(" + concatStringsSep " " (map show s) + ")";
+  # Shared KIF helpers
+  kif = import ../lib/kif.nix { };
+  inherit (kif) show headOf flatten subforms isVar unique isKifOp count;
   concatStringsSep = builtins.concatStringsSep;
-  count = xs: foldl' (m: x: m // { ${x} = (m.${x} or 0) + 1; }) { } xs;
-  unique = xs: attrNames (count xs);
   top = name: filter (f: isList f && f != [ ] && head f == name) forms;
   isIntStr = s: isString s && builtins.match "[0-9]+" s != null;
   toInt = s: if builtins.isInt s then s else if isIntStr s then builtins.fromJSON s else 0;

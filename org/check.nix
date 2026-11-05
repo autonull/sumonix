@@ -8,7 +8,7 @@
 { merge, midLevel, pages ? builtins.fromJSON (builtins.readFile ./pages.json), pins ? builtins.readFile ./PINS }:
 let
   inherit (builtins) all attrNames attrValues elem elemAt filter foldl' fromJSON groupBy head isList isString length listToAttrs map mapAttrs readFile sort lessThan;
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   engine = import ../datalog.nix;
   names = import ./names.nix;
   cls = import ./classify.nix;

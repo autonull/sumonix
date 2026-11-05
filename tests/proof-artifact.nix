@@ -2,7 +2,7 @@
 # Deterministic: same inputs => byte-identical output. Used by tests/proof-check.nix.
 # Usage: nix --extra-experimental-features nix-command eval --impure --raw --expr 'import ./tests/proof-artifact.nix' > proof.kif
 let
-  kif = import ../kif.nix;
+  kif = import ../lib/kif.nix { };
   text = builtins.readFile;
   facts = kif.parse ''
     (instance hello NIXPackage)

@@ -1,7 +1,7 @@
 # T3.1 — Soft Rules / MaxSAT: rule weights + violation minimization
 # Usage: ./nix-eval.sh --expr 'import ./tests/unit/soft-rules.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   datalog = import ../../datalog.nix;
   softFn = import ../../policy/soft-rules.nix;
 

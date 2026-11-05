@@ -1,7 +1,7 @@
 # T3.3 — Temporal/Modal: dedicated module for temporal reasoning
 # Usage: ./nix-eval.sh --expr 'import ./tests/unit/temporal.nix'  -> "ok"
 let
-  kif = import ../../kif.nix;
+  kif = import ../../lib/kif.nix { };
   temporal = import ../../reasoner/temporal.nix { };
 
   # Test: temporal reasoning with before/during relations
