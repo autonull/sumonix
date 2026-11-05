@@ -159,6 +159,8 @@ Files: `reasoner/engine.nix` (move + upgrade), `reasoner/naive.nix` (kept, tests
 
 **P6 Result (2026-11-04):** Benchmark ~1.1 s on 286 rules / 23–185 derived facts (ingest-smoke scenario). Well under 5 s gate. **Semi-naive NOT needed; naive engine ships.**
 
+**Fix (2026-11-04):** Congruence rule generation bug fixed in `reasoner/congruence.nix:58` — `[elemAt f 1]` → `[(elemAt f 1)]` (Nix requires parens to call function in list literal). Also reduced rules to 1/position/predicate (forward only; reverse via `cong/symmetry` bridge). All tests green.
+
 ### Phase 7 — Differential CI — **DEFERRED (no CI wiring in this repo)**
 Same facts+rules → Soufflé (or other checker); byte-equal derived predicates; any divergence fails; never runtime. Add as CI job; document for manual use.
 
@@ -312,3 +314,31 @@ Also hygiene (P3 commit): delete unused `spike/cve-seed.kif`; rename `spike/vuln
 2. **Merge.kif**: kept pinned.
 3. **Ingestion default**: default-on everywhere (verdict `ingestible`).
 4. **CI**: local gates only (no workflow added; P7 CI wiring deferred).
+
+---
+
+## 🔧 Quick Reference — Running Tests Locally
+
+**Environment:** nix-daemon not required. Use local store/state dirs:
+
+```bash
+export NIX_STORE_DIR=/home/me/sumonix/.nix-store
+export NIX_STATE_DIR=/home/me/sumonix/.nix-state
+
+# Run all tests (from repo root)
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/default.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/rules.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/ingest-smoke.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/equivalents.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/synthesize.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/stratify.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/relax.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/congruence.nix'
+nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/proof-check.nix'
+
+# Generate + re-check proof artifact
+nix --extra-experimental-features nix-command eval --impure --raw --expr 'import ./tests/proof-artifact.nix' > proof.kif
+nix --extra-experimental-features nix-command eval --impure --expr '(import ./proof-check.nix { file = ./proof.kif; })'
+```
+
+**Common Nix gotcha:** In list literals, `[ fn arg ]` is a 3-element list (function, arg, …). To call: `[ (fn arg) ]`.
