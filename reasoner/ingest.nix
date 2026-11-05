@@ -97,7 +97,9 @@ let
     in
     if u.forallOnly or false then [ { reject = "forall-non-rule"; declaration = show f; } ]
     else if structuralConsequent cons then [ { reject = "quantified-or-negated-consequent"; declaration = show f; } ]
-    else if disjunctiveHead cons then [ { reject = "disjunctive-head"; declaration = show f; } ]
+    else if disjunctiveHead cons then
+      # (=> A (or B C ..)) -> emit as a disjunctive rule with special marker
+      [ { rule = [ "=>" ant ] ++ [ "disjunct" ] ++ (tail cons); source = "disjunctive-head"; } ]
     else if predicateVariable cons then [ { reject = "predicate-variable"; declaration = show f; } ]
     else if argFunctionTerm cons then [ { reject = "function-consequent"; declaration = show f; } ]
     else if any (v: !(elem v bound)) (varsOf cons) then [ { reject = "unbound-consequent-var"; declaration = show f; } ]

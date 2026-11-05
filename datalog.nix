@@ -104,13 +104,20 @@ let
     let ix = index idx; in
     builtins.listToAttrs (concatMap
       (r:
+        let cons = r.consequent;
+            isDisjunct = isList cons && headOf cons == "disjunct";
+            disjuncts = if isDisjunct then tail cons else [ cons ];
+        in
         concatMap
-          (s:
-            let f = subst s.b r.consequent; k = show f; in
-            if !(ground f) then throw "rule ${r.id}: the consequent keeps a variable (${k})"
-            else if idx ? ${k} then [ ]
-            else [ { name = k; value = { key = k; fact = f; by = { rule = r.id; from = s.used; round = round; bindings = ruleVars r.antecedent r.consequent s.b; }; }; } ])
-          (step ix { b = { }; used = [ ]; } r.antecedent))
+          (disjunctCons:
+            concatMap
+              (s:
+                let f = subst s.b disjunctCons; k = show f; in
+                if !(ground f) then throw "rule ${r.id}: the consequent keeps a variable (${k})"
+                else if idx ? ${k} then [ ]
+                else [ { name = k; value = { key = k; fact = f; by = { rule = r.id; from = s.used; round = round; bindings = ruleVars r.antecedent disjunctCons s.b; disjunct = if isDisjunct then headOf disjunctCons else null; }; }; } ])
+              (step ix { b = { }; used = [ ]; } r.antecedent))
+          disjuncts)
       named);
 
   fix = round: idx: let new = derive round idx; in if new == { } then idx else fix (round + 1) (idx // new);

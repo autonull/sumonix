@@ -50,7 +50,7 @@ if builtins.all (x: x) [
   (check "the declaration-derived fact carries a proof" ((e.why [ "part" "a" "c" ]) != null))
   # --- diagnostics: everything enumerated, nothing dropped silently ----------
   (check "every ingested rule names a known source"
-    (builtins.all (s: builtins.elem s [ "merge-horn" "or-split" "and-split" "iff-split" ]) (builtins.attrNames ingest.diagnostics.sources)))
+    (builtins.all (s: builtins.elem s [ "merge-horn" "or-split" "and-split" "iff-split" "disjunctive-head" ]) (builtins.attrNames ingest.diagnostics.sources)))
   (check "every rejection carries a reason" allRejectionsHaveReasons)
   (check "the ingested set is non-trivial" (ingest.diagnostics.ingested > 50))
   (check "at least one rejection reason is enumerated" (builtins.length (builtins.attrNames ingest.diagnostics.byReason) > 0))
