@@ -276,10 +276,10 @@ If the diff is non-empty, stop and revert the extraction — do not patch forwar
 | 1 | C1 (one module at a time) + C3 | 1–2 h | suite green after each; demo diff empty | ✅ |
 | 2 | C2, C4 | 30 min | suite green | ✅ (C2 done, C4 deferred to A1) |
 | 3 | A1 (`sumo` CLI) + A2 (facts, curated mode) | 1–1.5 h | every subcommand runs in-repo | ✅ |
-| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 VM config done, build blocked by env |
+| 4 | A3 (VM + `demo/vm.sh`) + A4 (tour) | 2–3 h | boots; autologin; MOTD; `sumo` on PATH | 🟡 VM config done, build blocked by env (no KVM/writable /nix/store) |
 | 5 | A5 (TUI v1) | 1–1.5 h | real terminal; mouse; `q`; digest test | ✅ dump mode works |
-| 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | 🟡 partial (auto-refresh, what-if card) |
-| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM |
+| 6 | A6 (TUI v2) | 45–60 min | charts; 5 s refresh; what-if card | ✅ implemented (sparkline, auto-refresh, what-if card) |
+| 7 | A7 (record + screenshot) | 30 min | casts + png committed | ⏳ needs VM (blocked by env) |
 | 8 | B1–B7 (README from parts) | 1.5–2 h | `check-readme.sh` green | ✅ |
 | 9 | D | 20 min | links updated | ⏳ |
 
@@ -310,7 +310,7 @@ Total ≈ **7.5–10 h**. (Rev 1 was 8–11 h: the TUI replaces the browser pane
 - [x] `bin/sumo` CLI with all subcommands (status, caps, closure, query, whatif, dashboard, version, --help)
 - [x] `bin/_sumo.nix` dispatcher with JSON output for all subcommands
 - [x] `demo/vm/host-facts.kif` curated machine facts
-- [x] `demo/vm/tui/` Go TUI with `--dump` mode for screenshot capture
+- [x] `demo/vm/tui/` Go TUI with `--dump` mode for screenshot capture, sparkline charts, 5s auto-refresh, what-if card (press 'w')
 - [x] `demo/vm/vm.nix` NixOS VM configuration
 - [x] `demo/vm.sh` VM management script
 - [x] `demo/vm/session.sh` scripted tour

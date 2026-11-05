@@ -27,6 +27,7 @@ export SUMONIX_REPO_ROOT="$ROOT"
 nix --extra-experimental-features 'nix-command flakes' \
   build -f "$NIXPKGS_PATH/nixos" vm \
   -I nixos-config="$VM_DIR/vm.nix" \
+  --argstr repoRoot "$ROOT" \
   --impure \
   -o "$VM_DIR/result-vm"
 

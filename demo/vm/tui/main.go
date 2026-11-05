@@ -154,6 +154,7 @@ func fetchAllData() *DashboardData {
 			{Key: "q", Action: "Quit dashboard"},
 			{Key: "Tab", Action: "Navigate panes"},
 			{Key: "Arrows", Action: "Scroll proof / resize panes"},
+			{Key: "w", Action: "Show what-if card"},
 		},
 	}
 
@@ -162,7 +163,7 @@ func fetchAllData() *DashboardData {
 
 func runSumo(args ...string) (string, error) {
 	cmd := exec.Command(*sumoBin, args...)
-	cmd.Dir = "/home/me/sumonix" // Ensure correct working directory
+	cmd.Dir = "/home/me/sumonix"
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
@@ -224,9 +225,10 @@ func renderDump(data *DashboardData) {
 }
 
 type DashboardUI struct {
-	data *DashboardData
-	ui   tui.UI
-	root tui.Widget
+	data       *DashboardData
+	ui         tui.UI
+	root       tui.Widget
+	showWhatIf bool
 }
 
 func NewDashboardUI(data *DashboardData) (*DashboardUI, error) {
@@ -242,6 +244,7 @@ func NewDashboardUI(data *DashboardData) (*DashboardUI, error) {
 	ui.SetKeybinding("Tab", func() { dui.nextPane() })
 	ui.SetKeybinding("h", func() { dui.showHelp() })
 	ui.SetKeybinding("?", func() { dui.showHelp() })
+	ui.SetKeybinding("w", func() { dui.toggleWhatIf() })
 
 	return dui, nil
 }
@@ -252,7 +255,6 @@ func (dui *DashboardUI) buildUI() tui.Widget {
 	right := dui.buildRightPane()
 	bottom := dui.buildBottomPane()
 
-	// Main layout: header on top, then left/right split, bottom at bottom
 	mainLayout := tui.NewVBox(
 		header,
 		tui.NewHBox(left, right),
@@ -298,7 +300,7 @@ func (dui *DashboardUI) getCapabilityCount() int {
 }
 
 func (dui *DashboardUI) getRuleCount() int {
-	return 286 // demo's number
+	return 286
 }
 
 func (dui *DashboardUI) buildLeftPane() tui.Widget {
@@ -330,6 +332,19 @@ func (dui *DashboardUI) buildLeftPane() tui.Widget {
 	capsContentBox.SetBorder(true)
 	vbox.Append(capsContentBox)
 
+	// Capability sparkline chart
+	chartLabel := tui.NewLabel("CAPABILITY SPARKLINE")
+	chartBox := tui.NewVBox(chartLabel)
+	chartBox.SetBorder(true)
+	chartBox.SetTitle(" CHART ")
+	vbox.Append(chartBox)
+
+	chartContent := tui.NewLabel(dui.getCapabilitySparkline())
+	chartContent.SetWordWrap(true)
+	chartContentBox := tui.NewVBox(chartContent)
+	chartContentBox.SetBorder(true)
+	vbox.Append(chartContentBox)
+
 	vbox.SetBorder(true)
 	vbox.SetTitle(" LEFT ")
 	return vbox
@@ -351,6 +366,32 @@ func (dui *DashboardUI) getCapsContent() string {
 		dui.data.Caps.DirectCompositions, dui.data.Caps.EnabledCapabilities, dui.data.Caps.Synergies)
 }
 
+func (dui *DashboardUI) getCapabilitySparkline() string {
+	if dui.data.Caps == nil {
+		return "  Loading..."
+	}
+	// Simple ASCII sparkline for capability categories
+	values := []int{dui.data.Caps.DirectCompositions, dui.data.Caps.EnabledCapabilities, dui.data.Caps.Synergies}
+	labels := []string{"Direct", "Enabled", "Synergy"}
+	maxVal := 1
+	for _, v := range values {
+		if v > maxVal {
+			maxVal = v
+		}
+	}
+
+	var sb strings.Builder
+	for i, v := range values {
+		barLen := 20 * v / maxVal
+		if barLen == 0 && v > 0 {
+			barLen = 1
+		}
+		bar := strings.Repeat("█", barLen) + strings.Repeat("░", 20-barLen)
+		sb.WriteString(fmt.Sprintf("  %s: [%s] %d\n", labels[i], bar, v))
+	}
+	return sb.String()
+}
+
 func (dui *DashboardUI) buildRightPane() tui.Widget {
 	vbox := tui.NewVBox()
 
@@ -367,6 +408,21 @@ func (dui *DashboardUI) buildRightPane() tui.Widget {
 	policyContentBox.SetBorder(true)
 	policyContentBox.SetSizePolicy(tui.Preferred, tui.Expanding)
 	vbox.Append(policyContentBox)
+
+	// What-if card (shown on 'w' key)
+	if dui.showWhatIf && dui.data.WhatIf != nil {
+		whatIfLabel := tui.NewLabel("WHAT-IF ANALYSIS")
+		whatIfBox := tui.NewVBox(whatIfLabel)
+		whatIfBox.SetBorder(true)
+		whatIfBox.SetTitle(" WHAT-IF ")
+		vbox.Append(whatIfBox)
+
+		whatIfContent := tui.NewLabel(dui.getWhatIfContent())
+		whatIfContent.SetWordWrap(true)
+		whatIfContentBox := tui.NewVBox(whatIfContent)
+		whatIfContentBox.SetBorder(true)
+		vbox.Append(whatIfContentBox)
+	}
 
 	vbox.SetBorder(true)
 	vbox.SetTitle(" RIGHT ")
@@ -385,9 +441,32 @@ func (dui *DashboardUI) getPolicyContent() string {
 	return fmt.Sprintf("  Verdict: %s\n\n  %s", strings.ToUpper(verdict), proof)
 }
 
+func (dui *DashboardUI) getWhatIfContent() string {
+	if dui.data.WhatIf == nil {
+		return "  Loading..."
+	}
+	baseVerdict := map[bool]string{true: "PASS", false: "VIOLATION"}[dui.data.WhatIf.BasePass]
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("  Base verdict: %s\n\n", baseVerdict))
+	sb.WriteString("  Flips that change verdict:\n")
+	for _, c := range dui.data.WhatIf.Candidates {
+		if c.Flip {
+			sb.WriteString(fmt.Sprintf("  ✓ %s\n", c.Name))
+		}
+	}
+	sb.WriteString("\n  No-flip candidates:\n")
+	for _, c := range dui.data.WhatIf.Candidates {
+		if !c.Flip {
+			sb.WriteString(fmt.Sprintf("  ✗ %s\n", c.Name))
+		}
+	}
+	return sb.String()
+}
+
 func (dui *DashboardUI) buildBottomPane() tui.Widget {
 	activity := dui.getActivityContent()
-	bottom := tui.NewLabel(fmt.Sprintf(" ACTIVITY: %s  |  Press 'h' for help, 'q' to quit, Tab to navigate ", activity))
+	keys := "Press 'h' for help, 'q' to quit, 'w' for what-if, Tab to navigate"
+	bottom := tui.NewLabel(fmt.Sprintf(" ACTIVITY: %s  |  %s ", activity, keys))
 	bottomBox := tui.NewVBox(bottom)
 	bottomBox.SetBorder(true)
 	return bottomBox
@@ -403,6 +482,13 @@ func (dui *DashboardUI) getActivityContent() string {
 func (dui *DashboardUI) nextPane() {
 	// For now, just cycle through showing help
 	dui.showHelp()
+}
+
+func (dui *DashboardUI) toggleWhatIf() {
+	dui.showWhatIf = !dui.showWhatIf
+	dui.root = dui.buildUI()
+	dui.ui.SetWidget(dui.root)
+	dui.ui.Repaint()
 }
 
 func (dui *DashboardUI) showHelp() {
@@ -426,7 +512,6 @@ func (dui *DashboardUI) showHelp() {
 	helpBox.SetBorder(true)
 	helpBox.SetTitle(" HELP (press any key to close) ")
 
-	// Create an overlay
 	overlay := tui.NewVBox(
 		tui.NewSpacer(),
 		tui.NewHBox(
@@ -451,7 +536,6 @@ func (dui *DashboardUI) autoRefresh() {
 	for range ticker.C {
 		newData := fetchAllData()
 		dui.data = newData
-		// Update UI in the UI thread
 		dui.ui.Update(func() {
 			dui.root = dui.buildUI()
 			dui.ui.SetWidget(dui.root)
