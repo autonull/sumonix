@@ -7,7 +7,8 @@ does not yet pass its own gate). See `container/README.md`.
 **Definition of done (current):**
 
 ```bash
-./tools/tour.sh                 # → docs/demo/tour.cast   (the movie)
+./tools/tour.sh                 # → docs/demo/tour.cast
+./tools/movie.sh                # → docs/demo/tour.gif  (the README movie)
 ./tools/shot.sh                 # → docs/demo/dashboard.png
 asciinema play docs/demo/tour.cast
 ```
@@ -40,8 +41,9 @@ check, and the TUI rendered from the same digest.
 | H4 | Session script | `tools/tour-session.sh` | live pass, fixture pass, caps, closure, query, whatif, `guard` exit status, proof check, TUI dump | **done** |
 | H5 | Recorder | `tools/tour.sh` | `docs/demo/tour.cast`, 110×50, exit 0 | **done** |
 | H6 | Screenshot | `tools/shot.sh` | `docs/demo/dashboard.png` from `demo/tui/sumo-tui --dump` | **done** |
-| H7 | CLI surface | `bin/sumo` | `guard` exits 1 on a violation; `refresh` explains itself off-NixOS; TUI resolved from PATH | **done** |
-| H8 | Docs | `docs/readme/10-demo.md`, `README.md` | host demo + movie; live/fixture split; container mentioned only as deferred | **done** |
+| H7 | README movie | `tools/movie.sh` | `docs/demo/tour.gif` at the top of `README.md`; Chromium rasterises each cast state, ffmpeg assembles with the cast timing | **done** |
+| H8 | CLI surface | `bin/sumo` | `guard` exits 1 on a violation; `refresh` explains itself off-NixOS; TUI resolved from PATH | **done** |
+| H9 | Docs | `docs/readme/10-demo.md`, `README.md` | host demo + movie; live/fixture split; container mentioned only as deferred | **done** |
 
 ## Deferred — workstream N (container)
 
@@ -63,7 +65,8 @@ inside the guest.
 ./demo/run > /tmp/after.txt     # byte-stable
 diff /tmp/before.txt /tmp/after.txt
 ./tools/check-readme.sh
-./tools/tour.sh                 # the movie
+./tools/tour.sh                 # the cast
+./tools/movie.sh                # the README GIF
 ./tools/shot.sh                 # the screenshot
 asciinema play docs/demo/tour.cast
 ```

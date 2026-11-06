@@ -52,8 +52,9 @@ CVE-2026-9999)'`, `sumo whatif`, `sumo guard` (exit 1: the gate refuses the
 build), an independent `proof-check` of the emitted certificate, and finally the
 TUI dump from the same digest.
 
-Both artifacts are generated, not pasted: `./tools/tour.sh` (asciinema) and
-`./tools/shot.sh` (TUI dump → PNG).
+Both artifacts are generated, not pasted: `./tools/tour.sh` (asciinema),
+`./tools/movie.sh` (cast → animated GIF, since GitHub renders GIFs but strips
+player embeds), and `./tools/shot.sh` (TUI dump → PNG).
 
 ### Live facts versus fixtures
 
