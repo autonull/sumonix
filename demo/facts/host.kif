@@ -1,5 +1,8 @@
-;; Curated machine facts for the demo VM (A2 curated mode).
-;; Regenerated deterministically; ~30 lines.
+;; Curated machine facts for the host-native demo (scenario fixture).
+;; source: fixture
+;; Deterministic: the same 30 lines every run, so the policy verdict and the
+;; proof are reproducible. Live facts are collected separately by
+;; demo/host-facts.sh, which labels its output `source: live`.
 ;; kernel: runningKernel 6.6
 ;; services: nginx (running, NIXService, listensOn 80, runningAs nginx)
 ;; packages: nginx, openssl, curl, python3, redis, postgresql + closure mirrors

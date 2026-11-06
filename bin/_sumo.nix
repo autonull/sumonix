@@ -1,7 +1,7 @@
 # sumo dispatcher — read-only evaluation API for the sumo CLI.
-# Returns an attrset with: status, caps, closure, query, whatif, topology.
+# Returns an attrset with: status, caps, closure, query, whatif, topology, refresh, guard.
 # Every subcommand evals in ~0.3–1.4 s warm; each has a 15 s guard (no hang).
-# Facts: SUMO_FACTS or /run/sumo/facts.kif (or demo/vm/facts.kif in-repo).
+# Facts: SUMO_FACTS or /run/sumo/facts.kif (or demo/facts/host.kif in-repo).
 # Rules: SUMO_RULES then <worktree>/rules.kif, or the generated demo/vm/rules.kif in the VM.
 { facts, rules, json ? false }:
 let
@@ -23,6 +23,22 @@ let
   isRule = f: isList f && f != [ ] && headOf f == "=>";
   ruleForms = filter isRule rulesForms;
   factForms = filter (f: !isRule f) rulesForms ++ factsForms;
+
+  # Count facts per source. The KIF parser strips comments, so the section
+  # headers are read from the raw text: every `;; source: <label>` line starts a
+  # section, and each non-comment, non-empty line below it counts as one fact.
+  # Files without a header are treated as live.
+  factLines = filter isString (split "\n" factsText);
+  sourceCounts = foldl' (acc: line:
+    if builtins.match ";; source: *live.*" line != null then acc // { cur = "live"; }
+    else if builtins.match ";; source: *fixture.*" line != null then acc // { cur = "fixture"; }
+    else if builtins.match "[[:space:]]*" line != null then acc
+    else if builtins.match ";;.*" line != null then acc
+    else acc // { ${acc.cur} = (acc.${acc.cur} or 0) + 1; }
+  ) { cur = "live"; live = 0; fixture = 0; } factLines;
+
+  liveCount = sourceCounts.live or 0;
+  fixtureCount = sourceCounts.fixture or 0;
 
   # SUMO ontology + NIX domain
   ontology = import ../sumo.nix {
@@ -109,7 +125,7 @@ let
     ╔════════════════════════════════════════════════════════════════╗
     ║           SUMO-NIX CAPABILITY DISCOVERY                         ║
     ║       "What novel capabilities can I compose?"                  ║
-    ╚════════════════════════════════════════════════════════════════╝
+    ╚═════════════════════════════════════════════════════════════════╝
 
     📦 DIRECT COMPOSITIONS (${toString (length directComps)}) — package + immediate deps:
     ${section directComps formatDirect}
@@ -140,6 +156,12 @@ let
           in "  " + dep + (if rest != "" then "\n  │\n  └─ " + rest else "")
         ) pkgs);
     in pkg + "\n" + recurse [ ] deps;
+
+  # Source summary string
+  sourceSummary = ''
+    Facts:  live ${toString liveCount} (systemd, /proc, ss, nix-store when present)
+            fixture ${toString fixtureCount} (scenario facts, capability atlas)
+  '';
 
   # JSON helpers
   toJSON = x:
@@ -182,6 +204,7 @@ let
     rounds = roundCount;
     verdict = violation.verdict;
     proof = violation.proof;
+    sources = { live = liveCount; fixture = fixtureCount; };
   };
 
   capsJSON = objToJSON {
@@ -239,6 +262,7 @@ in {
     🚦 POLICY GATE: ${violation.verdict}
     ${violation.proof}
     ─────────────────────────────────────────────────────────────
+    ${sourceSummary}
     Run: sumo caps | sumo closure <pkg> | sumo query <goal> | sumo whatif | sumo dashboard
     '';
 
@@ -267,6 +291,12 @@ in {
       flipSection = if flips == [ ] then "  (none)" else flipLines;
     in
     "Base verdict: " + baseVerdict + "\n\nSingle flips that change the verdict:\n" + flipSection + "\n\nOther candidates:\n" + noFlipLines;
+
+  # refresh — Re-run the live facts exporter (handled by CLI, but exposed for completeness)
+  refresh = "Run 'sumo refresh' to re-generate live facts from the NixOS system.";
+
+  # guard — Policy check (handled by CLI via query)
+  guard = "Run 'sumo guard' to check policy; exits 1 on violation.";
 
   # proof — Internal: proof subtree for a goal
   proof = goal: datalog.why goal;

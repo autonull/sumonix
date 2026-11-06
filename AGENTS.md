@@ -1,5 +1,12 @@
 # AGENTS.md — How to Develop This Repo Correctly
 
+> **Status (current).** The demo ships **host-native**: `./tools/tour.sh` records
+> `docs/demo/tour.cast` from the real CLI on this machine, and `./tools/shot.sh`
+> renders the TUI. The NixOS-in-Podman work is **parked** in `container/` — it
+> builds and boots but does not yet pass its own gate. The VM instructions below
+> describe `container/vm/` (superseded) and are kept only for the store mechanics
+> that still apply to any future build.
+
 ## Core Principle
 
 **A Nix store path hash is computed over a derivation whose inputs already carry their store paths. The store directory string is baked into every hash. Binary caches (cache.nixos.org) are keyed on `/nix/store/...`. Any store mechanism that changes the logical path prefix breaks substitution completely — every fetch 404s.**

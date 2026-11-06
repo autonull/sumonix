@@ -1,0 +1,31 @@
+;; SUMOnix rules fixture — labelled source: fixture
+;; Copy of rules.kif for the container; universal rules (engine logic).
+;; Facts change per-machine. Rules are universal.
+
+;; Transitive dependency
+(=>
+  (and
+    (dependsOn ?a ?b)
+    (dependsOn ?b ?c))
+  (dependsOnTransitive ?a ?c))
+
+(=>
+  (dependsOn ?a ?b)
+  (dependsOnTransitive ?a ?b))
+
+;; Vulnerability propagation through transitive deps
+(=>
+  (and
+    (instance ?pkg NIXPackage)
+    (dependsOnTransitive ?pkg ?dep)
+    (vulnerable ?dep ?cve))
+  (vulnerable ?pkg ?cve))
+
+;; Policy violation: running service with critical vulnerability
+(=>
+  (and
+    (vulnerable ?pkg ?cve)
+    (severity ?cve critical)
+    (instance ?pkg NIXService)
+    (serviceState ?pkg running))
+  (policyViolation ?pkg NoCriticalRunningCVE))

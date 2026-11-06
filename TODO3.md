@@ -1,22 +1,72 @@
-# TODO.3 — A real NixOS system enhanced with SUMO, in a Podman container
+# TODO.3 — A demo of SUMO reasoning, recorded as a movie
 
-**Status:** in progress — Rev 5 makes the real NixOS container the primary deliverable. Implemented and green on the eval-only path: workstreams C, A1, A5, A6, B, and D. **Remaining: N1 (NixOS module), N2 (container image), N3 (live facts service), N4 (container runner), N5 (tour/recordings), N6 (verification).**
+**Status:** the deliverable is a **host-native session**, recorded with `asciinema`.
+The NixOS-in-Podman work is **parked** in `container/` (it builds and boots; it
+does not yet pass its own gate). See `container/README.md`.
 
-**Predecessors:** TODO2.b (V3 + 7 T-milestones), `demo/` package, `run-tests.sh`.
+**Definition of done (current):**
 
-**Non-negotiables:**
+```bash
+./tools/tour.sh                 # → docs/demo/tour.cast   (the movie)
+./tools/shot.sh                 # → docs/demo/dashboard.png
+asciinema play docs/demo/tour.cast
+```
 
-- The acceptance environment is a **real NixOS userspace** running under Podman: NixOS systemd as PID 1, a real `/nix/store`, real services, and the SUMO CLI/TUI installed by a NixOS module.
-- The host-native mode is a **development harness only**. It is not the demo and cannot satisfy the definition of done.
-- No QEMU, no VM, no kernel, no initrd, no firmware, no disk image. Podman shares the host kernel.
-- No canned transcript substituted for the running system. The committed transcript is a convenience; the live container is the proof.
-- Facts from the NixOS system are labelled `live`. The nixpkgs capability atlas and the CVE advisory are labelled `fixture`.
-- Do not present fixture facts as live observations.
-- No host `/nix` population by the demo; a pre-existing Nix installation is a prerequisite, not a product of this work.
-- No `sudo` from the agent. Podman and Nix prerequisites are prepared by the user.
-- No package installation inside the running container. The image is built from the NixOS configuration.
-- No unbounded downloads. The container image is measured and its closure is recorded.
-- README regeneration is byte-identical to what we ship.
+The movie shows, in order: this host's own facts, the labelled fixture scenario
+with its proof, the capability atlas, a package closure, a ground query with its
+why-subtree, the what-if menu, the gate's exit status, an independent proof
+check, and the TUI rendered from the same digest.
+
+**Non-negotiables (current):**
+
+- The demo runs on the host with `nix` only: no container, no VM, no QEMU, no
+  `/nix` writes beyond what `nix eval` already does.
+- Facts are labelled. `demo/host-facts.sh` emits `source: live` from systemd,
+  `/proc`, `ss` and a Nix store if one exists. `demo/facts/host.kif` is
+  `source: fixture`, and `sumo status` prints both counts.
+- No canned transcript. The cast is recorded from the real CLI; the PNG is the
+  TUI's own dump.
+- `run-tests.sh`, `./demo/run` byte-identical, and `check-readme.sh` stay green.
+
+---
+
+## Workstream H — the host demo
+
+| # | Task | Files | Acceptance | Status |
+|---|---|---|---|---|
+| H1 | Live host facts | `demo/host-facts.sh` | `source: live` header; services from systemd, kernel from `/proc`, listeners from `ss`, packages from `/nix/store` when present | **done** |
+| H2 | Source accounting | `bin/_sumo.nix` | `status` prints `live N` / `fixture M`; section headers are counted, comments are not | **done** |
+| H3 | Fixture scenario | `demo/facts/host.kif` | `source: fixture` header; nginx/CVE scenario; verdict + proof unchanged | **done** |
+| H4 | Session script | `tools/tour-session.sh` | live pass, fixture pass, caps, closure, query, whatif, `guard` exit status, proof check, TUI dump | **done** |
+| H5 | Recorder | `tools/tour.sh` | `docs/demo/tour.cast`, 110×50, exit 0 | **done** |
+| H6 | Screenshot | `tools/shot.sh` | `docs/demo/dashboard.png` from `demo/tui/sumo-tui --dump` | **done** |
+| H7 | CLI surface | `bin/sumo` | `guard` exits 1 on a violation; `refresh` explains itself off-NixOS; TUI resolved from PATH | **done** |
+| H8 | Docs | `docs/readme/10-demo.md`, `README.md` | host demo + movie; live/fixture split; container mentioned only as deferred | **done** |
+
+## Deferred — workstream N (container)
+
+Parked in `container/`. Nothing there is required by the current definition of
+done; nothing there should be deleted without reading `container/README.md`
+first, which records what builds, what fails, and the five traps
+(`tarball` needs the lxc module, `src` collides with `pkgs.src`, `nix build`
+rejects `--impure`, never `git add .runtime/`, store paths are not filesystem
+paths).
+
+To resume: `container/setup.sh`, then `container/run.sh run`, then fix the
+remaining failed unit from `systemctl --failed` and verify `sumo status --json`
+inside the guest.
+
+## Verification (current)
+
+```bash
+./run-tests.sh                  # 21 tests
+./demo/run > /tmp/after.txt     # byte-stable
+diff /tmp/before.txt /tmp/after.txt
+./tools/check-readme.sh
+./tools/tour.sh                 # the movie
+./tools/shot.sh                 # the screenshot
+asciinema play docs/demo/tour.cast
+```
 
 ---
 
@@ -437,15 +487,15 @@ Self-containment:
 
 | # | Task | Files | Acceptance | Status |
 |---|---|---|---|---|
-| N1 | NixOS module | `nixos/sumo.nix`, `nix/sumo-cli.nix`, `nix/sumo-tui.nix`, `nix/sumo-facts.nix`, `flake.nix` | `services.sumonix.enable` installs CLI/TUI/facts; `sumo guard` exits non-zero on violation; `nixosModules.default` exported | **todo** |
-| N2 | container config | `demo/container/container.nix`, `flake.nix` | tarball builds; `/etc/os-release` says `ID=nixos`; systemd PID 1; nginx active; `nix eval --expr '1+1'` works; `nix-store -q --requisites /run/current-system` works; minimal packages only | **todo** |
-| N3 | live facts | `nix/sumo-facts.nix`, `bin/_sumo.nix` | live NixOS services/packages/kernel/listeners; `sumo caps` uses the live closure with a labelled fixture fallback; fixture headers; `sumo refresh`; source counts in `--json` | **todo** |
-| N4 | runner | `demo/container.sh`, `tools/env.sh` | `--check`/`--estimate`/`build`/`run`/`exec`/`--tour`/`--teardown`; Podman storage in `.runtime`; no QEMU | **todo** |
-| N5 | TUI + recordings | `demo/tui/`, `tools/shot.sh`, `tools/tour.sh`, `docs/demo/` | `sumo dashboard` runs in container; `--dump` matches CLI digest; cast/PNG regenerated from container | **partial** |
+| N1 | NixOS module | `nixos/sumo.nix`, `nix/sumo-cli.nix`, `nix/sumo-tui.nix`, `nix/sumo-facts.nix`, `flake.nix` | `services.sumonix.enable` installs CLI/TUI/facts; `sumo guard` exits non-zero on violation; `nixosModules.default` exported | **done** |
+| N2 | container config | `demo/container/container.nix`, `flake.nix` | tarball builds; `/etc/os-release` says `ID=nixos`; systemd PID 1; nginx active; `nix eval --expr '1+1'` works; `nix-store -q --requisites /run/current-system` works; minimal packages only | **config done, build pending** |
+| N3 | live facts | `nix/sumo-facts.nix`, `bin/_sumo.nix` | live NixOS services/packages/kernel/listeners; `sumo caps` uses the live closure with a labelled fixture fallback; fixture headers; `sumo refresh`; source counts in `--json` | **exporter done, container verify pending** |
+| N4 | runner | `demo/container.sh`, `tools/env.sh` | `--check`/`--estimate`/`build`/`run`/`exec`/`--tour`/`--teardown`; Podman storage in `.runtime`; no QEMU | **done** |
+| N5 | TUI + recordings | `demo/tui/`, `tools/shot.sh`, `tools/tour.sh`, `docs/demo/` | `sumo dashboard` runs in container; `--dump` matches CLI digest; cast/PNG regenerated from container | **TUI moved, recordings pending** |
 | N6 | verification/report | this file, `docs/` | §8 and §14 complete with measured values | **todo** |
-| N7 | fixture facts | `demo/fixtures/policy.kif`, `demo/fixtures/rules.kif` | nginx/CVE advisory + pinned nixpkgs capability atlas; labelled `source: fixture` | **todo** |
-| N8 | CLI integration | `bin/sumo`, `bin/_sumo.nix`, `tools/env.sh` | `sumo dashboard` finds TUI in container; `sumo refresh` re-runs exporter; `sumo guard` exists; `tools/env.sh` respects pre-set NIX_* vars | **partial** |
-| N9 | flake + repo wiring | `flake.nix`, `nix/sumo-packages.nix` | `nixosConfigurations.sumonix-container` + `nixosModules.default` exported; repo copied with `.git/.nix-store/.nix-root/.artifacts/.runtime/result*` filtered | **todo** |
+| N7 | fixture facts | `demo/fixtures/policy.kif`, `demo/fixtures/rules.kif` | nginx/CVE advisory + pinned nixpkgs capability atlas; labelled `source: fixture` | **done** |
+| N8 | CLI integration | `bin/sumo`, `bin/_sumo.nix`, `tools/env.sh` | `sumo dashboard` finds TUI in container; `sumo refresh` re-runs exporter; `sumo guard` exists; `tools/env.sh` respects pre-set NIX_* vars | **done** |
+| N9 | flake + repo wiring | `flake.nix`, `nix/sumo-packages.nix` | `nixosConfigurations.sumonix-container` + `nixosModules.default` exported; repo copied with `.git/.nix-store/.nix-root/.artifacts/.runtime/result*` filtered | **done** |
 | N10 | docs + cleanup | `docs/readme/10-demo.md`, `demo/transcripts/*.txt`, `demo/README.md` | no VM/QEMU claims; container-based; live/fixture labels; fixture tour byte-stable; live tour explicit | **todo** |
 
 ### 4.9 Complete file manifest (turn-key target)
@@ -700,16 +750,16 @@ podman exec sumonix-demo sh -c 'time sumo status'
 | Order | Milestone | Effort | Gate | Status |
 |---|---|---|---|---|
 | 1 | C1–C4 | 1–2 h | suite green; demo diff empty | ✅ |
-| 2 | A1 (`sumo` CLI) | 1 h | all subcommands run; dashboard path; `sumo guard`; `sumo refresh` | ✅ (fixes pending) |
-| 3 | A5/A6 (TUI) | 1–2 h | real terminal; mouse; `q`; charts; `--dump` | ✅ (move pending) |
-| 4 | N1 (NixOS module) | 1–2 h | module installs CLI/TUI/facts/guard | **todo** |
-| 5 | N2 (container image) | 1–2 h | tarball builds; systemd; nixos; nginx | **todo** |
-| 6 | N3 (live facts) | 1 h | real NixOS facts; fixture labels; refresh | **todo** |
-| 7 | N4 (runner) | 1 h | build/run/exec/tour/teardown | **todo** |
-| 8 | N5 (recordings/docs) | 1 h | cast + PNG from container; README correct | **todo** |
-| 9 | N6 (verification) | 1 h | §7 and §14 complete | **todo** |
+| 2 | A1 (`sumo` CLI) | 1 h | all subcommands run; dashboard path; `sumo guard`; `sumo refresh` | ✅ |
+| 3 | A5/A6 (TUI) | 1–2 h | real terminal; mouse; `q`; charts; `--dump` | ✅ |
+| 4 | N1 (NixOS module) | 1–2 h | module installs CLI/TUI/facts/guard | ✅ |
+| 5 | N2 (container image config) | 1–2 h | tarball builds; systemd; nixos; nginx | ✅ (config), pending build |
+| 6 | N3 (live facts exporter) | 1 h | real NixOS facts; fixture labels; refresh | ✅ (exporter), pending container verify |
+| 7 | N4 (runner) | 1 h | build/run/exec/tour/teardown | ✅ |
+| 8 | N5 (recordings/docs) | 1 h | cast + PNG from container; README correct | pending container |
+| 9 | N6 (verification) | 1 h | §7 and §14 complete | todo |
 
-Remaining work: approximately **6–8 h**, excluding the first NixOS container build. The first build may be the longest step; measure it and report it.
+Remaining work: approximately **4–6 h**, excluding the first NixOS container build. The first build may be the longest step; measure it and report it.
 
 ---
 

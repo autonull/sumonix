@@ -8,12 +8,12 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Local Nix store/state directories (warm closures for fast evals).
-#
 # NOTE: NIX_STORE_DIR rewrites store paths, so this store can never fetch
 # substitutes (cache.nixos.org is keyed on /nix/store/... hashes). It is for
 # eval-only work whose outputs are already present.
-export NIX_STORE_DIR="${ROOT}/.nix-store"
-export NIX_STATE_DIR="${ROOT}/.nix-state"
+# RESPECTS pre-set values (e.g., inside the NixOS container).
+export NIX_STORE_DIR="${NIX_STORE_DIR:-${ROOT}/.nix-store}"
+export NIX_STATE_DIR="${NIX_STATE_DIR:-${ROOT}/.nix-state}"
 
 # Root store for *building*. Nix keeps logical paths as /nix/store/... (so
 # binary-cache hashes match) but puts the NARs under ${ROOT}/.nix-root.
@@ -22,3 +22,7 @@ export SUMONIX_BUILD_ROOT="${SUMONIX_BUILD_ROOT:-${ROOT}/.nix-root}"
 export SUMONIX_BUILD_STORE="local?root=${SUMONIX_BUILD_ROOT}"
 export SUMONIX_SUBSTITUTERS="${SUMONIX_SUBSTITUTERS:-https://cache.nixos.org}"
 export SUMONIX_TRUSTED_KEYS="${SUMONIX_TRUSTED_KEYS:-cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=}"
+
+# Nix remote and path - respect pre-set values
+export NIX_REMOTE="${NIX_REMOTE:-local}"
+export NIX_PATH="${NIX_PATH:-nixpkgs=channel:nixos-unstable}"

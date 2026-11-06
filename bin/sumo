@@ -13,11 +13,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # Default fact/rules locations
 SUMO_FACTS="${SUMO_FACTS:-/run/sumo/facts.kif}"
-SUMO_RULES="${SUMO_RULES:-${ROOT}/demo/vm/rules.kif}"
+SUMO_RULES="${SUMO_RULES:-/run/sumo/rules.kif}"
 
 # If the default facts file doesn't exist, fall back to in-repo curated facts
 if [ ! -f "$SUMO_FACTS" ]; then
-  SUMO_FACTS="${ROOT}/demo/vm/host-facts.kif"
+  SUMO_FACTS="${ROOT}/demo/facts/host.kif"
 fi
 
 # If rules file doesn't exist or is empty/placeholder, fall back to root rules.kif
@@ -39,14 +39,16 @@ Commands:
   caps [--json]           Capability atlas of the installed closure
   closure <pkg> [--json]  Dependency tree (indented)
   query <goal> [--json]   Ground goal → verdict + why subtree
-  whatif                  One counterfactual from the proof: two warm runs, exit 1 when a flip
+  whatif [--json]         One counterfactual from the proof: two warm runs, exit 1 when a flip
   dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
+  refresh                 Re-collect live facts (sumo-facts on NixOS, demo/host-facts.sh elsewhere)
+  guard                   Policy check: exits 1 on violation, 0 when clean
   version                 Show version
   --help                  Show this help
 
 Environment:
   SUMO_FACTS   Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
-  SUMO_RULES   Path to rules KIF (default: demo/vm/rules.kif, then rules.kif)
+  SUMO_RULES   Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
 
 Examples:
   sumo status
@@ -57,6 +59,8 @@ Examples:
   sumo query '(vulnerable nginx CVE-2026-9999)'
   sumo whatif
   sumo dashboard
+  sumo refresh
+  sumo guard
 EOF
 }
 
@@ -137,15 +141,60 @@ case "$cmd" in
     run_nix "$expr"
     ;;
   dashboard)
-    # Build and run the TUI
-    # The TUI binary is at /run/sumo/bin/sumo-tui in the VM
-    if [ -x /run/sumo/bin/sumo-tui ]; then
-      exec /run/sumo/bin/sumo-tui
+    # Resolve TUI binary: PATH → /run/sumo/bin/sumo-tui → repo demo/tui/sumo-tui
+    TUI_BIN=""
+    if command -v sumo-tui >/dev/null 2>&1; then
+      TUI_BIN="$(command -v sumo-tui)"
+    elif [ -x /run/sumo/bin/sumo-tui ]; then
+      TUI_BIN="/run/sumo/bin/sumo-tui"
+    elif [ -x "${ROOT}/demo/tui/sumo-tui" ]; then
+      TUI_BIN="${ROOT}/demo/tui/sumo-tui"
     else
-      echo "sumo dashboard: TUI binary not found at /run/sumo/bin/sumo-tui" >&2
-      echo "Run 'sumo dashboard' inside the VM, or build the VM first." >&2
+      echo "sumo dashboard: TUI binary not found (tried PATH, /run/sumo/bin/sumo-tui, ${ROOT}/demo/tui/sumo-tui)" >&2
       exit 1
     fi
+    exec "$TUI_BIN" "$@"
+    ;;
+  refresh)
+    # Re-run the live facts exporter. The NixOS module installs `sumo-facts`;
+    # plain hosts use demo/host-facts.sh and get a separate live file.
+    if command -v sumo-facts >/dev/null 2>&1; then
+      exec sumo-facts
+    elif [ -x /run/sumo/bin/sumo-facts ]; then
+      exec /run/sumo/bin/sumo-facts
+    elif [ -x "${ROOT}/demo/host-facts.sh" ]; then
+      mkdir -p "${ROOT}/.runtime"
+      "${ROOT}/demo/host-facts.sh" > "${ROOT}/.runtime/facts-live.kif"
+      echo "sumo refresh: wrote ${ROOT}/.runtime/facts-live.kif (live host facts)" >&2
+      echo "  read it with: SUMO_FACTS=${ROOT}/.runtime/facts-live.kif sumo status" >&2
+    else
+      echo "sumo refresh: no facts exporter found" >&2
+      exit 1
+    fi
+    ;;
+  guard)
+    # Policy check: runs sumo query for the policy violation and exits 1 if derived
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"(policyViolation nginx NoCriticalRunningCVE)\""
+    result=$(run_nix "$expr")
+    if [ "$json_flag" = "true" ]; then
+      echo "$result"
+      # Check if derived is true
+      if echo "$result" | grep -q '"derived":true'; then
+        exit 1
+      fi
+    else
+      echo "$result"
+      # Non-JSON output uses "Derived: 1" or "Derived: true"
+      if echo "$result" | grep -q "Derived: 1" || echo "$result" | grep -q "Derived: true"; then
+        exit 1
+      fi
+    fi
+    exit 0
     ;;
   *)
     echo "sumo: unknown command '$cmd'" >&2

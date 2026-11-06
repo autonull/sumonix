@@ -7,3 +7,7 @@ demo/vm/result-vm
 demo/vm/vm-disk.qcow2
 .nix-conf/
 .nix-log/
+.artifacts/
+.runtime/
+.logs/
+result-*

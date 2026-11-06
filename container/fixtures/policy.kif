@@ -1,0 +1,8 @@
+;; SUMOnix policy advisory fixture — labelled source: fixture
+;; This is a synthetic CVE for deterministic demo purposes.
+;; The package (openssl), its dependency edge (nginx -> openssl), and the running service (nginx) are real NixOS facts.
+;; A real OSV/NVD feed is future work; do not imply that the demo queried one.
+
+;; Advisory: openssl has CVE-2026-9999 (critical)
+(vulnerable openssl CVE-2026-9999)
+(severity CVE-2026-9999 critical)

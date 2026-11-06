@@ -79,13 +79,60 @@ Record your own: `./demo/record` re-records every scene (needs `asciinema`). Ful
 
 ![sumo dashboard](docs/demo/dashboard.png)
 
-**7 · The session, recorded** — `sumo status`, `sumo caps`, `sumo closure nginx`, `sumo query`, `sumo whatif`, captured as an asciicast:
+**7 · The movie** — `./tools/tour.sh` records the whole walkthrough to `docs/demo/tour.cast`:
 
 ```console
+$ ./tools/tour.sh
 $ asciinema play docs/demo/tour.cast
 ```
 
-Both artifacts are generated, not pasted: `./tools/shot.sh` (TUI dump → PNG) and `./tools/tour.sh` (asciinema).
+It opens on **this machine**, not on a script: `demo/host-facts.sh` reads running
+systemd units, the kernel release, listening sockets, and the Nix store if the
+host has one, and writes facts headed `source: live`. `sumo status` then shows the
+count it actually observed.
+
+The session continues with a **labelled fixture** — an nginx service and a
+synthetic critical advisory — so the policy verdict and its proof are
+reproducible: `sumo caps`, `sumo closure nginx`, `sumo query '(vulnerable nginx
+CVE-2026-9999)'`, `sumo whatif`, `sumo guard` (exit 1: the gate refuses the
+build), an independent `proof-check` of the emitted certificate, and finally the
+TUI dump from the same digest.
+
+Both artifacts are generated, not pasted: `./tools/tour.sh` (asciinema) and
+`./tools/shot.sh` (TUI dump → PNG).
+
+### Live facts versus fixtures
+
+`sumo status` prints where its facts came from:
+
+```
+Facts:  live 21 (systemd, /proc, ss, nix-store when present)
+        fixture 18 (scenario facts, capability atlas)
+```
+
+| Source | Label | What it is |
+|---|---|---|
+| `demo/host-facts.sh` | `live` | observed on the host at run time |
+| `demo/facts/host.kif` | `fixture` | the deterministic nginx/CVE scenario |
+| `demo/facts/nixpkgs.kif` | `fixture` | 60 pinned nixpkgs packages for the capability atlas |
+
+A fixture fact is never printed as an observation. On a host without a Nix store
+or without a CVE, the live pass reports zero packages and `PASS` — that is the
+truth, not a gap to paper over. `--json` carries the same split as
+`"sources":{"live":N,"fixture":M}`.
+
+### One current limitation
+
+The engine runs under `nix eval`, so every subcommand costs roughly a second of
+evaluation. The demo stays inside the two-run budget; `sumo dashboard` refreshes
+on a timer rather than on keystroke.
+
+### The NixOS container (deferred)
+
+`container/` holds a real NixOS-in-Podman integration — `services.sumonix.enable`,
+a live facts exporter, `sumonix-guard`. It builds an image and boots systemd, but
+it does not yet pass its own gate, so it is not part of the demo above. See
+`container/README.md` for exactly what works and what does not.
 
 ## 🎯 What This Is
 

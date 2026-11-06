@@ -165,7 +165,9 @@ func fetchAllData() *DashboardData {
 
 func runSumo(args ...string) (string, error) {
 	cmd := exec.Command(*sumoBin, args...)
-	cmd.Dir = "/home/me/sumonix"
+	if dir := os.Getenv("SUMO_CWD"); dir != "" {
+		cmd.Dir = dir
+	}
 	out, err := cmd.CombinedOutput()
 	return string(out), err
 }
