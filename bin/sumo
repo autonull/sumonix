@@ -484,8 +484,9 @@ CI_EOF
         echo "sumo lint: file not found: $f" >&2
         exit 1
       fi
+      f_abs=$(abs_path "$f")
       echo "linting $f..."
-      expr="(import ${DISPATCHER} { facts = \"$f\"; rules = \"${ROOT}/rules.kif\"; }).lint \"$f\""
+      expr="(import ${DISPATCHER} { facts = \"$f_abs\"; rules = \"${ROOT}/rules.kif\"; }).lint \"$f_abs\""
       run_nix "$expr" || exit 1
     done
     echo "All files OK"
