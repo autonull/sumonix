@@ -36,7 +36,7 @@ I read the repo (README, `TODO3.md`, `AGENTS.md`, `bin/sumo`, `flake.nix`, `reas
 |---|---|---|---|
 | 1.1 | **De-hardcode `guard`**: read policy goals from a `policies.kif` (or `--policy` file); report *all* violations, each with proof; stable versioned `--json` schema | On a host with no nginx/CVE, `guard` checks the user's actual policies; exit codes documented | ✅ DONE |
 | 1.2 | **Expose the crown jewels**: `sumo ask '(vulnerable ?X ?CVE)'` (non-ground, library already has `ask`), `sumo why <fact>`, `sumo proof <goal> -o p.kif`, `sumo check p.kif`, `sumo relax` | Every README demo scene becomes a command a user can run on their own facts; checker usable standalone | ✅ DONE |
-| 1.3 | **`sumo init`** scaffolding: `facts.kif` / `rules.kif` / `policies.kif` + pre-commit hook + CI template | `sumo init && sumo guard` in any repo in <60 s — this is your time-to-first-value metric | 2–3 h |
+| 1.3 | **`sumo init`** scaffolding: `facts.kif` / `rules.kif` / `policies.kif` + pre-commit hook + CI template | `sumo init && sumo guard` in any repo in <60 s — this is your time-to-first-value metric | ✅ DONE |
 | 1.4 | **Compile-once/query-many cache**: at `refresh`, compute fixpoint + proofs; store under `.runtime/` keyed by hash(facts+rules+ontology); subcommands become lookups; `--no-cache` escape | Unchanged facts → subcommands ~instant instead of ~1 s each; purity intact (cache is content-addressed, engine remains the oracle) | 4–8 h |
 | 1.5 | **Error UX**: parser errors with `file:line:col`, unknown-predicate warnings, `sumo lint`, shell completions | A typo'd KIF file gets a located diagnostic, never a Nix stack trace (extends your no-throw-on-user-data rule) | 3–5 h |
 
@@ -117,6 +117,7 @@ The extension modules exist; the missing work is **integration through ingest �
 ### Next: Phase 1
 ✅ **1.1 De-hardcode `guard`** - `policies.kif` created, `guard` now reads all policy goals, reports each violation with proof, stable `--json` schema.
 ✅ **1.2 Expose the crown jewels** - `sumo ask`, `sumo why`, `sumo proof`, `sumo check`, `sumo relax` all implemented with `--json` support.
+✅ **1.3 `sumo init`** scaffolding - Creates `facts.kif`, `rules.kif`, `policies.kif`, `.pre-commit-config.yaml`, `.github/workflows/sumonix.yml`. Includes `--force` flag. Also added `sumo lint` for KIF syntax validation.
 
-Next: **1.3 `sumo init`** scaffolding: `facts.kif` / `rules.kif` / `policies.kif` + pre-commit hook + CI template.
+Next: **1.4 Compile-once/query-many cache** — compute fixpoint + proofs at `refresh`, store under `.runtime/` keyed by hash(facts+rules+ontology); subcommands become lookups.
 

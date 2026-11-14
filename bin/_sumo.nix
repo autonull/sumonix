@@ -91,7 +91,7 @@ let
       }) name;
     in
     if isGround goal then
-      [ checkOne goal ]
+      [ (checkOne goal) ]
     else
       let
         bindings = datalog.ask goal;
@@ -100,7 +100,7 @@ let
       in
       if checkAll == [ ] then
         # No bindings found = no violations = pass
-        [ addName { pass = true; derived = false; goal = goal; proof = "no bindings for pattern"; verdict = "pass"; } name ]
+        [ (addName { pass = true; derived = false; goal = goal; proof = "no bindings for pattern"; verdict = "pass"; } name) ]
       else
         checkAll;
 
@@ -463,4 +463,12 @@ in {
 
   # proof — Internal: proof subtree for a goal
   proof = goal: datalog.why goal;
+
+  # lint — Validate KIF syntax by parsing the file
+  lint = filePath:
+    let
+      text = builtins.readFile filePath;
+      forms = parse text;
+      count = length forms;
+    in "OK: ${toString count} forms parsed from ${filePath}";
 }
