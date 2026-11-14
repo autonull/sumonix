@@ -11,9 +11,10 @@ source "$(dirname "$0")/../tools/env.sh"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Default fact/rules locations
+# Default fact/rules/policies locations
 SUMO_FACTS="${SUMO_FACTS:-/run/sumo/facts.kif}"
 SUMO_RULES="${SUMO_RULES:-/run/sumo/rules.kif}"
+SUMO_POLICIES="${SUMO_POLICIES:-${ROOT}/policies.kif}"
 
 # If the default facts file doesn't exist, fall back to in-repo curated facts
 if [ ! -f "$SUMO_FACTS" ]; then
@@ -25,8 +26,23 @@ if [ ! -f "$SUMO_RULES" ] || [ ! -s "$SUMO_RULES" ]; then
   SUMO_RULES="${ROOT}/rules.kif"
 fi
 
-# Build the dispatcher with the current fact/rules paths
+# If policies file doesn't exist, don't pass it (dispatcher will use default)
+if [ ! -f "$SUMO_POLICIES" ] || [ ! -s "$SUMO_POLICIES" ]; then
+  SUMO_POLICIES=""
+fi
+
+# Build the dispatcher with the current fact/rules/policies paths
 DISPATCHER="${ROOT}/bin/_sumo.nix"
+
+# Build common dispatcher args
+dispatcher_args() {
+  local json_flag="${1:-false}"
+  local args="facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag}"
+  if [ -n "$SUMO_POLICIES" ]; then
+    args="${args}; policies = \"${SUMO_POLICIES}\""
+  fi
+  echo "(import ${DISPATCHER} { ${args}; })"
+}
 
 usage() {
   cat <<'EOF'
@@ -42,13 +58,14 @@ Commands:
   whatif [--json]         One counterfactual from the proof: two warm runs, exit 1 when a flip
   dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
   refresh                 Re-collect live facts (sumo-facts on NixOS, demo/host-facts.sh elsewhere)
-  guard                   Policy check: exits 1 on violation, 0 when clean
+  guard [--json]          Policy check: exits 1 on violation, 0 when clean
   version                 Show version
   --help                  Show this help
 
 Environment:
-  SUMO_FACTS   Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
-  SUMO_RULES   Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
+  SUMO_FACTS    Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
+  SUMO_RULES    Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
+  SUMO_POLICIES Path to policies KIF (default: ./policies.kif, then none)
 
 Examples:
   sumo status
@@ -61,6 +78,7 @@ Examples:
   sumo dashboard
   sumo refresh
   sumo guard
+  sumo guard --json
 EOF
 }
 
@@ -91,7 +109,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).status"
+    expr="($(dispatcher_args "${json_flag:-false}")).status"
     run_nix "$expr"
     ;;
   caps)
@@ -100,7 +118,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).caps"
+    expr="($(dispatcher_args "${json_flag:-false}")).caps"
     run_nix "$expr"
     ;;
   closure)
@@ -114,7 +132,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).closure \"${pkg}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).closure \"${pkg}\""
     run_nix "$expr"
     ;;
   query)
@@ -128,7 +146,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"${goal}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).query \"${goal}\""
     run_nix "$expr"
     ;;
   whatif)
@@ -137,7 +155,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).whatif"
+    expr="($(dispatcher_args "${json_flag:-false}")).whatif"
     run_nix "$expr"
     ;;
   dashboard)
@@ -173,24 +191,24 @@ case "$cmd" in
     fi
     ;;
   guard)
-    # Policy check: runs sumo query for the policy violation and exits 1 if derived
+    # Policy check: runs the dispatcher's guard function, exits 1 on any violation
     json_flag=""
     if [ "${1:-}" = "--json" ]; then
       json_flag="true"
       shift
     fi
-    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"(policyViolation nginx NoCriticalRunningCVE)\""
+    expr="($(dispatcher_args "${json_flag:-false}")).guard"
     result=$(run_nix "$expr")
     if [ "$json_flag" = "true" ]; then
       echo "$result"
-      # Check if derived is true
-      if echo "$result" | grep -q '"derived":true'; then
+      # Check if pass is false
+      if echo "$result" | grep -q '"pass":false'; then
         exit 1
       fi
     else
       echo "$result"
-      # Non-JSON output uses "Derived: 1" or "Derived: true"
-      if echo "$result" | grep -q "Derived: 1" || echo "$result" | grep -q "Derived: true"; then
+      # Non-JSON output: check for "violation" or "Policy violation"
+      if echo "$result" | grep -q "violation"; then
         exit 1
       fi
     fi

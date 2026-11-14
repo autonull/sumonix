@@ -3,7 +3,7 @@
 # Every subcommand evals in ~0.3–1.4 s warm; each has a 15 s guard (no hang).
 # Facts: SUMO_FACTS or /run/sumo/facts.kif (or demo/facts/host.kif in-repo).
 # Rules: SUMO_RULES then <worktree>/rules.kif, or the generated demo/vm/rules.kif in the VM.
-{ facts, rules, json ? false }:
+{ facts, rules, policies ? null, json ? false }:
 let
   inherit (builtins)
     all any attrNames attrValues concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString
@@ -13,16 +13,22 @@ let
   kif = import ../lib/kif.nix { };
   inherit (kif) parse show headOf flatten subforms isVar ground subst varsOf unique isKifOp count;
 
-  # Read facts and rules
+  # Read facts, rules, and policies
   factsText = builtins.readFile facts;
   rulesText = builtins.readFile rules;
+  policiesText = if policies == null then "" else builtins.readFile policies;
 
   factsForms = parse factsText;
   rulesForms = parse rulesText;
+  policyForms = parse policiesText;
 
   isRule = f: isList f && f != [ ] && headOf f == "=>";
   ruleForms = filter isRule rulesForms;
   factForms = filter (f: !isRule f) rulesForms ++ factsForms;
+
+  # Extract policy goals from policy forms: (policyGoal <name> <goal-pattern>)
+  isPolicyGoal = f: isList f && length f >= 3 && headOf f == "policyGoal" && isString (elemAt f 1);
+  policyGoals = map (pg: { name = elemAt pg 1; goal = elemAt pg 2; }) (filter isPolicyGoal policyForms);
 
   # Count facts per source. The KIF parser strips comments, so the section
   # headers are read from the raw text: every `;; source: <label>` line starts a
@@ -56,17 +62,61 @@ let
 
   # Policy build gate
   buildGate = import ../policy/build-gate.nix { };
-  policyGoal = [ "policyViolation" "nginx" "NoCriticalRunningCVE" ];
 
-  violation = buildGate.check {
-    goal = policyGoal;
-    facts = factForms;
-    rules = allRules;
-    ontology = ontology;
-    passWhen = "underivable";
-  };
+  # Default policy goal for backward compatibility when no policies file provided
+  defaultPolicyGoal = [ "policyViolation" "nginx" "NoCriticalRunningCVE" ];
 
-  # Relaxation menu
+  # Add name attribute to a check result
+  addName = checkResult: name: checkResult // { name = name; };
+
+  # Check if a goal is ground (no variables starting with ?)
+  isGround = goal:
+    let
+      flatten = f: if isList f then concatMap flatten f else [ f ];
+      allParts = flatten goal;
+      hasVar = any (p: isString p && substring 0 1 p == "?") allParts;
+    in !hasVar;
+
+  # For a non-ground goal, find all bindings and check each ground instance
+  checkPolicyGoal = pg:
+    let
+      goal = pg.goal;
+      name = pg.name;
+      checkOne = g: addName (buildGate.check {
+        goal = g;
+        facts = factForms;
+        rules = allRules;
+        ontology = ontology;
+        passWhen = "underivable";
+      }) name;
+    in
+    if isGround goal then
+      [ checkOne goal ]
+    else
+      let
+        bindings = datalog.ask goal;
+        # For each binding, substitute into the goal and check
+        checkAll = map (b: checkOne (subst b goal)) bindings;
+      in
+      if checkAll == [ ] then
+        # No bindings found = no violations = pass
+        [ addName { pass = true; derived = false; goal = goal; proof = "no bindings for pattern"; verdict = "pass"; } name ]
+      else
+        checkAll;
+
+  # Check all policy goals (from policies.kif, or default if none)
+  policyChecks = if policyGoals == [ ] then
+    checkPolicyGoal { name = "NoCriticalRunningCVE"; goal = defaultPolicyGoal; }
+  else
+    concatMap checkPolicyGoal policyGoals;
+
+  # Violations: all policy checks that failed (pass = false)
+  violations = filter (pc: !pc.pass) policyChecks;
+
+  # Overall verdict: violation if any policy check failed
+  overallVerdict = if violations == [ ] then "pass" else "violation";
+
+  # Relaxation menu for the first violation (backward compatible)
   relax = import ../policy/relax.nix;
   candidates = [
     { name = "ignore the advisory";          dropFacts = [ [ "vulnerable" "openssl" "CVE-2026-9999" ] ]; }
@@ -75,8 +125,17 @@ let
     { name = "remove the policy rule";      dropRules = [ "policyViolation#4" ]; }
     { name = "drop an unrelated edge";      dropFacts = [ [ "dependsOn" "hello" "glibc" ] ]; }
   ];
+  firstViolation = if violations == [ ] then
+    buildGate.check {
+      goal = defaultPolicyGoal;
+      facts = factForms;
+      rules = allRules;
+      ontology = ontology;
+      passWhen = "underivable";
+    }
+  else head violations;
   menu = relax {
-    goal = policyGoal;
+    goal = firstViolation.goal;
     facts = factForms;
     rules = allRules;
     ontology = ontology;
@@ -202,8 +261,13 @@ let
     packages = packageCount;
     capabilities = capabilityCount;
     rounds = roundCount;
-    verdict = violation.verdict;
-    proof = violation.proof;
+    verdict = overallVerdict;
+    violations = map (v: {
+      name = v.name;
+      goal = v.goal;
+      proof = v.proof;
+      derived = v.derived;
+    }) violations;
     sources = { live = liveCount; fixture = fixtureCount; };
   };
 
@@ -248,6 +312,14 @@ in {
 
   # status — Machine overview
   status = if json then statusJSON else
+    let
+      violationsText = if violations == [ ] then
+        "    🚦 POLICY GATE: pass\n    (no policy violations)"
+      else
+        concatStringsSep "\n\n" (map (v:
+          "    🚦 POLICY GATE: violation (${v.name})\n    ${v.proof}"
+        ) violations);
+    in
     ''
     ╔════════════════════════════════════════════════════════════════════╗
     ║                        MACHINE STATUS                             ║
@@ -259,8 +331,7 @@ in {
     🔄 Derivation rounds: ${toString roundCount}
 
     ─────────────────────────────────────────────────────────────
-    🚦 POLICY GATE: ${violation.verdict}
-    ${violation.proof}
+    ${violationsText}
     ─────────────────────────────────────────────────────────────
     ${sourceSummary}
     Run: sumo caps | sumo closure <pkg> | sumo query <goal> | sumo whatif | sumo dashboard
@@ -295,9 +366,28 @@ in {
   # refresh — Re-run the live facts exporter (handled by CLI, but exposed for completeness)
   refresh = "Run 'sumo refresh' to re-generate live facts from the NixOS system.";
 
-  # guard — Policy check (handled by CLI via query)
-  guard = "Run 'sumo guard' to check policy; exits 1 on violation.";
+  # guard — Policy check: returns all violations with proofs
+  guard = if json then
+    objToJSON {
+      violations = map (v: {
+        name = v.name;
+        goal = v.goal;
+        proof = v.proof;
+        derived = v.derived;
+      }) violations;
+      pass = violations == [ ];
+    }
+  else
+    if violations == [ ] then
+      "Policy check: PASS (no violations)"
+    else
+      concatStringsSep "\n\n" (map (v:
+        "Policy violation: ${v.name}\nGoal: ${show v.goal}\nProof:\n${v.proof}"
+      ) violations);
 
   # proof — Internal: proof subtree for a goal
   proof = goal: datalog.why goal;
+
+  # ask — Internal: bindings for a pattern
+  ask = pattern: datalog.ask pattern;
 }

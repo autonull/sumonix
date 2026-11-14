@@ -1,0 +1,22 @@
+;; SUMO policy goals — each (policyGoal <name> <goal-pattern>) declares a goal to check.
+;; The guard command evaluates all declared goals and reports every violation with proof.
+;; source: fixture
+
+;; Policy: No service running with a critical CVE in its transitive closure
+(policyGoal NoCriticalRunningCVE (policyViolation ?pkg NoCriticalRunningCVE))
+
+;; Policy: No package with a critical CVE should be in the closure of a running service
+(policyGoal NoCriticalInServiceClosure
+  (and
+    (instance ?pkg NIXPackage)
+    (vulnerable ?pkg ?cve)
+    (severity ?cve critical)
+    (instance ?svc NIXService)
+    (serviceState ?svc running)
+    (dependsOnTransitive ?svc ?pkg)))
+
+;; Example: enforce that all services have a defined owner
+;; (policyGoal ServiceHasOwner
+;;   (and
+;;     (instance ?svc NIXService)
+;;     (not (runningAs ?svc ?user))))

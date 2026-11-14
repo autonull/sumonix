@@ -34,7 +34,7 @@ I read the repo (README, `TODO3.md`, `AGENTS.md`, `bin/sumo`, `flake.nix`, `reas
 
 | # | Item | Acceptance | Effort |
 |---|---|---|---|
-| 1.1 | **De-hardcode `guard`**: read policy goals from a `policies.kif` (or `--policy` file); report *all* violations, each with proof; stable versioned `--json` schema | On a host with no nginx/CVE, `guard` checks the user's actual policies; exit codes documented | 2–4 h |
+| 1.1 | **De-hardcode `guard`**: read policy goals from a `policies.kif` (or `--policy` file); report *all* violations, each with proof; stable versioned `--json` schema | On a host with no nginx/CVE, `guard` checks the user's actual policies; exit codes documented | ✅ DONE |
 | 1.2 | **Expose the crown jewels**: `sumo ask '(vulnerable ?X ?CVE)'` (non-ground, library already has `ask`), `sumo why <fact>`, `sumo proof <goal> -o p.kif`, `sumo check p.kif`, `sumo relax` | Every README demo scene becomes a command a user can run on their own facts; checker usable standalone | 4–8 h |
 | 1.3 | **`sumo init`** scaffolding: `facts.kif` / `rules.kif` / `policies.kif` + pre-commit hook + CI template | `sumo init && sumo guard` in any repo in <60 s — this is your time-to-first-value metric | 2–3 h |
 | 1.4 | **Compile-once/query-many cache**: at `refresh`, compute fixpoint + proofs; store under `.runtime/` keyed by hash(facts+rules+ontology); subcommands become lookups; `--no-cache` escape | Unchanged facts → subcommands ~instant instead of ~1 s each; purity intact (cache is content-addressed, engine remains the oracle) | 4–8 h |
@@ -115,5 +115,7 @@ The extension modules exist; the missing work is **integration through ingest �
 - Requires `/nix/store` (available on GitHub runners)
 
 ### Next: Phase 1
-Start with **1.1 De-hardcode `guard`** - read policy goals from `policies.kif` instead of hardcoded nginx/CVE.
+✅ **1.1 De-hardcode `guard`** - `policies.kif` created, `guard` now reads all policy goals, reports each violation with proof, stable `--json` schema.
+
+Next: **1.2 Expose the crown jewels** - `sumo ask`, `sumo why`, `sumo proof`, `sumo check`, `sumo relax` CLI commands.
 
