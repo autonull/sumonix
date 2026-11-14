@@ -385,9 +385,82 @@ in {
         "Policy violation: ${v.name}\nGoal: ${show v.goal}\nProof:\n${v.proof}"
       ) violations);
 
+  # ask — Non-ground query: returns all bindings that make the pattern true
+  ask = patternStr:
+    let
+      patternForms = parse patternStr;
+      pattern = if length patternForms > 0 then head patternForms else patternStr;
+      bindings = datalog.ask pattern;
+      formatBinding = b:
+        concatStringsSep " " (map (kv: "${kv}=${b.${kv}}") (attrNames b));
+    in if json then
+      objToJSON { bindings = map (b: listToAttrs (map (kv: { name = kv; value = b.${kv}; }) (attrNames b))) bindings; }
+    else
+      let
+        lines = if bindings == [ ] then [ "  (no bindings)" ] else map (b:
+          "  " + formatBinding b
+        ) bindings;
+      in concatStringsSep "\n" lines;
+
+  # why — Proof tree for a ground goal (structured, not just text)
+  why = goal:
+    let
+      derived = datalog.holds goal;
+      tree = if derived then datalog.why goal else null;
+    in if json then
+      objToJSON { goal = goal; derived = derived; tree = tree; }
+    else if derived then
+      datalog.explain goal
+    else
+      "Goal underivable: " + goal;
+
+  # proofExport — Export proof as KIF certificate for independent checking
+  proofExport = goalStr:
+    let
+      goalForms = parse goalStr;
+      goal = if length goalForms > 0 then head goalForms else goalStr;
+      derived = datalog.holds goal;
+    in
+    if !derived then
+      if json then objToJSON { error = "goal underivable"; }
+      else "Goal underivable: " + goalStr
+    else
+      let
+        # Build KIF certificate using reasoner/proof.nix
+        cert = import ../reasoner/proof.nix {
+          inherit ontology;
+          facts = factForms;
+          rules = allRules;
+          inherit goal;
+          ontologies = [ "sumo.full/Merge.kif" "nix-domain.kif" ];
+        };
+      in if json then objToJSON { certificate = cert; } else cert;
+
+  # check — Independent re-checker for a proof certificate (KIF file)
+  check = certPath:
+    let
+      result = import ../proof-check.nix { file = certPath; };
+    in if json then objToJSON { ok = true; result = result; } else result;
+
+  # relax — Relaxation menu for the first violation (or default policy)
+  relax = if json then
+    objToJSON {
+      basePass = menu.basePass;
+      baseDerived = menu.baseDerived;
+      flips = length menu.menu;
+      candidates = map (c: { name = c.name; flip = c.flip; proof = c.proof; }) menu.menu;
+      diagnostics = menu.diagnostics;
+    }
+  else
+    let
+      flips = menu.menu;
+      flipLines = concatStringsSep "\n" (map (m: "  ✓ " + m.name) flips);
+      noFlipLines = concatStringsSep "\n" (map (m: "  ✗ " + m.name + " (flips nothing)") (filter (m: !m.flip) menu.results));
+      baseVerdict = if menu.basePass then "PASS" else "VIOLATION";
+      flipSection = if flips == [ ] then "  (none)" else flipLines;
+    in
+    "Base verdict: " + baseVerdict + "\n\nSingle flips that change the verdict:\n" + flipSection + "\n\nOther candidates:\n" + noFlipLines;
+
   # proof — Internal: proof subtree for a goal
   proof = goal: datalog.why goal;
-
-  # ask — Internal: bindings for a pattern
-  ask = pattern: datalog.ask pattern;
 }

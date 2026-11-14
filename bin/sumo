@@ -55,6 +55,11 @@ Commands:
   caps [--json]           Capability atlas of the installed closure
   closure <pkg> [--json]  Dependency tree (indented)
   query <goal> [--json]   Ground goal → verdict + why subtree
+  ask <pattern> [--json]  Non-ground query → all bindings (e.g., '(vulnerable ?pkg ?cve)')
+  why <goal> [--json]     Proof tree for a ground goal
+  proof <goal> [--json]   Export proof as KIF certificate (for 'sumo check')
+  check <file.kif>        Independent re-checker for a proof certificate
+  relax [--json]          Relaxation menu: which single fact/rule flip changes the verdict
   whatif [--json]         One counterfactual from the proof: two warm runs, exit 1 when a flip
   dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
   refresh                 Re-collect live facts (sumo-facts on NixOS, demo/host-facts.sh elsewhere)
@@ -74,6 +79,11 @@ Examples:
   sumo closure openssl
   sumo closure openssl --json
   sumo query '(vulnerable nginx CVE-2026-9999)'
+  sumo ask '(vulnerable ?pkg ?cve)'
+  sumo why '(policyViolation nginx NoCriticalRunningCVE)'
+  sumo proof '(policyViolation nginx NoCriticalRunningCVE)' > proof.kif
+  sumo check proof.kif
+  sumo relax
   sumo whatif
   sumo dashboard
   sumo refresh
@@ -147,6 +157,72 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).query \"${goal}\""
+    run_nix "$expr"
+    ;;
+  ask)
+    pattern="${1:-}"
+    if [ -z "$pattern" ]; then
+      echo "sumo ask: missing pattern argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).ask \"${pattern}\""
+    run_nix "$expr"
+    ;;
+  why)
+    goal="${1:-}"
+    if [ -z "$goal" ]; then
+      echo "sumo why: missing goal argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).why \"${goal}\""
+    run_nix "$expr"
+    ;;
+  proof)
+    goal="${1:-}"
+    if [ -z "$goal" ]; then
+      echo "sumo proof: missing goal argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).proofExport \"${goal}\""
+    run_nix "$expr"
+    ;;
+  check)
+    cert_file="${1:-}"
+    if [ -z "$cert_file" ]; then
+      echo "sumo check: missing certificate file argument" >&2
+      exit 2
+    fi
+    if [ ! -f "$cert_file" ]; then
+      echo "sumo check: file not found: $cert_file" >&2
+      exit 2
+    fi
+    # Convert to absolute path for the Nix evaluator
+    cert_file="$(cd "$(dirname "$cert_file")" && pwd)/$(basename "$cert_file")"
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; }).check \"${cert_file}\""
+    run_nix "$expr"
+    ;;
+  relax)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).relax"
     run_nix "$expr"
     ;;
   whatif)
