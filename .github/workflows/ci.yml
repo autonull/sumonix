@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # Run the full test suite, demo byte-diff, README check, proof tamper
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Run flake checks
+        run: nix flake check --all-systems
+        env:
+          # GitHub Actions runners have user namespaces enabled
+          # and a proper /nix/store, so sandboxed builds work
+          NIX_STORE_DIR: ""
+
+  # Build packages to verify they compile
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Build sumo-cli
+        run: nix build .#sumo-cli
+
+      - name: Build sumo-tui
+        run: nix build .#sumo-tui
+
+      - name: Build sumo-facts
+        run: nix build .#sumo-facts
+
+  # Verify nix run works (the installable entrypoint)
+  run-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Smoke test nix run
+        run: |
+          nix run .# -- version
+          nix run .# -- status --json | jq -e '.services >= 0'
+
+  # Verify dev shell works
+  dev-shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Test dev shell
+        run: |
+          nix develop -c "echo 'Dev shell works' && sumo version"

@@ -1,0 +1,201 @@
+#!/usr/bin/env bash
+# sumo — the command the user reaches for.
+# Sources tools/env.sh and uses nix-eval.sh for proper local store handling.
+set -euo pipefail
+
+SUMO_ROOT="$out/share/sumo"
+source "$SUMO_ROOT/tools/env.sh"
+
+ROOT="$SUMO_ROOT"
+
+# Default fact/rules locations
+SUMO_FACTS="${SUMO_FACTS:-/run/sumo/facts.kif}"
+SUMO_RULES="${SUMO_RULES:-/run/sumo/rules.kif}"
+
+# If the default facts file doesn't exist, fall back to in-repo curated facts
+if [ ! -f "$SUMO_FACTS" ]; then
+  SUMO_FACTS="${ROOT}/demo/facts/host.kif"
+fi
+
+# If rules file doesn't exist or is empty/placeholder, fall back to root rules.kif
+if [ ! -f "$SUMO_RULES" ] || [ ! -s "$SUMO_RULES" ]; then
+  SUMO_RULES="${ROOT}/rules.kif"
+fi
+
+# Build the dispatcher with the current fact/rules paths
+DISPATCHER="${ROOT}/bin/_sumo.nix"
+
+version() {
+  echo "sumo 0.1.0 (sumonix)"
+}
+
+run_nix() {
+  "$ROOT/nix-eval.sh" --raw --expr "$1"
+}
+
+usage() {
+  cat <<'USAGE_EOF'
+sumo — reason about this machine
+
+Usage: sumo <command> [args...]
+
+Commands:
+  status [--json]         Machine overview: services, packages, capabilities, rounds; verdict + proof file
+  caps [--json]           Capability atlas of the installed closure
+  closure <pkg> [--json]  Dependency tree (indented)
+  query <goal> [--json]   Ground goal → verdict + why subtree
+  whatif [--json]         One counterfactual from the proof: two warm runs, exit 1 when a flip
+  dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
+  refresh                 Re-collect live facts (sumo-facts on NixOS, demo/host-facts.sh elsewhere)
+  guard                   Policy check: exits 1 on violation, 0 when clean
+  version                 Show version
+  --help                  Show this help
+
+Environment:
+  SUMO_FACTS   Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
+  SUMO_RULES   Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
+
+Examples:
+  sumo status
+  sumo status --json
+  sumo caps
+  sumo closure openssl
+  sumo closure openssl --json
+  sumo query '(vulnerable nginx CVE-2026-9999)'
+  sumo whatif
+  sumo dashboard
+  sumo refresh
+  sumo guard
+USAGE_EOF
+}
+
+# Parse subcommand
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  ""|--help|help)
+    usage
+    exit 0
+    ;;
+  version)
+    version
+    exit 0
+    ;;
+  status)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).status"
+    run_nix "$expr"
+    ;;
+  caps)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).caps"
+    run_nix "$expr"
+    ;;
+  closure)
+    pkg="${1:-}"
+    if [ -z "$pkg" ]; then
+      echo "sumo closure: missing package argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).closure \"${pkg}\""
+    run_nix "$expr"
+    ;;
+  query)
+    goal="${1:-}"
+    if [ -z "$goal" ]; then
+      echo "sumo query: missing goal argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"${goal}\""
+    run_nix "$expr"
+    ;;
+  whatif)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).whatif"
+    run_nix "$expr"
+    ;;
+  dashboard)
+    # Resolve TUI binary: PATH → /run/sumo/bin/sumo-tui → repo demo/tui/sumo-tui
+    TUI_BIN=""
+    if command -v sumo-tui >/dev/null 2>&1; then
+      TUI_BIN="$(command -v sumo-tui)"
+    elif [ -x /run/sumo/bin/sumo-tui ]; then
+      TUI_BIN="/run/sumo/bin/sumo-tui"
+    elif [ -x "${ROOT}/demo/tui/sumo-tui" ]; then
+      TUI_BIN="${ROOT}/demo/tui/sumo-tui"
+    else
+      echo "sumo dashboard: TUI binary not found (tried PATH, /run/sumo/bin/sumo-tui, ${ROOT}/demo/tui/sumo-tui)" >&2
+      exit 1
+    fi
+    exec "$TUI_BIN" "$@"
+    ;;
+  refresh)
+    # Re-run the live facts exporter. The NixOS module installs `sumo-facts`;
+    # plain hosts use demo/host-facts.sh and get a separate live file.
+    if command -v sumo-facts >/dev/null 2>&1; then
+      exec sumo-facts
+    elif [ -x /run/sumo/bin/sumo-facts ]; then
+      exec /run/sumo/bin/sumo-facts
+    elif [ -x "${ROOT}/demo/host-facts.sh" ]; then
+      mkdir -p "${ROOT}/.runtime"
+      "${ROOT}/demo/host-facts.sh" > "${ROOT}/.runtime/facts-live.kif"
+      echo "sumo refresh: wrote ${ROOT}/.runtime/facts-live.kif (live host facts)" >&2
+      echo "  read it with: SUMO_FACTS=${ROOT}/.runtime/facts-live.kif sumo status" >&2
+    else
+      echo "sumo refresh: no facts exporter found" >&2
+      exit 1
+    fi
+    ;;
+  guard)
+    # Policy check: runs sumo query for the policy violation and exits 1 if derived
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; json = ${json_flag:-false}; }).query \"(policyViolation nginx NoCriticalRunningCVE)\""
+    result=$(run_nix "$expr")
+    if [ "$json_flag" = "true" ]; then
+      echo "$result"
+      # Check if derived is true
+      if echo "$result" | grep -q '"derived":true'; then
+        exit 1
+      fi
+    else
+      echo "$result"
+      # Non-JSON output uses "Derived: 1" or "Derived: true"
+      if echo "$result" | grep -q "Derived: 1" || echo "$result" | grep -q "Derived: true"; then
+        exit 1
+      fi
+    fi
+    exit 0
+    ;;
+  *)
+    echo "sumo: unknown command '$cmd'" >&2
+    echo "Run 'sumo --help' for usage." >&2
+    exit 2
+    ;;
+esac
