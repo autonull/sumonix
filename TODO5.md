@@ -119,25 +119,25 @@ artifact may blur that line.
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| `reasoner/lift-config.nix`: pure `nixosConfig → KIF`. **Every declared fact carries its controlling option path(s)**; facts from the port-defaults table marked `inferred`, never `declared`. Lifter reads only slice paths (services, firewall, users, systemPackages) — not the whole option tree. `system.kif` mid-level ontology with domain declarations; well-typedness gate on lifted facts. Lifter emits alias facts (`(equal services.postgresql postgresql.service)`); templated/custom unit names handled explicitly, ambiguous joins rejected with reason | Real config: postgres + strict firewall → **eval fails with proof naming both option paths**; checker re-verifies; byte-stable; no fixtures. **Eval budget: gate adds <2 s to eval, measured and recorded**; slice shrinks to fit | 1–2 d | ⬜ |
+| `reasoner/lift-config.nix`: pure `nixosConfig → KIF`. **Every declared fact carries its controlling option path(s)**; facts from the port-defaults table marked `inferred`, never `declared`. Lifter reads only slice paths (services, firewall, users, systemPackages) — not the whole option tree. `system.kif` mid-level ontology with domain declarations; well-typedness gate on lifted facts. Lifter emits alias facts (`(aliasOf services.postgresql postgresql.service)` — `equal` is reserved by the kernel for substitution); templated/custom unit names handled explicitly, ambiguous joins rejected with reason | Real config: postgres + strict firewall → **eval fails with proof naming both option paths**; checker re-verifies; byte-stable; no fixtures. **Eval budget: gate adds ~0.4 s; measured and recorded**; slice shrinks to fit. Postgres `listen_addresses` defaults to `localhost` in nixpkgs 26.11, so the test sets a wildcard via `mkForce` rather than inventing a false default | 1–2 d | ✅ |
 
 ### M2-lite — Identity + drift on the existing kernel
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| Alias facts + existing union-find join config ↔ unit ↔ store path ↔ pname. `declared`/`observed` pairs. Freshness-guarded drift + rogue-listener rules (above). **No new engine extensions, no new step kinds.** system.kif rules 1–2 (below) | CI container: stop declared unit → drift with proof; open rogue listener → violation with proof; **observer silent → attestation expires → no drift claim, status `unknown`** | 1–2 d | ⬜ |
+| Alias facts + existing union-find join config ↔ unit ↔ pname. `declared`/`observed` pairs. Freshness-guarded drift + rogue-listener rules (above). **No new engine extensions, no new step kinds.** system.kif rules 1–2 (below). Store-path identity deferred: Nix rejects store-path-looking strings in eval (`is not allowed to refer to a store path`), so only `aliasOf` ships here | CI container: stop declared unit → drift with proof; open rogue listener → violation with proof; **observer silent → attestation expires → no drift claim, status `unknown`**. Kernel + tests done; live container run is D1 | 1–2 d | 🟡 |
 
 ### M3A — Resident loop, stage A (timer) + operator surface
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| `nixosModules.default` gains `sumonix-metavisor`: timer-driven refresh (exporter + M0.1 cache). Observer emits snapshots + completeness attestations; TTL expiry pre-engine; timestamps as fact arguments (no temporal logic). **Persistent** append-only event log via `StateDirectory=sumonix-metavisor` (`/var/lib/…`, survives reboot); cache ephemeral. **Operator surface**: `sumo status` drift/violation section (source-labeled) + one structured journal line per event with proof ID. Degraded modes: observer dead → `unknown`; engine behind → snapshot mode, logged | Change → explained drift within one interval, visible in status **and** journal; `sumo why` works on drift; event log replayable; every fact labeled. **Module installs on a non-container host** | 1–2 d | ⬜ |
+| `nixosModules.default` gains `sumonix-metavisor`: timer-driven refresh (exporter + M0.1 cache). `tools/observe.sh` exists (units + attributed listeners, hashed attestation, TTL); it is the dumb observer half. Observer emits snapshots + completeness attestations; TTL expiry pre-engine; timestamps as fact arguments (no temporal logic). **Persistent** append-only event log via `StateDirectory=sumonix-metavisor` (`/var/lib/…`, survives reboot); cache ephemeral. **Operator surface**: `sumo status` drift/violation section (source-labeled) + one structured journal line per event with proof ID. Degraded modes: observer dead → `unknown`; engine behind → snapshot mode, logged | Change → explained drift within one interval, visible in status **and** journal; `sumo why` works on drift; event log replayable; every fact labeled. **Module installs on a non-container host** | 1–2 d | ⬜ |
 
 ### M4-lite — Repair, verified honestly · *the differentiator*
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| Extend `relax.nix`: single flips on **declared facts with exactly one controlling option path** → option edit. **Verification = re-lift the patched config**: `extendModules` with the option change → lift → gate → export proof of pass. Never hand-edited facts. Flips on `inferred`/multi-path facts → rejected with reason; flips on observed facts → actuation candidates (M6). `sumo repair` emits ranked unified diffs + proofs; `--check` re-verifies | Firewall/postgres case → ≥2 ranked patches, every proof re-checks **and comes from the re-lifted patched config**; applying top patch → rebuild → gate passes (container, live) | 2–4 d | ⬜ |
+| `reasoner/repair.nix`: one edit per candidate on an option path that controls a declared fact; **verification = re-lift the patched config** (caller supplies `patched : edit -> lift`, e.g. `extendModules`/a fresh `nixosSystem`) → lift → gate → export proof of pass. Never hand-edited facts. Multi-path edits and uncontrolled paths → rejected with reason; a failed re-lift → rejected; `declared`-only, inferred facts are never flipped silently. `sumo repair` CLI surface is M3A | Firewall/postgres case → 3 ranked patches, every proof re-checks **and comes from the re-lifted patched config**; top patch → gate passes. Live rebuild/apply is D1 | 2–4 d | 🟡 |
 
 ### D1 — The demo artifact
 
@@ -205,14 +205,14 @@ labeled `source: live`.
 
 | Metric | Now | At D1 + soak |
 | --- | --- | --- |
-| Declared state as facts | 0 | slice with option-path provenance; **gate eval overhead <2 s, measured** |
-| Observed state | ~24 live, manual | units/listeners/users/secret-modes, attested-complete, TTL'd, labeled |
-| Config contradiction | fixture | real config fails eval with proof |
-| Change → explained drift | manual | <1 interval, visible in status + journal, with proof |
-| Violation → repair | fact-flip menu | ranked option diffs, proofs from re-lifted patched config |
-| Checker coverage of emitted kinds | core | 100% (thin loop adds zero kinds) |
-| Operator rules | 1 toy | 5 demonstrated (system.kif v0) |
-| Demonstrable | asserted | **D1 recorded live, byte-stable, in CI** |
+| Declared state as facts | 395 facts on the postgres config, option-path provenance; **gate +0.4 s measured** | slice with option-path provenance; **gate eval overhead <2 s, measured** |
+| Observed state | `tools/observe.sh`: units + attributed listeners, hashed TTL'd attestation | units/listeners/users/secret-modes, attested-complete, TTL'd, labeled |
+| Config contradiction | real postgres+firewall fails eval with proof; checker re-verifies | real config fails eval with proof |
+| Change → explained drift | kernel + tests; live observer exists; interval/status/journal in M3A | <1 interval, visible in status + journal, with proof |
+| Violation → repair | 3 ranked option diffs, re-lifted/re-gated proofs (module + test) | ranked option diffs, proofs from re-lifted patched config |
+| Checker coverage of emitted kinds | 100% (gate certificate re-checked; zero new kinds) | 100% (thin loop adds zero kinds) |
+| Operator rules | 2 of 5 (firewall, drift/rogue) implemented + demonstrated | 5 demonstrated (system.kif v0) |
+| Demonstrable | asserted (M1/M2/M4 modules + 24 tests) | **D1 recorded live, byte-stable, in CI** |
 | Usable | — | 24 h real-host soak, zero false drift |
 
 ## Risks and honest limits
@@ -227,13 +227,47 @@ labeled `source: live`.
 ## If you only do three things
 
 **M1** (lifter + provenance + budget), **M2-lite** (attested drift on the existing kernel),
-**M4-lite** (one flip → one re-lift-verified patch). M3A can be a bare timer while those
-land. That trio closes the loop; D1 makes it visible; everything else deepens it.
+**M4-lite** (one flip → one re-lift-verified patch). That trio's kernel core has landed
+(modules + 24 tests); M3A is the next step (timer, event log, operator surface, CLI);
+D1 makes it visible; everything else deepens it.
 
 ---
 
 ## Status log
 
+- **2026-11-17** — Thin-loop core landed. **M1 ✅**: `reasoner/lift-config.nix` (pure slice lift, option-path provenance, inferred defaults, ambiguous joins), `system.kif` v0 (rules 1–2 + signatures + alias/command joins), `reasoner/config-gate.nix` (well-typedness + policy gate, throws with the why-tree, exports a KIF certificate and forces the independent checker). Real postgres + strict firewall fails with a proof naming `services.postgresql.enable`, `services.postgresql.settings.listen_addresses`, `services.postgresql.settings.port`, and `networking.firewall.allowedTCPPorts`; the 22 KB certificate re-checks as 3 steps. Measured: config eval ~0.96 s, lift+gate+checker ~1.48 s (**gate adds ~0.4–0.5 s**, under the 2 s budget). **M2-lite 🟡**: `reasoner/drift.nix` + `tools/observe.sh`; drift/rogue proofs, TTL pre-filter, stale/partial → `unknown`, zero new step kinds. Live CI-container run remains in D1. **M4-lite 🟡**: `reasoner/repair.nix`; 3 ranked patches (allow 5432 / bind localhost / disable postgres), each re-lifted and re-gated, option diffs + fact diffs, rejections for multi-path, uncontrolled, and failed re-lift. Live apply/rebuild remains in D1. Test suite: **24 tests** (lift-config, drift, repair added), all green. `demo/run` byte-identical. `equal` → `aliasOf` (kernel reserves `equal`), store-path identity deferred (Nix rejects store-path strings in eval). Next: **M3A** (timer, event log, operator surface, `sumo lift|drift|repair` CLI) then **D1**.
 - **2026-11-16 (rev 2)** — Effectiveness evaluation applied: islands moved behind triggers; thin loop on existing kernel (zero new step kinds); repair verified by re-lift via `extendModules`; M1 eval budget; D1 + operator surface + system.kif v0 + soak as definition of done; two-scope fact-volume control; estimates corrected (~2–3 weeks to D1). Supersedes TODO4. Next: **M1**.
 - **2026-11-16 (rev 1)** — Initial metavisor plan; superseded by rev 2 same day.
 
+
+## Next (from 2026-11-17)
+
+1. **M3A — resident loop + operator surface** (next session). Add
+   `nixosModules.sumonix-metavisor` to `flake.nix`: a systemd service + timer that
+   runs `tools/observe.sh` into `.runtime/observed.kif` (or `/run/sumo/observed.kif`),
+   a `StateDirectory=sumonix-metavisor` append-only event log (one JSON line per
+   drift/violation with proof ID), and `sumo status` drift/violation section
+   (source-labeled). CLI: `sumo lift [--configuration FILE]`, `sumo drift
+   [--declared FILE --observed FILE]`, `sumo repair [--configuration FILE]`.
+   Degraded modes: observer dead → `unknown`; engine behind → snapshot mode, logged.
+   Acceptance: change → explained drift within one interval, visible in status and
+   journal; module installs on a non-container host.
+
+2. **D1 — the recorded tour.** `tools/metavisor-tour.sh` drives the three scenes
+   (postgres+firewall fails eval with proof → fix, boot, stop postgres → drift with
+   proof → `sumo repair`, apply, rebuild, gate passes) on the CI container;
+   asciinema cast + byte-stable transcript; README section regenerated. Acceptance:
+   `source: live`, reproducible from a clean checkout, doubles as the end-to-end
+   regression test.
+
+3. **M0 support** — M0.1 cache keyed on facts+rules+ontology+engine version,
+   M0.2 located KIF diagnostics, M0.3 `buildGoModule`/aarch64 housekeeping. M0 is
+   not on the thin loop; do it before the operator surface is called usable.
+
+4. **Blocked / known** — store-path identity joins are deferred: Nix rejects
+   store-path-looking strings during eval; use unit/pname joins until an audit
+   path (or `--store` metadata) can carry the store path safely. Listener
+   completeness needs `ss -ltnp` process attribution (root); non-root observers
+   stay `unknown` (R1). `declaredRunning` means "enabled"; a stopped-but-enabled
+   unit is drift, not a violation. `system.kif` rules 3–5 (unit user, secret
+   modes, licenses) land with M3A / the audit scope.

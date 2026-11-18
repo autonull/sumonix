@@ -27,6 +27,9 @@ tests=(
   tests/unit/wfs.nix
   tests/unit/existentials.nix
   tests/unit/temporal.nix
+  tests/unit/lift-config.nix
+  tests/unit/drift.nix
+  tests/unit/repair.nix
 )
 
 fail=0

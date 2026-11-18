@@ -19,9 +19,12 @@ let
   inherit (builtins) all any attrNames attrValues concatStringsSep elem elemAt filter foldl' head isList isString length map sort tail genList;
 
   flatten = f: if isList f then builtins.concatMap flatten f else [ f ];
+  quoted = s:
+    isString s && builtins.substring 0 1 s == "\"" && builtins.substring (builtins.stringLength s - 1) 1 s == "\"";
   show = s:
     if isString s then
-      if builtins.match ''.*[()" ].*'' s != null then ''"${s}"'' else s
+      if quoted s then s
+      else if builtins.match ''.*[()" ].*'' s != null then ''"${s}"'' else s
     else "(" + concatStringsSep " " (map show s) + ")";
 
   headOf = f: if isList f && f != [ ] then head f else "";

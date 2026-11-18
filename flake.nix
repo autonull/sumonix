@@ -126,6 +126,7 @@
       tests = pkgs.runCommand "tests" {
         buildInputs = [ pkgs.nix ];
         src = self;
+        NIX_PATH = "nixpkgs=${nixpkgs}";
       } ''
         mkdir -p $out
         cd $src

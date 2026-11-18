@@ -1,0 +1,132 @@
+;; system.kif v0 — the mid-level system ontology for the metavisor (TODO5 M1/M2-lite).
+;;
+;; Values (names, ports, addresses, option paths, snapshots, hashes) are quoted
+;; KIF strings. Relations, classes, observation kinds and policy reasons are
+;; symbols. Every rule conclusion is ground (the kernel refuses a variable there).
+;;
+;; This file carries rules 1-2 of system.kif v0. Rules 3-5 (unit user, secret
+;; modes, licenses) land with M3A and the audit scope.
+
+;; --- classes -----------------------------------------------------------------
+(subclass NIXUnit NIXService)
+(subclass NIXProcess NIXEntity)
+(subclass NIXPort NIXEntity)
+(subclass NIXAddress NIXEntity)
+(subclass NIXOptionPath NIXEntity)
+(subclass NIXSnapshot NIXEntity)
+(subclass NIXObservationKind NIXEntity)
+(subclass NIXPolicyReason NIXEntity)
+(subclass NIXStorePath NIXEntity)
+(subclass NIXVersion NIXEntity)
+
+(instance unitActive NIXObservationKind)
+(instance listener NIXObservationKind)
+(instance NoFirewallAllowance NIXPolicyReason)
+(instance NoRogueListener NIXPolicyReason)
+(instance drift NIXPolicyReason)
+(instance rogueListener NIXPolicyReason)
+
+;; --- signatures: one for every fact the lifter emits --------------------------
+;; The well-typedness gate checks each non-instance lifted fact against these.
+(domain aliasOf 1 NIXService)
+(domain aliasOf 2 NIXUnit)
+(domain declaredService 1 NIXService)
+(domain declaredService 2 NIXOptionPath)
+(domain declaredRunning 1 NIXService)
+(domain declaredRunning 2 NIXOptionPath)
+(domain portDeclared 1 NIXService)
+(domain portDeclared 2 NIXPort)
+(domain portDeclared 3 NIXOptionPath)
+(domain portInferred 1 NIXService)
+(domain portInferred 2 NIXPort)
+(domain portInferred 3 NIXOptionPath)
+(domain servicePort 1 NIXService)
+(domain servicePort 2 NIXPort)
+(domain listenerDeclared 1 NIXService)
+(domain listenerDeclared 2 NIXAddress)
+(domain listenerDeclared 3 NIXOptionPath)
+(domain listenerInferred 1 NIXService)
+(domain listenerInferred 2 NIXAddress)
+(domain listenerInferred 3 NIXOptionPath)
+(domain serviceListener 1 NIXService)
+(domain serviceListener 2 NIXAddress)
+(domain firewallEnabled 1 NIXOptionPath)
+(domain firewallTcpOption 1 NIXOptionPath)
+(domain firewallUdpOption 1 NIXOptionPath)
+(domain firewallTcpAllowed 1 NIXPort)
+(domain firewallTcpAllowed 2 NIXOptionPath)
+(domain firewallUdpAllowed 1 NIXPort)
+(domain firewallUdpAllowed 2 NIXOptionPath)
+(domain packageVersion 1 NIXPackage)
+(domain packageVersion 2 NIXVersion)
+(domain packageVersion 3 NIXOptionPath)
+(domain storePath 1 NIXPackage)
+(domain storePath 2 NIXStorePath)
+(domain storePath 3 NIXOptionPath)
+(domain userAccount 1 NIXUser)
+(domain userAccount 2 NIXOptionPath)
+(domain memberOf 1 NIXUser)
+(domain memberOf 2 NIXGroup)
+(domain memberOf 3 NIXOptionPath)
+(domain commandName 1 NIXEntity)
+(domain commandName 2 NIXEntity)
+
+;; --- derived joins ------------------------------------------------------------
+(=>
+  (and (portDeclared ?svc ?port ?path))
+  (servicePort ?svc ?port))
+
+(=>
+  (and (portInferred ?svc ?port ?path))
+  (servicePort ?svc ?port))
+
+(=>
+  (and (listenerDeclared ?svc ?addr ?path))
+  (serviceListener ?svc ?addr))
+
+(=>
+  (and (listenerInferred ?svc ?addr ?path))
+  (serviceListener ?svc ?addr))
+
+;; The commands a service may run as, for rogue-listener attribution from `ss`.
+(commandName "services.postgresql" "postgres")
+(commandName "services.openssh" "sshd")
+(commandName "services.nginx" "nginx")
+
+;; A listener an enabled declared service is expected to hold.
+(=>
+  (and
+    (serviceListener ?svc ?addr)
+    (servicePort ?svc ?port)
+    (commandName ?svc ?cmd))
+  (expectedListener ?cmd ?addr ?port))
+
+;; --- rule 1: wildcard listener with no firewall allowance --------------------
+(=>
+  (and
+    (declaredService ?svc ?enablePath)
+    (firewallEnabled ?fwEnablePath)
+    (serviceListener ?svc "0.0.0.0")
+    (servicePort ?svc ?port)
+    (firewallTcpOption ?fwPath)
+    (not (firewallTcpAllowed ?port ?fwPath)))
+  (policyViolation ?svc NoFirewallAllowance))
+
+;; --- rule 2: declared-running unit not observed active (fresh attestation) ----
+(=>
+  (and
+    (declaredRunning ?svc ?enablePath)
+    (aliasOf ?svc ?unit)
+    (completeFor unitActive ?snap)
+    (freshSnapshot ?snap)
+    (not (observedActive ?unit ?snap)))
+  (drift ?unit))
+
+;; --- rule 2b: a listener with no enabled declared owner --------------------
+(=>
+  (and
+    (completeFor listener ?snap)
+    (freshSnapshot ?snap)
+    (observedListener ?cmd ?addr ?port ?snap)
+    (not (expectedListener ?cmd ?addr ?port)))
+  (rogueListener ?cmd ?addr ?port))
