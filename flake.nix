@@ -220,6 +220,9 @@
     nixosModules.default = { config, lib, pkgs, ... }:
       (import ./container/nixos/sumo.nix { inherit config lib pkgs; });
 
+    # M3A — resident metavisor: timer, observer, append-only event log.
+    nixosModules.sumonix-metavisor = import ./container/nixos/metavisor.nix;
+
     # NixOS configurations
     nixosConfigurations = {
       # Container configuration. Deferred: see container/README.md.

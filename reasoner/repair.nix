@@ -97,6 +97,12 @@ let
         enablePath = unquote (elemAt enableFact 2);
         ports = if port == null then currentAllowedPorts else
           currentAllowedPorts ++ (if elem port currentAllowedPorts then [ ] else [ port ]);
+        listenerFacts = filter
+          (f: headOf f == "listenerDeclared" && elemAt f 1 == svc && elemAt f 2 == "\"0.0.0.0\"")
+          base.facts;
+        listenerPath =
+          if listenerFacts == [ ] then null
+          else unquote (elemAt (head listenerFacts) 3);
       in
       if reason != "NoFirewallAllowance" then [ ]
       else
@@ -105,6 +111,12 @@ let
             name = "allow port " + toString port + " in the firewall";
             rank = 1;
             edits = [ { optionPath = "networking.firewall.allowedTCPPorts"; value = ports; } ];
+          }
+        ]) ++ (if listenerPath == null then [ ] else [
+          {
+            name = "bind " + unquote svc + " to localhost";
+            rank = 2;
+            edits = [ { optionPath = listenerPath; value = "localhost"; } ];
           }
         ]) ++ [
           {

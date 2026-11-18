@@ -3,11 +3,11 @@
 # Every subcommand evals in ~0.3–1.4 s warm; each has a 15 s guard (no hang).
 # Facts: SUMO_FACTS or /run/sumo/facts.kif (or demo/facts/host.kif in-repo).
 # Rules: SUMO_RULES then <worktree>/rules.kif, or the generated demo/vm/rules.kif in the VM.
-{ facts, rules, policies ? null, json ? false }:
+{ facts, rules, policies ? null, json ? false, metavisor ? null }:
 let
   inherit (builtins)
     all any attrNames attrValues concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString
-    length listToAttrs map sort split substring tail toString trace;
+    length listToAttrs map sort split stringLength substring tail toString trace;
 
   # Shared KIF helpers
   kif = import ../lib/kif.nix { };
@@ -59,6 +59,40 @@ let
 
   # Core datalog engine
   datalog = import ../datalog.nix { inherit ontology; facts = factForms; rules = allRules; };
+
+  # M3A — source-labeled drift surface. The declared facts come from the
+  # module's build-time lift (or `sumo lift`), never from hand-edited facts.
+  systemForms = parse (builtins.readFile ../system.kif);
+  metavisorRules = filter isRule systemForms;
+  metavisorOntology = import ../sumo.nix {
+    forms = parse (builtins.readFile ../sumo.full/Merge.kif)
+      ++ parse (builtins.readFile ../nix-domain.kif)
+      ++ filter (f: !(isRule f)) systemForms;
+  };
+
+  metavisorResult =
+    if metavisor == null then null
+    else
+      let
+        declared = {
+          facts = parse (builtins.readFile metavisor.declared);
+          rules = metavisorRules;
+          ontology = metavisorOntology;
+        };
+        observedPath = metavisor.observed or "";
+        observedText =
+          if observedPath != "" && builtins.pathExists observedPath
+          then builtins.readFile observedPath
+          else "";
+      in import ../reasoner/metavisor.nix {
+        inherit declared;
+        observed = observedText;
+        now = metavisor.now or builtins.currentTime;
+        declaredSource = metavisor.declared;
+        observedSource = if observedPath == "" then "observed.kif (missing)" else observedPath;
+      };
+
+  metavisorText = if metavisorResult == null then "" else metavisorResult.text + "\n";
 
   # Policy build gate
   buildGate = import ../policy/build-gate.nix { };
@@ -256,20 +290,26 @@ let
       pairs = map (k: "\"" + k + "\":" + toJSON (obj.${k})) keys;
     in "{" + concatStringsSep "," pairs + "}";
 
-  statusJSON = objToJSON {
-    services = serviceCount;
-    packages = packageCount;
-    capabilities = capabilityCount;
-    rounds = roundCount;
-    verdict = overallVerdict;
-    violations = map (v: {
-      name = v.name;
-      goal = v.goal;
-      proof = v.proof;
-      derived = v.derived;
-    }) violations;
-    sources = { live = liveCount; fixture = fixtureCount; };
-  };
+  statusJSON =
+    let
+      base = objToJSON {
+        services = serviceCount;
+        packages = packageCount;
+        capabilities = capabilityCount;
+        rounds = roundCount;
+        verdict = overallVerdict;
+        violations = map (v: {
+          name = v.name;
+          goal = v.goal;
+          proof = v.proof;
+          derived = v.derived;
+        }) violations;
+        sources = { live = liveCount; fixture = fixtureCount; };
+      };
+    in
+    if metavisorResult == null then base
+    else builtins.substring 0 (stringLength base - 1) base
+      + ",\"metavisor\":" + builtins.toJSON metavisorResult.json + "}";
 
   capsJSON = objToJSON {
     directCompositions = length directComps;
@@ -333,7 +373,7 @@ in {
     ─────────────────────────────────────────────────────────────
     ${violationsText}
     ─────────────────────────────────────────────────────────────
-    ${sourceSummary}
+    ${metavisorText}${sourceSummary}
     Run: sumo caps | sumo closure <pkg> | sumo query <goal> | sumo whatif | sumo dashboard
     '';
 
@@ -405,12 +445,18 @@ in {
   # why — Proof tree for a ground goal (structured, not just text)
   why = goal:
     let
-      derived = datalog.holds goal;
-      tree = if derived then datalog.why goal else null;
+      goalForms = parse goal;
+      goalForm = if goalForms != [ ] && isList (head goalForms) then head goalForms else null;
+      useMeta = metavisorResult != null && goalForm != null
+        && elem (headOf goalForm) [ "drift" "rogueListener" "observedActive" "observedListener" "completeFor" "freshSnapshot" ];
+      engine = if useMeta then metavisorResult.engine else datalog;
+      goal' = if useMeta then goalForm else goal;
+      derived = engine.holds goal';
+      tree = if derived then engine.why goal' else null;
     in if json then
       objToJSON { goal = goal; derived = derived; tree = tree; }
     else if derived then
-      datalog.explain goal
+      engine.explain goal'
     else
       "Goal underivable: " + goal;
 

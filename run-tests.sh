@@ -30,6 +30,7 @@ tests=(
   tests/unit/lift-config.nix
   tests/unit/drift.nix
   tests/unit/repair.nix
+  tests/unit/metavisor.nix
 )
 
 fail=0
@@ -43,6 +44,15 @@ for t in "${tests[@]}"; do
     fail=1
   fi
 done
+
+# Metavisor tick smoke test: observer -> drift -> event log -> status.
+printf '  %-44s ' "metavisor tick…"
+if ./tests/metavisor-smoke.sh > /dev/null 2>&1; then
+  echo "✓"
+else
+  echo "✗"
+  fail=1
+fi
 
 # Check README generation
 printf '  %-44s ' "README generation…"

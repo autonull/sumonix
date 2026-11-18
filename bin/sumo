@@ -31,16 +31,50 @@ if [ ! -f "$SUMO_POLICIES" ] || [ ! -s "$SUMO_POLICIES" ]; then
   SUMO_POLICIES=""
 fi
 
+# M3A — metavisor source-labeled drift. Prefer an explicit path, then the
+# NixOS module's files, then the repo's local runtime directory.
+SUMO_DECLARED="${SUMO_DECLARED:-}"
+SUMO_OBSERVED="${SUMO_OBSERVED:-}"
+if [ -z "$SUMO_DECLARED" ]; then
+  for p in /etc/sumo/declared.kif "${ROOT}/.runtime/declared.kif"; do
+    if [ -f "$p" ]; then SUMO_DECLARED="$p"; break; fi
+  done
+fi
+if [ -z "$SUMO_OBSERVED" ]; then
+  for p in /run/sumo/observed.kif "${ROOT}/.runtime/observed.kif"; do
+    if [ -f "$p" ]; then SUMO_OBSERVED="$p"; break; fi
+  done
+fi
+
 # Build the dispatcher with the current fact/rules/policies paths
 DISPATCHER="${ROOT}/bin/_sumo.nix"
+METAVISOR="${ROOT}/bin/_metavisor.nix"
 
-# Convert path to absolute
+# Convert path to absolute (does not require the target to exist).
 abs_path() {
   local p="$1"
   if [[ "$p" = /* ]]; then
-    echo "$p"
+    realpath -m "$p"
   else
-    echo "$(cd "$(dirname "$p")" && pwd)/$(basename "$p")"
+    realpath -m "$(pwd)/$p"
+  fi
+}
+
+# Quote a value as a Nix string literal.
+nix_quote() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  printf '"%s"' "$s"
+}
+
+default_configuration() {
+  if [ -f /etc/nixos/configuration.nix ]; then
+    echo /etc/nixos/configuration.nix
+  elif [ -f ./configuration.nix ]; then
+    abs_path ./configuration.nix
+  else
+    echo ""
   fi
 }
 
@@ -53,6 +87,13 @@ dispatcher_args() {
   if [ -n "$SUMO_POLICIES" ]; then
     local policies_abs=$(abs_path "$SUMO_POLICIES")
     args="${args}; policies = \"${policies_abs}\""
+  fi
+  if [ -n "$SUMO_DECLARED" ] && [ -f "$SUMO_DECLARED" ]; then
+    local declared_abs observed_abs
+    declared_abs=$(abs_path "$SUMO_DECLARED")
+    observed_abs=""
+    if [ -n "$SUMO_OBSERVED" ]; then observed_abs=$(abs_path "$SUMO_OBSERVED"); fi
+    args="${args}; metavisor = { declared = \"${declared_abs}\"; observed = \"${observed_abs}\"; }"
   fi
   echo "(import ${DISPATCHER} { ${args}; })"
 }
@@ -77,6 +118,12 @@ Commands:
   dashboard               Build and run the TUI over the digest (no TTY needed for --dump)
   refresh                 Re-collect live facts (sumo-facts on NixOS, demo/host-facts.sh elsewhere)
   guard [--json]          Policy check: exits 1 on violation, 0 when clean
+  lift [--configuration FILE] [--json]
+                          Lift a NixOS config to declared facts (option-path provenance)
+  drift [--declared FILE --observed FILE] [--now N] [--json|--journal]
+                          Source-labeled drift/rogue report (exits 1 on drift/violation)
+  repair [--configuration FILE] [--json]
+                          Ranked single-option repairs, each re-lifted and re-gated
   init [dir] [--force]    Scaffold a new sumonix project (facts/rules/policies + pre-commit + CI)
   lint [file...]          Lint KIF files for syntax errors
   version                 Show version
@@ -86,6 +133,8 @@ Environment:
   SUMO_FACTS    Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
   SUMO_RULES    Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
   SUMO_POLICIES Path to policies KIF (default: ./policies.kif, then none)
+  SUMO_DECLARED Path to lifted declared facts (default: /etc/sumo/declared.kif)
+  SUMO_OBSERVED Path to observer output (default: /run/sumo/observed.kif)
 
 Examples:
   sumo status
@@ -160,7 +209,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="($(dispatcher_args "${json_flag:-false}")).closure \"${pkg}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).closure $(nix_quote "$pkg")"
     run_nix "$expr"
     ;;
   query)
@@ -174,7 +223,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="($(dispatcher_args "${json_flag:-false}")).query \"${goal}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).query $(nix_quote "$goal")"
     run_nix "$expr"
     ;;
   ask)
@@ -188,7 +237,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="($(dispatcher_args "${json_flag:-false}")).ask \"${pattern}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).ask $(nix_quote "$pattern")"
     run_nix "$expr"
     ;;
   why)
@@ -202,7 +251,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="($(dispatcher_args "${json_flag:-false}")).why \"${goal}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).why $(nix_quote "$goal")"
     run_nix "$expr"
     ;;
   proof)
@@ -216,7 +265,7 @@ case "$cmd" in
       json_flag="true"
       shift
     fi
-    expr="($(dispatcher_args "${json_flag:-false}")).proofExport \"${goal}\""
+    expr="($(dispatcher_args "${json_flag:-false}")).proofExport $(nix_quote "$goal")"
     run_nix "$expr"
     ;;
   check)
@@ -307,6 +356,106 @@ case "$cmd" in
       fi
     fi
     exit 0
+    ;;
+  lift)
+    # sumo lift — lift a NixOS config to declared facts
+    conf=""
+    json_flag="false"
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --configuration) conf="${2:-}"; shift 2 ;;
+        --json) json_flag="true"; shift ;;
+        *) echo "sumo lift: unknown argument: $1" >&2; exit 2 ;;
+      esac
+    done
+    [ -z "$conf" ] && conf="$(default_configuration)"
+    if [ -z "$conf" ]; then
+      echo "sumo lift: no configuration found; pass --configuration FILE" >&2
+      exit 2
+    fi
+    if [ ! -f "$conf" ]; then
+      echo "sumo lift: configuration not found: $conf" >&2
+      exit 2
+    fi
+    conf="$(abs_path "$conf")"
+    field="text"
+    [ "$json_flag" = "true" ] && field="json"
+    expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).lift.${field}"
+    run_nix "$expr"
+    ;;
+  drift)
+    # sumo drift — source-labeled drift/rogue report over declared + observed
+    declared="$SUMO_DECLARED"
+    observed="$SUMO_OBSERVED"
+    now=""
+    mode="text"
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --declared) declared="${2:-}"; shift 2 ;;
+        --observed) observed="${2:-}"; shift 2 ;;
+        --now) now="${2:-}"; shift 2 ;;
+        --json) mode="json"; shift ;;
+        --journal) mode="journal"; shift ;;
+        *) echo "sumo drift: unknown argument: $1" >&2; exit 2 ;;
+      esac
+    done
+    if [ -z "$declared" ] || [ ! -f "$declared" ]; then
+      echo "sumo drift: no declared facts; run 'sumo lift' or pass --declared FILE" >&2
+      exit 2
+    fi
+    declared="$(abs_path "$declared")"
+    args="declaredFile = $(nix_quote "$declared")"
+    if [ -n "$observed" ]; then
+      observed="$(abs_path "$observed")"
+      args="$args; observedFile = $(nix_quote "$observed")"
+    fi
+    if [ -n "$now" ]; then
+      if ! [[ "$now" =~ ^[0-9]+$ ]]; then
+        echo "sumo drift: --now must be an integer" >&2
+        exit 2
+      fi
+      args="$args; now = $now"
+    fi
+    field="text"
+    case "$mode" in
+      json) field="json" ;;
+      journal) field="journalText" ;;
+    esac
+    expr="(import ${METAVISOR} { ${args}; }).drift.${field}"
+    result="$(run_nix "$expr")"
+    printf '%s\n' "$result"
+    if [ "$mode" = "json" ]; then
+      if printf '%s' "$result" | grep -q '"status":"\(drift\|violation\)"'; then exit 1; fi
+    else
+      if printf '%s' "$result" | grep -q 'status: \(drift\|violation\)'; then exit 1; fi
+    fi
+    exit 0
+    ;;
+  repair)
+    # sumo repair — ranked single-option repairs, each re-lifted and re-gated
+    conf=""
+    json_flag="false"
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --configuration) conf="${2:-}"; shift 2 ;;
+        --json) json_flag="true"; shift ;;
+        *) echo "sumo repair: unknown argument: $1" >&2; exit 2 ;;
+      esac
+    done
+    [ -z "$conf" ] && conf="$(default_configuration)"
+    if [ -z "$conf" ]; then
+      echo "sumo repair: no configuration found; pass --configuration FILE" >&2
+      exit 2
+    fi
+    if [ ! -f "$conf" ]; then
+      echo "sumo repair: configuration not found: $conf" >&2
+      exit 2
+    fi
+    conf="$(abs_path "$conf")"
+    field="text"
+    [ "$json_flag" = "true" ] && field="json"
+    expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).repairResult.${field}"
+    run_nix "$expr"
     ;;
   init)
     # sumo init — scaffold a new sumonix project

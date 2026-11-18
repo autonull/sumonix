@@ -165,7 +165,30 @@ Each bootstrap = converter + policy pack (KIF rules) + demo query. Pure Nix, no 
 # → "proof: 9 steps, independently re-checked ✓"
 ```
 
-**Unit tests:** `./run-tests.sh` runs every test in `tests/`, including the unit suites (`equivalents`, `synthesize`, `stratify`, `relax`, `congruence`, `builtins`, `disjunctive`, `soft-rules`, `wfs`, `existentials`, `temporal`).
+**Unit tests:** `./run-tests.sh` runs every test in `tests/`, including the unit suites (`equivalents`, `synthesize`, `stratify`, `relax`, `congruence`, `builtins`, `disjunctive`, `soft-rules`, `wfs`, `existentials`, `temporal`, `lift-config`, `drift`, `repair`, `metavisor`) and the metavisor tick smoke test.
+
+### Resident metavisor (M3A)
+
+```bash
+# On any NixOS host: declared facts are lifted from the live system config,
+# observed facts come from the dumb observer, and one timer tick turns the
+# difference into a proof, a journal line and an append-only JSON event.
+# imports = [ inputs.sumonix.nixosModules.sumonix-metavisor ];
+# services.sumonix-metavisor.enable = true;
+
+# The same operations without the module:
+sumo lift --configuration /etc/nixos/configuration.nix > declared.kif
+tools/observe.sh > observed.kif
+sumo drift --declared declared.kif --observed observed.kif
+
+# Repairs: one option edit per candidate, re-lifted and re-gated.
+sumo repair --configuration /etc/nixos/configuration.nix
+
+# The event log (append-only, one JSON line per new drift/violation):
+cat /var/lib/sumonix-metavisor/events.jsonl
+journalctl -t sumonix-metavisor
+```
+
 ## 📦 Repository Layout (Stable)
 
 ```
@@ -179,6 +202,11 @@ Each bootstrap = converter + policy pack (KIF rules) + demo query. Pure Nix, no 
 │   ├── synthesize.nix         # Declaration → Horn rules (TransitiveRelation, subrelation, inverse, …)
 │   ├── ingest.nix             # Merge.kif classification + transforms + stratifier cut
 │   ├── stratify.nix           # Predicate graph + strata + neg-cycle rejection
+│   ├── lift-config.nix        # Pure nixosConfig → KIF with option-path provenance
+│   ├── config-gate.nix         # Well-typedness + policy gate (throws with the why-tree)
+│   ├── drift.nix               # Attested drift + rogue listeners (Horn + NAF)
+│   ├── metavisor.nix           # Source labels + proof IDs over drift (M3A)
+│   ├── repair.nix              # One option edit per candidate, verified by re-lifting
 │   ├── proof.nix              # KIF certificate generator
 │   └── proof-artifact.nix     # Deterministic proof.kif for the CVE scenario
 ├── proof-check.nix            # Independent checker (zero shared code)
@@ -194,7 +222,14 @@ Each bootstrap = converter + policy pack (KIF rules) + demo query. Pure Nix, no 
 │       ├── equivalents.nix    # Equivalence subsumption
 │       ├── synthesize.nix     # Declaration-driven synthesis
 │       ├── stratify.nix       # Stratifier behavior
-│       └── relax.nix          # Relaxation menu behavior
+│       ├── relax.nix          # Relaxation menu behavior
+│       ├── lift-config.nix    # Lift + gate on real NixOS configs
+│       ├── drift.nix          # Drift / rogue / stale observation
+│       ├── repair.nix         # Verified single-option repair
+│       └── metavisor.nix      # Source-labeled surface + NixOS module wiring
+├── container/nixos/
+│   ├── sumo.nix               # services.sumonix (CLI, facts, guard)
+│   └── metavisor.nix          # services.sumonix-metavisor (timer + event log)
 ├── proof.kif                  # Committed artifact (9 steps, independently re-checked)
 ├── demo/                      # The 60-second demo: scenes, transcripts, asciinema casts
 │   ├── run                    # ./demo/run [scene ...] — replay the whole demo

@@ -131,7 +131,7 @@ artifact may blur that line.
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| `nixosModules.default` gains `sumonix-metavisor`: timer-driven refresh (exporter + M0.1 cache). `tools/observe.sh` exists (units + attributed listeners, hashed attestation, TTL); it is the dumb observer half. Observer emits snapshots + completeness attestations; TTL expiry pre-engine; timestamps as fact arguments (no temporal logic). **Persistent** append-only event log via `StateDirectory=sumonix-metavisor` (`/var/lib/…`, survives reboot); cache ephemeral. **Operator surface**: `sumo status` drift/violation section (source-labeled) + one structured journal line per event with proof ID. Degraded modes: observer dead → `unknown`; engine behind → snapshot mode, logged | Change → explained drift within one interval, visible in status **and** journal; `sumo why` works on drift; event log replayable; every fact labeled. **Module installs on a non-container host** | 1–2 d | ⬜ |
+| `nixosModules.sumonix-metavisor` carries `services.sumonix-metavisor`: a systemd service + timer drives `tools/metavisor.sh` (observer → M0.1 cache later). `tools/observe.sh` is the dumb observer half; the tick emits snapshots + completeness attestations; TTL expiry pre-engine; timestamps as fact arguments (no temporal logic). **Persistent** append-only event log via `StateDirectory=sumonix-metavisor` (`/var/lib/sumonix-metavisor/events.jsonl`, survives reboot); cache ephemeral. **Operator surface**: `sumo status` drift/violation section (source-labeled) + one structured journal line per new event with proof ID. `sumo lift|drift|repair` CLI. Degraded modes: observer dead → TTL expiry → `unknown`; engine behind → snapshot mode, logged | Change → explained drift within one interval, visible in status **and** journal; `sumo why` works on drift; event log replayable; every fact labeled. **Module evaluates and installs on a non-container host** (live-host soak is D1) | 1–2 d | ✅ |
 
 ### M4-lite — Repair, verified honestly · *the differentiator*
 
@@ -212,7 +212,7 @@ labeled `source: live`.
 | Violation → repair | 3 ranked option diffs, re-lifted/re-gated proofs (module + test) | ranked option diffs, proofs from re-lifted patched config |
 | Checker coverage of emitted kinds | 100% (gate certificate re-checked; zero new kinds) | 100% (thin loop adds zero kinds) |
 | Operator rules | 2 of 5 (firewall, drift/rogue) implemented + demonstrated | 5 demonstrated (system.kif v0) |
-| Demonstrable | asserted (M1/M2/M4 modules + 24 tests) | **D1 recorded live, byte-stable, in CI** |
+| Demonstrable | asserted (M1/M2/M4/M3A modules + 25 tests + tick smoke) | **D1 recorded live, byte-stable, in CI** |
 | Usable | — | 24 h real-host soak, zero false drift |
 
 ## Risks and honest limits
@@ -227,47 +227,46 @@ labeled `source: live`.
 ## If you only do three things
 
 **M1** (lifter + provenance + budget), **M2-lite** (attested drift on the existing kernel),
-**M4-lite** (one flip → one re-lift-verified patch). That trio's kernel core has landed
-(modules + 24 tests); M3A is the next step (timer, event log, operator surface, CLI);
-D1 makes it visible; everything else deepens it.
+**M4-lite** (one flip → one re-lift-verified patch). That trio's kernel core and the
+operator surface (M3A) have landed (modules + 25 tests + tick smoke); **D1** makes the
+loop visible live; everything else deepens it.
 
 ---
 
 ## Status log
 
+- **2026-11-18** — **M3A ✅**. `flake.nix` exports `nixosModules.sumonix-metavisor` (`container/nixos/metavisor.nix`): `services.sumonix-metavisor.enable` builds `/etc/sumo/declared.kif` by lifting *the host's own config* at build time, runs `tools/metavisor.sh` from a systemd timer (`StateDirectory=sumonix-metavisor`, `SUMO_OBSERVE_TTL=2×interval`), and wires the observer path. The tick writes `/run/sumo/observed.kif` via `tools/observe.sh`, evaluates declared + observed at one frozen `now` through `reasoner/metavisor.nix` (source labels + `sha256:` proof IDs, no new step kinds), appends one JSON line per *new* drift/violation to `events.jsonl` (deduped by proof-ID signature), and logs one `logger -t sumonix-metavisor` line per new event. `sumo status` gains a source-labeled METAVISOR section (non-JSON and JSON); `sumo drift --journal` feeds the journal; `sumo why '(drift "...")'` uses the drift engine. Degraded: observer dead → TTL expiry → `unknown` with a reason; eval failure → `engine-unavailable` event; tick slower than interval → "engine behind … snapshot mode" journal line. CLI: `sumo lift --configuration FILE`, `sumo drift --declared FILE --observed FILE [--now N] [--json|--journal]`, `sumo repair --configuration FILE`. Measured: `sumo lift` ~3.5 s cold (NixOS config eval), warm `sumo drift` ~0.1–1.5 s, tick ~0.15 s warm. `reasoner/repair.nix` now defaults to the 3 ranked patches (allow port, bind localhost, disable service). Tests: **25** (lift-config, drift, repair, metavisor) + `tests/metavisor-smoke.sh` (drift → dedup → resolved → status → why → stale=unknown); all green, `demo/run` byte-identical. Live module install on a real non-container host remains in **D1/soak**; rules 3–5 (unit user, secret modes, licenses) remain deferred.
 - **2026-11-17** — Thin-loop core landed. **M1 ✅**: `reasoner/lift-config.nix` (pure slice lift, option-path provenance, inferred defaults, ambiguous joins), `system.kif` v0 (rules 1–2 + signatures + alias/command joins), `reasoner/config-gate.nix` (well-typedness + policy gate, throws with the why-tree, exports a KIF certificate and forces the independent checker). Real postgres + strict firewall fails with a proof naming `services.postgresql.enable`, `services.postgresql.settings.listen_addresses`, `services.postgresql.settings.port`, and `networking.firewall.allowedTCPPorts`; the 22 KB certificate re-checks as 3 steps. Measured: config eval ~0.96 s, lift+gate+checker ~1.48 s (**gate adds ~0.4–0.5 s**, under the 2 s budget). **M2-lite 🟡**: `reasoner/drift.nix` + `tools/observe.sh`; drift/rogue proofs, TTL pre-filter, stale/partial → `unknown`, zero new step kinds. Live CI-container run remains in D1. **M4-lite 🟡**: `reasoner/repair.nix`; 3 ranked patches (allow 5432 / bind localhost / disable postgres), each re-lifted and re-gated, option diffs + fact diffs, rejections for multi-path, uncontrolled, and failed re-lift. Live apply/rebuild remains in D1. Test suite: **24 tests** (lift-config, drift, repair added), all green. `demo/run` byte-identical. `equal` → `aliasOf` (kernel reserves `equal`), store-path identity deferred (Nix rejects store-path strings in eval). Next: **M3A** (timer, event log, operator surface, `sumo lift|drift|repair` CLI) then **D1**.
 - **2026-11-16 (rev 2)** — Effectiveness evaluation applied: islands moved behind triggers; thin loop on existing kernel (zero new step kinds); repair verified by re-lift via `extendModules`; M1 eval budget; D1 + operator surface + system.kif v0 + soak as definition of done; two-scope fact-volume control; estimates corrected (~2–3 weeks to D1). Supersedes TODO4. Next: **M1**.
 - **2026-11-16 (rev 1)** — Initial metavisor plan; superseded by rev 2 same day.
 
 
-## Next (from 2026-11-17)
+## Next (from 2026-11-18)
 
-1. **M3A — resident loop + operator surface** (next session). Add
-   `nixosModules.sumonix-metavisor` to `flake.nix`: a systemd service + timer that
-   runs `tools/observe.sh` into `.runtime/observed.kif` (or `/run/sumo/observed.kif`),
-   a `StateDirectory=sumonix-metavisor` append-only event log (one JSON line per
-   drift/violation with proof ID), and `sumo status` drift/violation section
-   (source-labeled). CLI: `sumo lift [--configuration FILE]`, `sumo drift
-   [--declared FILE --observed FILE]`, `sumo repair [--configuration FILE]`.
-   Degraded modes: observer dead → `unknown`; engine behind → snapshot mode, logged.
-   Acceptance: change → explained drift within one interval, visible in status and
-   journal; module installs on a non-container host.
-
-2. **D1 — the recorded tour.** `tools/metavisor-tour.sh` drives the three scenes
-   (postgres+firewall fails eval with proof → fix, boot, stop postgres → drift with
-   proof → `sumo repair`, apply, rebuild, gate passes) on the CI container;
-   asciinema cast + byte-stable transcript; README section regenerated. Acceptance:
+1. **D1 — the recorded tour** (next). `tools/metavisor-tour.sh` drives the three
+   scenes (postgres+firewall fails eval with proof → fix, boot, stop postgres →
+   drift with proof → `sumo repair`, apply, rebuild, gate passes) on the CI
+   container; asciinema cast + byte-stable transcript; README section regenerated.
+   The tour must also install `nixosModules.sumonix-metavisor` on a non-container
+   host and show the tick's journal line + `events.jsonl` increment. Acceptance:
    `source: live`, reproducible from a clean checkout, doubles as the end-to-end
-   regression test.
+   regression test. **M3A is complete but only proven in tests + smoke, not yet on
+   a real host**; D1 closes that gap.
 
-3. **M0 support** — M0.1 cache keyed on facts+rules+ontology+engine version,
-   M0.2 located KIF diagnostics, M0.3 `buildGoModule`/aarch64 housekeeping. M0 is
-   not on the thin loop; do it before the operator surface is called usable.
+2. **M0 support** — M0.1 cache keyed on facts+rules+ontology+engine version;
+   M0.2 located KIF diagnostics; M0.3 `buildGoModule`/aarch64 housekeeping. The
+   metavisor tick re-evaluates declared + observed each interval, so M0.1 is now
+   the highest-value support item (currently ~0.1–1.5 s warm).
+
+3. **M3B — rules 3–4 + audit scope.** `system.kif` rule 3 (unit user ≠ declared
+   user, observed from `systemctl show -p User`), rule 4 (declared secret path
+   world-readable, observed via `stat`), then rule 5 (closure license) with M5's
+   audit scope. The observer stays dumb; new facts are attested and TTL'd.
 
 4. **Blocked / known** — store-path identity joins are deferred: Nix rejects
    store-path-looking strings during eval; use unit/pname joins until an audit
    path (or `--store` metadata) can carry the store path safely. Listener
    completeness needs `ss -ltnp` process attribution (root); non-root observers
    stay `unknown` (R1). `declaredRunning` means "enabled"; a stopped-but-enabled
-   unit is drift, not a violation. `system.kif` rules 3–5 (unit user, secret
-   modes, licenses) land with M3A / the audit scope.
+   unit is drift, not a violation. The observer's completeness claim is a trust
+   input (R2), not something the checker can verify.

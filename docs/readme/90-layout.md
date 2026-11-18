@@ -11,6 +11,11 @@
 │   ├── synthesize.nix         # Declaration → Horn rules (TransitiveRelation, subrelation, inverse, …)
 │   ├── ingest.nix             # Merge.kif classification + transforms + stratifier cut
 │   ├── stratify.nix           # Predicate graph + strata + neg-cycle rejection
+│   ├── lift-config.nix        # Pure nixosConfig → KIF with option-path provenance
+│   ├── config-gate.nix         # Well-typedness + policy gate (throws with the why-tree)
+│   ├── drift.nix               # Attested drift + rogue listeners (Horn + NAF)
+│   ├── metavisor.nix           # Source labels + proof IDs over drift (M3A)
+│   ├── repair.nix              # One option edit per candidate, verified by re-lifting
 │   ├── proof.nix              # KIF certificate generator
 │   └── proof-artifact.nix     # Deterministic proof.kif for the CVE scenario
 ├── proof-check.nix            # Independent checker (zero shared code)
@@ -26,7 +31,14 @@
 │       ├── equivalents.nix    # Equivalence subsumption
 │       ├── synthesize.nix     # Declaration-driven synthesis
 │       ├── stratify.nix       # Stratifier behavior
-│       └── relax.nix          # Relaxation menu behavior
+│       ├── relax.nix          # Relaxation menu behavior
+│       ├── lift-config.nix    # Lift + gate on real NixOS configs
+│       ├── drift.nix          # Drift / rogue / stale observation
+│       ├── repair.nix         # Verified single-option repair
+│       └── metavisor.nix      # Source-labeled surface + NixOS module wiring
+├── container/nixos/
+│   ├── sumo.nix               # services.sumonix (CLI, facts, guard)
+│   └── metavisor.nix          # services.sumonix-metavisor (timer + event log)
 ├── proof.kif                  # Committed artifact (9 steps, independently re-checked)
 ├── demo/                      # The 60-second demo: scenes, transcripts, asciinema casts
 │   ├── run                    # ./demo/run [scene ...] — replay the whole demo
