@@ -1,11 +1,11 @@
-# container/ — deferred: a real NixOS system under Podman
+# container/ — a real NixOS system under Podman
 
-**Status: parked, not part of the current deliverable.** The demo ships as a
-host-native session (`tools/tour.sh`). This directory keeps the work that was
-done on the container so it can be finished later without rediscovering it.
-
-Everything here builds and boots. It does not yet pass its own acceptance gate:
-one systemd unit still fails and `sumo` inside the guest is unverified.
+**Status: the D1 harness.** `tools/metavisor-tour.sh` builds this image, boots
+it, and drives the three metavisor scenes against its real systemd:
+`sumo gate` fails on a contradicting module, a stopped postgres unit becomes
+proven drift after one timer tick, and the ranked repair patch rebuilds the
+whole system through the same gate. The host-native demo (`tools/tour.sh`)
+stays the default; this container is the live regression test.
 
 ## What works
 
@@ -16,19 +16,21 @@ one systemd unit still fails and `sumo` inside the guest is unverified.
 | Image imports and boots | `podman import --change 'CMD ["/sbin/init"]' …` then `podman run --systemd=always -d` |
 | systemd is PID 1 | `podman exec … /run/current-system/sw/bin/systemctl is-system-running` |
 
-## What is unfinished
+## What is verified
 
-1. `systemctl is-system-running` reports `degraded`, not `running`.
-   Units are masked in `container.nix` one at a time as they fail
-   (`run-wrappers.mount`, `nix-channel-init.service`, `systemd-logind.service`,
-   `suid-sgid-wrappers.service`, and D-Bus is disabled). The next failing unit
-   must be identified from `systemctl --failed` after each rebuild.
-2. `sumo status` inside the guest is **not** verified. `nix eval` as the `demo`
-   user in a rootless container is the open question: `NIX_STATE_DIR` is
-   `/run/sumo/nix-state` (created 0777 by `systemd.tmpfiles.rules`), and the
-   wrapper sets `NIX_REMOTE`, `NIX_STORE_DIR`, `NIX_PATH`.
-3. `nginx` is configured but not yet asserted active inside the running image.
-4. No recordings or measurements were taken from the container.
+| Scene | Evidence |
+|---|---|
+| Gate | `sumo gate --configuration nixos/d1-bad.nix` exits 1 with a proof naming `services.postgresql.settings.listen_addresses` and `networking.firewall.allowedTCPPorts`; the image build itself is gated (module assertion) |
+| Drift | stop `postgresql`, force one `sumonix-metavisor.service` tick → `sumo status` says `drift`, the journal gets a structured line, `events.jsonl` gains one JSON line |
+| Violation | `nc -l 0.0.0.0 9999` → the next tick reports `rogueListener` with a proof |
+| Repair | `sumo repair --configuration /etc/nixos/bad.nix` → 3 ranked single-option patches, each re-lifted and re-gated in ~5 s |
+| Rebuild | apply patch #1, `nixos-rebuild build` with `NIXOS_CONFIG=/tmp/patched.nix` → the gate passes and the system builds (~1.5 min) |
+
+Known limits: `systemctl is-system-running` reports `degraded`
+(`sys-kernel-debug.mount` and `sys-kernel-tracing.mount` fail in a rootless
+container; they are kernel filesystems, not the demo); the rebuild is slower than
+the image because `nixos-rebuild` labels the system `26.11pre-git`, so the store
+relinks a few paths.
 
 ## Layout
 

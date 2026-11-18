@@ -15,6 +15,10 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 export NIX_STORE_DIR="${NIX_STORE_DIR:-${ROOT}/.nix-store}"
 export NIX_STATE_DIR="${NIX_STATE_DIR:-${ROOT}/.nix-state}"
 
+# Keep Nix's eval cache inside the repo so its size is visible and prunable
+# (it otherwise hides ~300 MB in ~/.cache/nix). Respect an explicit override.
+export XDG_CACHE_HOME="${XDG_CACHE_HOME:-${ROOT}/.runtime/cache-home}"
+
 # Root store for *building*. Nix keeps logical paths as /nix/store/... (so
 # binary-cache hashes match) but puts the NARs under ${ROOT}/.nix-root.
 # Nothing is written outside the repository; no root privileges needed.

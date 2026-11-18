@@ -184,6 +184,9 @@ sumo drift --declared declared.kif --observed observed.kif
 # Repairs: one option edit per candidate, re-lifted and re-gated.
 sumo repair --configuration /etc/nixos/configuration.nix
 
+# The gate alone: exits 1 with the why-tree when the config contradicts system.kif.
+sumo gate --configuration /etc/nixos/configuration.nix
+
 # The event log (append-only, one JSON line per new drift/violation):
 cat /var/lib/sumonix-metavisor/events.jsonl
 journalctl -t sumonix-metavisor
@@ -362,12 +365,144 @@ The engine runs under `nix eval`, so every subcommand costs roughly a second of
 evaluation. The demo stays inside the two-run budget; `sumo dashboard` refreshes
 on a timer rather than on keystroke.
 
-### The NixOS container (deferred)
+### The live loop, in a container (D1)
 
-`container/` holds a real NixOS-in-Podman integration — `services.sumonix.enable`,
-a live facts exporter, `sumonix-guard`. It builds an image and boots systemd, but
-it does not yet pass its own gate, so it is not part of the demo above. See
-`container/README.md` for exactly what works and what does not.
+`./tools/metavisor-tour.sh` drives the three metavisor scenes against a real
+NixOS-in-Podman systemd host — no fixtures, no mocks:
+
+1. **The gate** — a NixOS module with a wildcard postgres listener and a closed
+   firewall fails `sumo gate` with a proof naming both option paths.
+2. **Live drift** — the declared unit is stopped; one timer tick later
+   `sumo status` and the journal carry the drift with its proof. A listener
+   nobody declared is a violation, not a guess.
+3. **Verified repair** — `sumo repair` ranks single-option patches, each
+   re-lifted and re-gated; the top patch is applied and the whole system
+   rebuilds through the same gate.
+
+The transcript is normalized (timestamps, snapshot ids, hashes) and
+byte-compared in CI, so a changed claim fails the build:
+
+```console
+
+1 · The gate: postgres listens on 0.0.0.0, the firewall allows nothing
+    -> the eval fails with a proof naming both option paths
+
+$ ./bin/sumo gate --configuration container/nixos/d1-bad.nix
+gate: violation — the configuration contradicts system.kif
+(policyViolation "services.postgresql" NoFirewallAllowance)    by policyViolation#6
+  (declaredService "services.postgresql" "services.postgresql.enable")    asserted
+  (firewallEnabled "networking.firewall.enable")    asserted
+  (serviceListener "services.postgresql" "0.0.0.0")    by serviceListener#3
+    (listenerDeclared "services.postgresql" "0.0.0.0" "services.postgresql.settings.listen_addresses")    asserted
+  (servicePort "services.postgresql" "5432")    by servicePort#2
+    (portInferred "services.postgresql" "5432" "services.postgresql.settings.port")    asserted
+  (firewallTcpOption "networking.firewall.allowedTCPPorts")    asserted
+
+2 · Stop the declared unit; one timer tick later the drift is proven
+
+$ systemctl stop postgresql
+$ run the metavisor tick
+🛰 METAVISOR (source-labeled)
+  declared: /etc/sumo/declared.kif (<n> facts)
+  observed: /run/sumo/observed.kif (<n> facts, snapshot snap-<id>, exporter <exporter>)
+  status: drift
+  drift:
+    - unit postgresql.service  (sha256:<hash>)
+      (drift "postgresql.service")    by drift#7
+        (declaredRunning "services.postgresql" "services.postgresql.enable")    asserted
+        (aliasOf "services.postgresql" "postgresql.service")    asserted
+        (completeFor unitActive "snap-<id>")    asserted
+        (freshSnapshot "snap-<id>")    asserted
+journal: drift unit=postgresql.service (proof sha256:<hash>)
+
+    and a listener nobody declared is a violation, not a guess
+
+$ nc -l 0.0.0.0 9999   # a rogue listener
+🛰 METAVISOR (source-labeled)
+  declared: /etc/sumo/declared.kif (<n> facts)
+  observed: /run/sumo/observed.kif (<n> facts, snapshot snap-<id>, exporter <exporter>)
+  status: violation
+  drift:
+    - unit postgresql.service  (sha256:<hash>)
+      (drift "postgresql.service")    by drift#7
+        (declaredRunning "services.postgresql" "services.postgresql.enable")    asserted
+        (aliasOf "services.postgresql" "postgresql.service")    asserted
+        (completeFor unitActive "snap-<id>")    asserted
+        (freshSnapshot "snap-<id>")    asserted
+  rogue listener:
+    - nc on 0.0.0.0:9999  (sha256:<hash>)
+      (rogueListener "nc" "0.0.0.0" "9999")    by rogueListener#8
+        (completeFor listener "snap-<id>")    asserted
+        (freshSnapshot "snap-<id>")    asserted
+        (observedListener "nc" "0.0.0.0" "9999" "snap-<id>")    asserted
+journal: rogueListener process=nc addr=0.0.0.0 port=9999 (proof sha256:<hash>)
+
+3 · Repair: ranked single-option patches, each re-lifted and re-gated
+
+$ podman exec sumonix-demo /run/current-system/sw/bin/bash -lc /run/current-system/sw/bin/sumo repair --configuration /etc/nixos/bad.nix
+base gate: violation
+(policyViolation "services.postgresql" NoFirewallAllowance)    by policyViolation#6
+  (declaredService "services.postgresql" "services.postgresql.enable")    asserted
+  (firewallEnabled "networking.firewall.enable")    asserted
+  (serviceListener "services.postgresql" "0.0.0.0")    by serviceListener#3
+    (listenerDeclared "services.postgresql" "0.0.0.0" "services.postgresql.settings.listen_addresses")    asserted
+  (servicePort "services.postgresql" "5432")    by servicePort#2
+    (portInferred "services.postgresql" "5432" "services.postgresql.settings.port")    asserted
+  (firewallTcpOption "networking.firewall.allowedTCPPorts")    asserted
+candidates: 3, verified: 3, rejected: 0
+
+#1 allow port 5432 in the firewall
+--- a/configuration.nix
++++ b/configuration.nix
+@@ networking.firewall.allowedTCPPorts @@
+-  networking.firewall.allowedTCPPorts = [];
++  networking.firewall.allowedTCPPorts = [5432];
+re-lifted gate: pass
+no derivable policyViolation; all lifted facts well typed
+
+#2 bind services.postgresql to localhost
+--- a/configuration.nix
++++ b/configuration.nix
+@@ services.postgresql.settings.listen_addresses @@
+-  services.postgresql.settings.listen_addresses = "0.0.0.0";
++  services.postgresql.settings.listen_addresses = "localhost";
+re-lifted gate: pass
+no derivable policyViolation; all lifted facts well typed
+
+#3 disable services.postgresql
+--- a/configuration.nix
++++ b/configuration.nix
+@@ services.postgresql.enable @@
+-  services.postgresql.enable = true;
++  services.postgresql.enable = false;
+re-lifted gate: pass
+no derivable policyViolation; all lifted facts well typed
+$ apply #1: networking.firewall.allowedTCPPorts = [5432]
+
+$ nixos-rebuild build   # the gate runs inside the rebuild
+nixos-rebuild build: gate passed, the patched system built
+
+$ podman exec sumonix-demo /run/current-system/sw/bin/bash -lc /run/current-system/sw/bin/sumo repair --configuration /tmp/patched.nix
+base gate: pass
+no violation to repair
+candidates: 0, verified: 0, rejected: 0
+
+no verified repair
+
+4 · Rootless limit, stated not hidden: postgres runs as its own uid, so
+    `ss` cannot attribute its socket -> status unknown, never a false pass (R1)
+
+🛰 METAVISOR (source-labeled)
+  declared: /etc/sumo/declared.kif (<n> facts)
+  observed: /run/sumo/observed.kif (<n> facts, snapshot snap-<id>, exporter <exporter>)
+  status: unknown - observation partial: need fresh completeFor unitActive and listener attestations
+journal: unknown: observation partial: need fresh completeFor unitActive and listener attestations
+```
+
+Record the cast with `./tools/metavisor-tour.sh --record` →
+`docs/demo/metavisor-tour.cast`. The container harness is
+`./container/run.sh build|run`, and its NixOS configuration is
+`container/container.nix`.
 
 ## 📖 Further Reading
 

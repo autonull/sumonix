@@ -15,7 +15,8 @@ set -euo pipefail
 export LC_ALL=C
 
 ttl="${SUMO_OBSERVE_TTL:-60}"
-exporter="${SUMO_OBSERVER_ID:-$(hostname 2>/dev/null || echo unknown)}"
+# hostname(1) is not always on the observer's PATH; the kernel's copy is.
+exporter="${SUMO_OBSERVER_ID:-$(cat /proc/sys/kernel/hostname 2>/dev/null || echo unknown)}"
 ts="$(date +%s)"
 boot="$(cut -c1-8 /proc/sys/kernel/random/boot_id 2>/dev/null || echo "$$")"
 id="snap-${ts}-${boot}"

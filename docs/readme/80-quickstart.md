@@ -41,6 +41,9 @@ sumo drift --declared declared.kif --observed observed.kif
 # Repairs: one option edit per candidate, re-lifted and re-gated.
 sumo repair --configuration /etc/nixos/configuration.nix
 
+# The gate alone: exits 1 with the why-tree when the config contradicts system.kif.
+sumo gate --configuration /etc/nixos/configuration.nix
+
 # The event log (append-only, one JSON line per new drift/violation):
 cat /var/lib/sumonix-metavisor/events.jsonl
 journalctl -t sumonix-metavisor

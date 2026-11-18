@@ -108,10 +108,11 @@ artifact may blur that line.
 ## Milestones — the thin loop (M0 → D1)
 
 **Progress (2026-11-18):** M0 ✅ (M0.3 awaits the two-arch CI run) · M1 ✅ ·
-M2-lite 🟡 (kernel + observer done; live container proof is D1) · M3A ✅ ·
-M4-lite 🟡 (patches + re-lift proofs done; live apply is D1) · **D1 ⬜ — the only
-open milestone in the thin loop.** Deepening (M2.5/M3.5/M5/M6) stays behind its
-triggers.
+M2-lite ✅ (proven live in the container) · M3A ✅ · M4-lite ✅ (patches, re-lift
+proofs, live apply + rebuild in the container) · **D1 ✅ — the three scenes are
+recorded live, the transcript is byte-checked in CI.** What remains is not a
+milestone but the soak: install the module on one real non-container host for 24 h
+with zero false drift claims.
 
 ### M0 — Support work
 
@@ -149,7 +150,7 @@ triggers.
 
 | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- |
-| `tools/metavisor-tour.sh` driving the three scenes above on the CI container; asciinema cast + byte-stable transcript in CI; README section regenerated | D1 recorded, `source: live`, reproducible from a clean checkout; doubles as the end-to-end regression test | 1 d | ⬜ |
+| `tools/metavisor-tour.sh` driving the three scenes above on the CI container; asciinema cast + byte-stable transcript in CI; README section regenerated | D1 recorded, `source: live`, reproducible from a clean checkout; doubles as the end-to-end regression test | 1 d | ✅ |
 
 **Thin loop total: ~2–3 weeks.** M1 → M2-lite → M3A → M4-lite → D1. Close it end-to-end
 before deepening anything.
@@ -214,11 +215,11 @@ labeled `source: live`.
 | Declared state as facts | 395 facts on the postgres config, option-path provenance; **gate +0.4 s measured** | slice with option-path provenance; **gate eval overhead <2 s, measured** |
 | Observed state | `tools/observe.sh`: units + attributed listeners, hashed TTL'd attestation | units/listeners/users/secret-modes, attested-complete, TTL'd, labeled |
 | Config contradiction | real postgres+firewall fails eval with proof; checker re-verifies | real config fails eval with proof |
-| Change → explained drift | kernel + tests; live observer exists; interval/status/journal in M3A | <1 interval, visible in status + journal, with proof |
-| Violation → repair | 3 ranked option diffs, re-lifted/re-gated proofs (module + test) | ranked option diffs, proofs from re-lifted patched config |
+| Change → explained drift | **live container**: stop `postgresql` → next tick says `drift` with the proof, journal + `events.jsonl` | <1 interval, visible in status + journal, with proof |
+| Violation → repair | **live container**: `nc -l 0.0.0.0 9999` → `rogueListener` with proof; `sumo repair` → 3 ranked patches, each re-lifted and re-gated; patch #1 rebuilds the system | ranked option diffs, proofs from re-lifted patched config |
 | Checker coverage of emitted kinds | 100% (gate certificate re-checked; zero new kinds) | 100% (thin loop adds zero kinds) |
 | Operator rules | 2 of 5 (firewall, drift/rogue) implemented + demonstrated | 5 demonstrated (system.kif v0) |
-| Demonstrable | asserted (M1/M2/M4/M3A modules + 25 tests + tick smoke) | **D1 recorded live, byte-stable, in CI** |
+| Demonstrable | asserted (M1/M2/M4/M3A modules + 27 tests + tick smoke) | **D1 recorded live, byte-stable, in CI** |
 | Usable | — | 24 h real-host soak, zero false drift |
 
 ## Risks and honest limits
@@ -241,6 +242,33 @@ loop visible live; everything else deepens it.
 
 ## Status log
 
+- **2026-11-18 (D1)** — **D1 ✅ (container) / soak ⬜.** `tools/metavisor-tour.sh`
+  builds the image once, then drives the three scenes against the container's real
+  systemd and writes `demo/transcripts/06-metavisor-live.txt` (130 lines); a second
+  run byte-matches it (`--check`), and `--record` writes
+  `docs/demo/metavisor-tour.cast`. **Scene 1**: `sumo gate --configuration
+  nixos/d1-bad.nix` (wildcard postgres + closed firewall) exits 1 with a proof
+  naming `services.postgresql.settings.listen_addresses` and
+  `networking.firewall.allowedTCPPorts` in ~2.4 s warm; the fixed module exits 0.
+  The same gate now runs *inside the NixOS module as an assertion*, so the image
+  build itself cannot pass a contradicting config. **Scene 2**: `systemctl stop
+  postgresql`, one forced `sumonix-metavisor` tick → `sumo status` says `drift`
+  with the proof, `journalctl -t sumonix-metavisor` records it, `events.jsonl`
+  grows; `nc -l 0.0.0.0 9999` → `rogueListener` with a proof in the same tick.
+  **Scene 3**: `sumo repair --configuration /etc/nixos/bad.nix` → 3 ranked
+  single-option patches in ~5 s, each re-lifted and re-gated; patch #1 is applied
+  to `/tmp/patched.nix` and the whole system rebuilds through the gate
+  (`nixos-rebuild build`, ~90 s; 59 store paths fetched in the container because
+  the rebuild instantiates the full system). **Honest limit, now stated in the
+  tour itself**: postgres runs as its own uid, rootless `ss` cannot attribute its
+  socket, so the final state is `unknown` with the partial-completeness reason —
+  never a false `pass` (R1). The container is now postgres-only (nginx removed);
+  nginx's unattributable listener was the noise in earlier drift claims. Observer
+  fixes: `logger` via `util-linux` in the observer PATH, `hostname` from
+  `/proc`, `realpath -ms` keeps `/etc/sumo/...` labels instead of store hashes.
+  CI gains `metavisor-tour` (podman + `--check`). Tests: **26** + gate checks in
+  `tests/metavisor-smoke.sh`; `demo/run` byte-identical; README regenerated.
+  Remaining: the 24 h non-container host soak and the two-arch CI run.
 - **2026-11-18 (M0)** — **M0.1 ✅ / M0.2 ✅ / M0.3 🟡**. **Cache**: `bin/sumo` keys `.runtime/cache/<digest>/<predicate>/` on sha256(engine version + `_sumo.nix`/`_metavisor.nix`/`reasoner/*.nix`/`lib/kif*.nix`/`sumo.nix`/`system.kif`/`rules.kif`/`nix-domain.kif`/`Merge.kif` + facts/rules/policies/declared/observed/configuration contents). Each entry stores `sha256`, exit code, expression, timestamp; a mismatch warns (`cache entry … failed its checksum; recomputing`) and recomputes, never serves. `--no-cache`/`SUMO_NO_CACHE=1` bypass reads **and** writes; `SUMO_CACHE_DIR` relocates the root. Cacheable: caps, closure, query, ask, proof, check, relax, whatif, guard, lift, repair, lint, and `status`/`why` only when no metavisor facts are configured; `drift` and metavisor `status`/`why` are excluded because their answer depends on attestation freshness. Measured: warm caps 28 ms, warm status 32 ms (was 1.2–1.9 s). **Error UX**: `lib/kif-diag.nix` scans with 1-based line/col (unclosed/unbalanced parens, unterminated strings) and suggests near-miss predicates only when a domain-neighbour exists, so extension predicates stay silent; `_sumo.nix` `lint` returns `ok|fail` + report, `sumo lint` prints `file:line:col`, exits 1/2, no Nix trace. **Housekeeping**: `sumo-tui` → `buildGoModule` + `vendorHash` (`go mod vendor` + `nix hash path --sri`, `sha256-/PkD+…`); CI matrix on `ubuntu-latest` + `ubuntu-24.04-arm` running native `nix flake check` and package builds (a cross `--all-systems` check cannot build the other arch); `container/nix/sumo-facts.sh` accepts `FACTS_DIR` and has a stubbed `systemctl`/`ss`/`nix-store` test that asserts emitted KIF parses. Tests: **26** + `cache-smoke` + `sumo-facts`; `demo/run` byte-identical; README check green. M0.3 stays 🟡 until the two-arch CI run is green.
 - **2026-11-18** — **M3A ✅**. `flake.nix` exports `nixosModules.sumonix-metavisor` (`container/nixos/metavisor.nix`): `services.sumonix-metavisor.enable` builds `/etc/sumo/declared.kif` by lifting *the host's own config* at build time, runs `tools/metavisor.sh` from a systemd timer (`StateDirectory=sumonix-metavisor`, `SUMO_OBSERVE_TTL=2×interval`), and wires the observer path. The tick writes `/run/sumo/observed.kif` via `tools/observe.sh`, evaluates declared + observed at one frozen `now` through `reasoner/metavisor.nix` (source labels + `sha256:` proof IDs, no new step kinds), appends one JSON line per *new* drift/violation to `events.jsonl` (deduped by proof-ID signature), and logs one `logger -t sumonix-metavisor` line per new event. `sumo status` gains a source-labeled METAVISOR section (non-JSON and JSON); `sumo drift --journal` feeds the journal; `sumo why '(drift "...")'` uses the drift engine. Degraded: observer dead → TTL expiry → `unknown` with a reason; eval failure → `engine-unavailable` event; tick slower than interval → "engine behind … snapshot mode" journal line. CLI: `sumo lift --configuration FILE`, `sumo drift --declared FILE --observed FILE [--now N] [--json|--journal]`, `sumo repair --configuration FILE`. Measured: `sumo lift` ~3.5 s cold (NixOS config eval), warm `sumo drift` ~0.1–1.5 s, tick ~0.15 s warm. `reasoner/repair.nix` now defaults to the 3 ranked patches (allow port, bind localhost, disable service). Tests: **25** (lift-config, drift, repair, metavisor) + `tests/metavisor-smoke.sh` (drift → dedup → resolved → status → why → stale=unknown); all green, `demo/run` byte-identical. Live module install on a real non-container host remains in **D1/soak**; rules 3–5 (unit user, secret modes, licenses) remain deferred.
 - **2026-11-17** — Thin-loop core landed. **M1 ✅**: `reasoner/lift-config.nix` (pure slice lift, option-path provenance, inferred defaults, ambiguous joins), `system.kif` v0 (rules 1–2 + signatures + alias/command joins), `reasoner/config-gate.nix` (well-typedness + policy gate, throws with the why-tree, exports a KIF certificate and forces the independent checker). Real postgres + strict firewall fails with a proof naming `services.postgresql.enable`, `services.postgresql.settings.listen_addresses`, `services.postgresql.settings.port`, and `networking.firewall.allowedTCPPorts`; the 22 KB certificate re-checks as 3 steps. Measured: config eval ~0.96 s, lift+gate+checker ~1.48 s (**gate adds ~0.4–0.5 s**, under the 2 s budget). **M2-lite 🟡**: `reasoner/drift.nix` + `tools/observe.sh`; drift/rogue proofs, TTL pre-filter, stale/partial → `unknown`, zero new step kinds. Live CI-container run remains in D1. **M4-lite 🟡**: `reasoner/repair.nix`; 3 ranked patches (allow 5432 / bind localhost / disable postgres), each re-lifted and re-gated, option diffs + fact diffs, rejections for multi-path, uncontrolled, and failed re-lift. Live apply/rebuild remains in D1. Test suite: **24 tests** (lift-config, drift, repair added), all green. `demo/run` byte-identical. `equal` → `aliasOf` (kernel reserves `equal`), store-path identity deferred (Nix rejects store-path strings in eval). Next: **M3A** (timer, event log, operator surface, `sumo lift|drift|repair` CLI) then **D1**.
@@ -250,17 +278,13 @@ loop visible live; everything else deepens it.
 
 ## Next (from 2026-11-18)
 
-1. **D1 — the recorded tour** (next). `tools/metavisor-tour.sh` drives the three
-   scenes (postgres+firewall fails eval with proof → fix, boot, stop postgres →
-   drift with proof → `sumo repair`, apply, rebuild, gate passes) on the CI
-   container; asciinema cast + byte-stable transcript; README section regenerated.
-   The tour must also install `nixosModules.sumonix-metavisor` on a non-container
-   host and show the tick's journal line + `events.jsonl` increment. Acceptance:
-   `source: live`, reproducible from a clean checkout, doubles as the end-to-end
-   regression test. **M3A is complete but only proven in tests + smoke, not yet on
-   a real host**; D1 closes that gap.
+1. **The soak** — install `nixosModules.sumonix-metavisor` on one real,
+   non-container host for 24 h: zero false drift claims, every event replayable,
+   the first post-boot refresh re-attesting before any claim. This is the last
+   item between D1 and "usable". The container proves the mechanism; a real host
+   proves it is livable.
 
-2. **M0.3 residual — close the last support gap (do with D1's first CI run).**
+2. **M0.3 residual — push and confirm the two-arch CI run.**
    Push and confirm `nix flake check` + `nix build .#sumo-tui` green on both
    `ubuntu-latest` and `ubuntu-24.04-arm`. If `vendorHash` mismatches (Go cache
    layout changes), recompute with `cd demo/tui && go mod vendor &&

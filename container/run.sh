@@ -122,24 +122,30 @@ check_prerequisites() {
 
 estimate_build() {
   log "Estimating build (dry-run, no download)..."
-  cmd "nix build --dry-run --json --store $SUMONIX_BUILD_STORE .#nixosConfigurations.sumonix-container.config.system.build.tarball"
-  nix --extra-experimental-features 'nix-command flakes' \
-    --store "$SUMONIX_BUILD_STORE" \
-    build --dry-run --json \
-    "$ROOT#nixosConfigurations.sumonix-container.config.system.build.tarball" \
-    > "$LOGS_DIR/estimate.json" 2> "$LOGS_DIR/estimate.log" || {
-      err "estimate failed; see $LOGS_DIR/estimate.log"
-      exit 1
-    }
 
-  if command -v jq >/dev/null 2>&1; then
-    local nar
-    nar=$(jq '[.[] | (.narSize // 0)] | add' "$LOGS_DIR/estimate.json")
-    log "Closure NAR size to build: $(numfmt --to=iec-i --suffix=B "$nar")"
-    log "Paths to build: $(jq 'length' "$LOGS_DIR/estimate.json")"
-  else
-    log "wrote $LOGS_DIR/estimate.json (install jq for a size summary)"
+  # Builds must keep logical paths as /nix/store/... or cache.nixos.org can
+  # never match (the store prefix is part of the hash). The eval store
+  # (NIX_STORE_DIR) is for eval only, so drop it here.
+  export NIX_CONFIG="substituters = ${SUMONIX_SUBSTITUTERS}
+trusted-public-keys = ${SUMONIX_TRUSTED_KEYS}
+sandbox = false
+build-users-group ="
+  unset NIX_STORE_DIR
+  unset NIX_STATE_DIR
+
+  cmd "nix build --dry-run --store $SUMONIX_BUILD_STORE .#nixosConfigurations.sumonix-container.config.system.build.tarball"
+  if ! nix --extra-experimental-features 'nix-command flakes' \
+    --store "$SUMONIX_BUILD_STORE" \
+    build --dry-run --option eval-cache false \
+    "$ROOT#nixosConfigurations.sumonix-container.config.system.build.tarball" \
+    > "$LOGS_DIR/estimate.log" 2>&1; then
+    err "estimate failed; see $LOGS_DIR/estimate.log"
+    exit 1
   fi
+
+  # Report what the build will fetch and build, not a 0 B sum of will-build paths.
+  grep -E '^these [0-9]+ (paths|derivations) will be' "$LOGS_DIR/estimate.log" | sed 's/^/  /' || true
+  log "Log: $LOGS_DIR/estimate.log"
   log "Disk available: $(df -h "$ROOT" | tail -1 | awk '{print $4}')"
 }
 
@@ -147,12 +153,19 @@ estimate_build() {
 # while the bytes live under the repo. Resolve the result symlink through it.
 resolve_tarball() {
   local link="$1" target
-  [ -e "$link" ] || { echo ""; return; }
+  # The link target is /nix/store/..., which only exists under SUMONIX_BUILD_ROOT,
+  # so test the link itself, not its target.
+  [ -L "$link" ] || [ -e "$link" ] || { echo ""; return; }
   target="$(readlink "$link")"
   case "$target" in
     /nix/store/*) target="$SUMONIX_BUILD_ROOT$target" ;;
   esac
-  find "$target" -name "*.tar.xz" -type f 2>/dev/null | head -1
+  # make-system-tarball writes $out/tarball; older layouts used *.tar.xz.
+  if [ -f "$target/tarball" ]; then
+    printf '%s' "$target/tarball"
+    return
+  fi
+  find "$target" -maxdepth 2 -name "*.tar*" -type f 2>/dev/null | head -1
 }
 
 build_container() {
@@ -244,7 +257,7 @@ run_container() {
     local timeout=60
     local elapsed=0
     while [ $elapsed -lt $timeout ]; do
-      if podman exec "$CONTAINER_NAME" systemctl is-system-running 2>/dev/null | grep -q "running"; then
+      if podman exec "$CONTAINER_NAME" /run/current-system/sw/bin/systemctl is-system-running 2>/dev/null | grep -q "running"; then
         ok "systemd is running"
         break
       fi
@@ -254,7 +267,7 @@ run_container() {
 
     if [ $elapsed -ge $timeout ]; then
       err "Timeout waiting for systemd"
-      podman exec "$CONTAINER_NAME" systemctl --failed
+      podman exec "$CONTAINER_NAME" /run/current-system/sw/bin/systemctl --failed
       exit 1
     fi
 
@@ -270,7 +283,7 @@ exec_container() {
   fi
 
   log "Entering container as demo user..."
-  podman exec -it -u demo "$CONTAINER_NAME" bash -l
+  podman exec -it -u demo "$CONTAINER_NAME" /run/current-system/sw/bin/bash -l
 }
 
 tour_container() {
@@ -282,7 +295,7 @@ tour_container() {
   log "Running scripted tour inside container..."
 
   # Run the tour script
-  podman exec -it -u demo "$CONTAINER_NAME" bash -lc 'source /run/sumo/tour.sh' 2>&1 | tee "$LOGS_DIR/tour.log"
+  podman exec -it -u demo "$CONTAINER_NAME" /run/current-system/sw/bin/bash -lc 'source /run/sumo/tour.sh' 2>&1 | tee "$LOGS_DIR/tour.log"
 }
 
 teardown_container() {

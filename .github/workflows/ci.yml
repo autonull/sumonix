@@ -75,3 +75,26 @@ jobs:
       - name: Test dev shell
         run: |
           nix develop -c "echo 'Dev shell works' && sumo version"
+  # D1 — the live metavisor tour: config gate -> proven drift -> verified
+  # repair, on a real NixOS systemd container. The transcript is normalized
+  # (timestamps, snapshot ids, hashes) and byte-compared, so the run is also
+  # the end-to-end regression test.
+  metavisor-tour:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v12
+
+      - name: Install podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman fuse-overlayfs
+
+      - name: Build the NixOS container image
+        run: ./container/run.sh build
+
+      - name: Run the metavisor tour (byte-stable transcript)
+        run: ./tools/metavisor-tour.sh --check

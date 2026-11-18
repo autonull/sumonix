@@ -226,6 +226,7 @@
         modules = [
           "${nixpkgs}/nixos/modules/virtualisation/lxc-container.nix"
           ./container/nixos/sumo.nix
+          ./container/nixos/metavisor.nix
           ({ config, pkgs, lib, ... }: {
             imports = [ ./container/container.nix ];
             _module.args.repoRoot = self.outPath;

@@ -1,0 +1,149 @@
+
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;35m🐺 THE 30-SECOND PROOF[0m
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;36m│[0m A build fails. The engine knows why. The why is a file you can re-check.
+[1;36m│[0m 
+[1;36m│[0m Step 1 — the reasoner finds: nginx breaks the advisory policy.
+[1;32m$[0m ./nix-eval.sh --raw --expr 'import ./tests/proof-artifact.nix' > /tmp/proof.kif
+[1;36m│[0m wrote /tmp/proof.kif (343 lines)
+[1;36m│[0m 
+[1;36m│[0m Step 2 — re-check the certificate with a checker that shares no code with the engine.
+[1;32m$[0m ./nix-eval.sh --expr '(import ./proof-check.nix { file = /tmp/proof.kif; })'
+"proof: 9 steps, independently re-checked ✓"
+[1;36m│[0m 
+[1;36m│[0m Step 3 — alter the certified goal; the checker must refuse it.
+[1;32m$[0m cp /tmp/proof.kif /tmp/proof-bad.kif
+[1;32m$[0m sed -i 's/(goal (policyViolation nginx NoCriticalRunningCVE) "s9")/(goal (policyViolation nginx NOPE) "s9")/' /tmp/proof-bad.kif
+[1;32m$[0m ./nix-eval.sh --expr '(import ./proof-check.nix { file = /tmp/proof-bad.kif; })'
+[1;36m│[0m refused ✓  (the checker exits non-zero and says which line broke)
+  error:
+         … while calling the 'throw' builtin
+           at /home/me/sumonix/proof-check.nix:132:26:
+            131| else if !universeOk then throw "proof: the universe does not match the certified facts (missing steps or extra facts)"
+            132| else if !goalStepOk then throw "proof: the goal step does not prove the goal fact"
+[1;36m│[0m 
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;35m📦 YOUR PACKAGE SET, REASONED OVER[0m
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;36m│[0m Facts: instance/dependsOn/hasLicense/providesCapability for 60 real nixpkgs packages
+[1;36m│[0m      (fetched once, pinned, committed to demo/facts/nixpkgs.kif).
+[1;36m│[0m 
+[1;32m$[0m ./nix-eval.sh --raw --expr '(import ./spike/run-spike.nix { snapshot = builtins.readFile ./demo/facts/nixpkgs.kif; })'
+
+╔═══════════════════════════════════════════════════════════════╗
+║           SUMO-NIX CAPABILITY DISCOVERY SPIKE                 ║
+║       "What novel capabilities can I compose?"                ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📦 DIRECT COMPOSITIONS (6) — package + immediate deps:
+  🔗 automake composes BuildAutomation + BuildConfiguration
+  🔗 git composes VersionControl + HTTPClient
+  🔗 libarchive composes ArchiveHandling + Compression
+  🔗 nginx composes HTTPServer + TLS
+  🔗 nginx composes LoadBalancer + TLS
+  🔗 nginx composes ReverseProxy + TLS
+
+🌐 ENABLED CAPABILITIES (10) — via transitive dependency closure:
+  ✨ automake enables BuildConfiguration via dependency closure
+  ✨ git enables HTTPClient via dependency closure
+  ✨ git enables SFTP via dependency closure
+  ✨ git enables SSHClient via dependency closure
+  ✨ libarchive enables Compression via dependency closure
+  ✨ libgcrypt enables Crypto via dependency closure
+  ✨ nginx enables Crypto via dependency closure
+  ✨ nginx enables TLS via dependency closure
+  ✨ nginx enables X509 via dependency closure
+  ✨ postgresql enables SQL via dependency closure
+
+💡 SYNERGIES (2) — 3+ capabilities combining:
+  🚀 git synergy: HTTPClient + SFTP + SSHClient
+  🚀 nginx synergy: Crypto + TLS + X509
+
+─────────────────────────────────────────────────────────────
+✨ Spike complete. Your nixpkgs is a capability goldmine.
+[1;36m│[0m 
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;35m📚 YOUR ORGANIZATION, REASONED OVER[0m
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;36m│[0m Facts: every page of the Pick Your AI repositories, read at the pinned commits,
+[1;36m│[0m      taxonomized under SUMO's Document hierarchy. Computed in ~5s, offline.
+[1;36m│[0m 
+[1;36m│[0m What the engine finds:
+Total pages taxonomized:            2109
+  process pages (class reasoning):  666
+  unclassified (no rule matches):   0
+
+Biggest page kinds:
+  doc: 321
+  planning-record: 289
+  market: 195
+  contract: 177
+  catalog: 128
+  data: 123
+
+Identical copies found:
+  PullRequestTemplate: 3 of 13 identical
+  SupportGuide: 3 of 10 identical
+
+Former team names still in use: 7
+  e.g. pick-your-ai-applications-pr136:docs/ORGANIZATION_ALIGNMENT.md → “research-lead-maintainers”
+
+The proof that this page uses a retired name:
+(staleName pick-your-ai-applications-pr136:docs/ORGANIZATION_ALIGNMENT.md research-lead-maintainers)    by staleName#1
+  (usesFormerName pick-your-ai-applications-pr136:docs/ORGANIZATION_ALIGNMENT.md research-lead-maintainers)    asserted
+[1;36m│[0m 
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;35m🧭 THE CROSSWALK KNOWS WHAT IT KNOWS[0m
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;36m│[0m PyAI fields ↔ Hugging Face tags ↔ SUMO classes. Answers are 0/1 plus an explicit null.
+
+A PyAI field: “Dataset Modality = Text” — which axis is it, and what does it mean?
+    q1: modality
+    q2: Text
+    q3: yes
+
+The same question about the HF tag  modality:text — anchored?
+    q4: yes
+    q5: exact
+    q6: Text
+
+A deliberately hard one:  task:any-to-any  (“input and output vary”) — the crosswalk answers… “I don't know”, on purpose:
+    q7: no
+    q8: unknown (null probability 1.000000)
+[1;36m│[0m 
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;35m🚧 THE BUILD FAILS — AND HERE IS WHY[0m
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
+[1;36m│[0m A nixpkgs build about to ship CVE-2026-9999 in a *running* NIXService.
+[1;36m│[0m The gate fails the build. The proof is small enough to read.
+GATE — the build fails:
+(policyViolation nginx NoCriticalRunningCVE)    by policyViolation#4
+  (vulnerable nginx CVE-2026-9999)    by vulnerable#3
+    (instance nginx NIXPackage)    asserted
+    (dependsOnTransitive nginx openssl)    by dependsOnTransitive#2
+      (dependsOn nginx openssl)    asserted
+    (vulnerable openssl CVE-2026-9999)    asserted
+  (severity CVE-2026-9999 critical)    asserted
+  (instance nginx NIXService)    asserted
+  (serviceState nginx running)    asserted
+
+Menu — which single override flips the verdict?
+  ✓ ignore the advisory
+  ✓ drain nginx
+  ✓ reclassify as low
+  ✓ remove the policy rule
+  ✗ “drop an unrelated edge” flips nothing (correctly unlisted)
+[1;36m│[0m 
+[1;36m│[0m Each ✓ is a true single-flip: if you could drop that fact, the build passes.
+[1;36m│[0m The relaxation menu is the honest answer to “what do I have to change for this to ship?”
+[1;36m│[0m 
+[1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m

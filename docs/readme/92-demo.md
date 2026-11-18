@@ -82,9 +82,26 @@ The engine runs under `nix eval`, so every subcommand costs roughly a second of
 evaluation. The demo stays inside the two-run budget; `sumo dashboard` refreshes
 on a timer rather than on keystroke.
 
-### The NixOS container (deferred)
+### The live loop, in a container (D1)
 
-`container/` holds a real NixOS-in-Podman integration — `services.sumonix.enable`,
-a live facts exporter, `sumonix-guard`. It builds an image and boots systemd, but
-it does not yet pass its own gate, so it is not part of the demo above. See
-`container/README.md` for exactly what works and what does not.
+`./tools/metavisor-tour.sh` drives the three metavisor scenes against a real
+NixOS-in-Podman systemd host — no fixtures, no mocks:
+
+1. **The gate** — a NixOS module with a wildcard postgres listener and a closed
+   firewall fails `sumo gate` with a proof naming both option paths.
+2. **Live drift** — the declared unit is stopped; one timer tick later
+   `sumo status` and the journal carry the drift with its proof. A listener
+   nobody declared is a violation, not a guess.
+3. **Verified repair** — `sumo repair` ranks single-option patches, each
+   re-lifted and re-gated; the top patch is applied and the whole system
+   rebuilds through the same gate.
+
+The transcript is normalized (timestamps, snapshot ids, hashes) and
+byte-compared in CI, so a changed claim fails the build:
+
+<!-- include:transcript:06-metavisor-live.txt -->
+
+Record the cast with `./tools/metavisor-tour.sh --record` →
+`docs/demo/metavisor-tour.cast`. The container harness is
+`./container/run.sh build|run`, and its NixOS configuration is
+`container/container.nix`.

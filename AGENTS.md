@@ -1,11 +1,13 @@
 # AGENTS.md — How to Develop This Repo Correctly
 
-> **Status (current).** The demo ships **host-native**: `./tools/tour.sh` records
-> `docs/demo/tour.cast` from the real CLI on this machine, and `./tools/shot.sh`
-> renders the TUI. The NixOS-in-Podman work is **parked** in `container/` — it
-> builds and boots but does not yet pass its own gate. The VM instructions below
-> describe `container/vm/` (superseded) and are kept only for the store mechanics
-> that still apply to any future build.
+> **Status (current).** The host-native demo still runs: `./tools/tour.sh` records
+> `docs/demo/tour.cast`, and `./tools/shot.sh` renders the TUI. `container/` is
+> now the **D1 live harness**: `./container/run.sh build|run` boots a real
+> NixOS-in-Podman system, and `./tools/metavisor-tour.sh` gates it, proves drift
+> from a stopped postgres unit, catches a rogue listener, ranks repairs, and
+> rebuilds the patched system. The VM instructions below describe
+> `container/vm/` (superseded) and are kept only for the store mechanics that
+> still apply.
 
 ## Core Principle
 
@@ -126,6 +128,7 @@ The test suite never builds — it evaluates pinned expressions against the warm
 | Mistake | Symptom | Fix |
 |---|---|---|
 | `NIX_STORE_DIR=.nix-store` for a build | All cache fetches 404; builds from source fail at bootstrap | Use `--store local?root=.nix-root` |
+| Running `./nix-eval.sh` for evals | Before 2026-11-18 it silently used `.nix-root`, so eval junk piled up beside build closures (~19 GB) | Evals now default to `.nix-store`; the build store needs explicit `SUMONIX_BUILD=1`. Never build locally — builds are CI-only. |
 | Forgetting `NIX_STORE_DIR` in a script | Uses system `/nix/store` (read-only here) | Source `tools/env.sh` first |
 | Adding `sandbox = true` | Build fails (no namespaces) | `--option sandbox false` or enable namespaces |
 | Using `nix build` without `--store` | Defaults to system store (unwritable) | Pass `--store $SUMONIX_BUILD_STORE` |

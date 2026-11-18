@@ -54,9 +54,9 @@ METAVISOR="${ROOT}/bin/_metavisor.nix"
 abs_path() {
   local p="$1"
   if [[ "$p" = /* ]]; then
-    realpath -m "$p"
+    realpath -ms "$p"
   else
-    realpath -m "$(pwd)/$p"
+    realpath -ms "$(pwd)/$p"
   fi
 }
 
@@ -124,6 +124,8 @@ Commands:
                           Source-labeled drift/rogue report (exits 1 on drift/violation)
   repair [--configuration FILE] [--json]
                           Ranked single-option repairs, each re-lifted and re-gated
+  gate [--configuration FILE] [--json]
+                          Config gate: exits 1 with the proof when the config violates system.kif
   init [dir] [--force]    Scaffold a new sumonix project (facts/rules/policies + pre-commit + CI)
   lint [file...]          Lint KIF files: file:line:col diagnostics, typo suggestions
   version                 Show version
@@ -567,6 +569,40 @@ case "$cmd" in
     expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).repairResult.${field}"
     SUMO_CONFIG_FILE="$conf"
     run_cached repair "$expr"
+    ;;
+  gate)
+    # sumo gate — lift + system.kif policy gate, exits 1 with the why-tree
+    conf=""
+    json_flag="false"
+    while [ "$#" -gt 0 ]; do
+      case "$1" in
+        --configuration) conf="${2:-}"; shift 2 ;;
+        --json) json_flag="true"; shift ;;
+        *) echo "sumo gate: unknown argument: $1" >&2; exit 2 ;;
+      esac
+    done
+    [ -z "$conf" ] && conf="$(default_configuration)"
+    if [ -z "$conf" ]; then
+      echo "sumo gate: no configuration found; pass --configuration FILE" >&2
+      exit 2
+    fi
+    if [ ! -f "$conf" ]; then
+      echo "sumo gate: configuration not found: $conf" >&2
+      exit 2
+    fi
+    conf="$(abs_path "$conf")"
+    field="text"
+    [ "$json_flag" = "true" ] && field="json"
+    expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).gateResult.${field}"
+    SUMO_CONFIG_FILE="$conf"
+    result="$(run_cached gate "$expr")"
+    printf '%s\n' "$result"
+    if [ "$json_flag" = "true" ]; then
+      if printf '%s' "$result" | grep -q '"pass":false'; then exit 1; fi
+    else
+      if printf '%s' "$result" | grep -q '^gate: violation'; then exit 1; fi
+    fi
+    exit 0
     ;;
   init)
     # sumo init — scaffold a new sumonix project

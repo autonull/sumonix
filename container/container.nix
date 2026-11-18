@@ -1,12 +1,21 @@
 # demo/container/container.nix — Minimal NixOS container configuration for SUMOnix demo.
 # boot.isContainer = true; no VM-only options.
-# Includes nginx, SUMOnix module, and minimal packages.
+# Includes postgres (the declared unit), the metavisor module and minimal packages.
 { config, pkgs, lib, ... }:
 
 let
   # SUMOnix packages from the repo
   sumoPackages = pkgs.callPackage ./nix/sumo-packages.nix { };
+
+  # The repo root as a *directory* path. Interpolating a single file
+  # (`${./nixos/sumo.nix}`) copies that one file to the store root and breaks
+  # its relative imports; the directory keeps the tree intact.
+  repo = ../.;
 in {
+  # D1 — the operator's declared slice: postgres on a wildcard, firewall open.
+  # The contradicting variant (nixos/d1-bad-firewall.nix) lives in /etc/nixos/bad.nix.
+  imports = [ ./nixos/d1-configuration.nix ];
+
   # Container mode: no bootloader, no kernel, no disk image
   boot.isContainer = true;
   boot.loader.grub.enable = false;
@@ -19,42 +28,57 @@ in {
   networking.useDHCP = false;
   services.openssh.enable = false;
 
-  # Minimal packages: nginx + nix + bash + coreutils + iproute2 + SUMO
+  # Minimal packages: nix + bash + coreutils + iproute2 + nc + SUMO
   environment.systemPackages = with pkgs; [
-    nginx
     nix
     bashInteractive
     coreutils
     iproute2
+    netcat-openbsd
     sumoPackages.sumo-cli
     sumoPackages.sumo-tui
     sumoPackages.sumo-facts
   ];
 
-  # nginx as the real NixOS service and policy subject
-  services.nginx = {
+  # Postgres runs as a real unit here: D1 stops it and expects drift with proof.
+
+  # M3A — the resident metavisor: observer tick, event log, journal lines. The
+  # build-time gate is on, so this very config must pass it (it does).
+  services.sumonix-metavisor = {
     enable = true;
-    recommendedGzipSettings = true;
-    recommendedOptimisation = true;
-    recommendedProxySettings = true;
-    recommendedTlsSettings = true;
-    virtualHosts."sumonix-demo" = {
-      root = "/var/www/sumonix-demo";
-    };
+    interval = 10;
   };
 
-  # Create a minimal nginx site
-  systemd.tmpfiles.rules = [
-    "d /var/www/sumonix-demo 0755 root root -"
-  ];
-  environment.etc."nginx/index.html".text = ''
-    <!DOCTYPE html>
-    <html>
-    <head><title>sumonix-demo</title></head>
-    <body><h1>sumonix-demo</h1><p>nginx is running on NixOS in a container.</p></body>
-    </html>
+  # Match the flake's label (26.11). Without this, `nixos-rebuild` labels the
+  # system `26.11pre-git` and relinks/fetches the whole closure instead of
+  # reusing the image's store paths.
+  system.nixos.versionSuffix = "";
+
+  # `nixos-rebuild` inside the container needs a pinned nixpkgs, and the two
+  # repair scenes need their modules in the same shape a user would keep them.
+  nix.nixPath = [ "nixpkgs=${pkgs.path}" ];
+  environment.etc."nixos/configuration.nix".text = ''
+    # D1 — the rebuildable form of this system. `sumo repair` proposes option
+    # edits; the tour applies the top one to a copy and rebuilds this config.
+    { ... }: {
+      imports = [
+        <nixpkgs/nixos/modules/virtualisation/lxc-container.nix>
+        ${repo}/container/nixos/sumo.nix
+        ${repo}/container/nixos/metavisor.nix
+        ${repo}/container/container.nix
+      ];
+    }
   '';
-  systemd.services.nginx.serviceConfig.ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/www/sumonix-demo";
+  environment.etc."nixos/bad.nix".text = ''
+    # D1 scene 1/3 — the contradiction: wildcard postgres, no firewall port.
+    { ... }: {
+      imports = [ ${repo}/container/nixos/d1-bad.nix ];
+    }
+  '';
+
+  # The legacy L0 guard keeps its fixture subject; the container itself
+  # declares only postgres so the runtime loop has one unit to observe.
+  systemd.tmpfiles.rules = [ ];
 
   # SUMOnix module integration
   services.sumonix = {

@@ -22,9 +22,16 @@ let
     systemKif = cfg.repo + "/system.kif";
   };
 
+  # The gate is the same pure function the tests exercise; here it runs on the
+  # configuration being built, so a contradiction stops the eval with a proof.
+  gate = import (cfg.repo + "/reasoner/config-gate.nix") {
+    inherit (lifted) facts rules ontology;
+  };
+
   observerPath = lib.makeBinPath [
     pkgs.nix
     pkgs.systemd
+    pkgs.util-linux
     pkgs.iproute2
     pkgs.coreutils
     pkgs.gnused
@@ -51,6 +58,17 @@ in
       description = "The sumo CLI package that carries reasoner/ and tools/.";
     };
 
+    gate = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Run the M1 config gate over the lifted facts at build time. A
+        contradiction (system.kif rule 1 on this very configuration) fails the
+        evaluation with the proof, before anything builds. Disable only to
+        install the module on a host whose config is being repaired.
+      '';
+    };
+
     interval = lib.mkOption {
       type = lib.types.ints.positive;
       default = 60;
@@ -63,6 +81,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Build-time gate: a violated system.kif rule (or an ill-typed fact) is an
+    # assertion failure carrying the why-tree, so the eval never reaches a build.
+    assertions = [
+      {
+        assertion = !cfg.gate || gate.pass;
+        message = "SUMOnix config gate failed:\n" + gate.proof;
+      }
+    ];
+
     # Build-time lift: the declared facts are a function of this system config.
     environment.etc."sumo/declared.kif".text = lifted.labeledText;
 

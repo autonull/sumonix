@@ -94,6 +94,12 @@ let
     if baseLift == null || configuration == null then null
     else import ../reasoner/repair.nix { base = baseLift; inherit patched; };
 
+  # The config gate as a query: `sumo gate --configuration FILE` fails with the
+  # why-tree, so an operator (or CI) can gate a config without building it.
+  baseGate =
+    if baseLift == null then null
+    else import ../reasoner/config-gate.nix { inherit (baseLift) facts rules ontology; };
+
   summarize = c: {
     inherit (c) name rank verified reason;
     edits = c.edits or [ ];
@@ -164,5 +170,18 @@ in
         ranked = map summarize repair.ranked;
         rejected = map summarize repair.rejected;
       };
+    };
+
+  # The config gate as a query: `sumo gate --configuration FILE` fails with the
+  # why-tree, so an operator (or CI) can gate a config without building it.
+  gateResult =
+    if baseGate == null then null
+    else {
+      inherit (baseGate) pass proof;
+      text =
+        (if baseGate.pass then "gate: pass — no violation, all lifted facts well typed"
+         else "gate: violation — the configuration contradicts system.kif")
+        + "\n" + baseGate.proof;
+      json = builtins.toJSON { inherit (baseGate) pass proof; };
     };
 }

@@ -18,6 +18,24 @@ EOF
 
 ./bin/sumo lift --configuration "$tmp/configuration.nix" > "$tmp/declared.kif"
 
+# The config gate is a query: violation exits 1 with the why-tree, and the
+# firewall fix exits 0. No build, no facts edited by hand.
+set +e
+gate_bad="$(./bin/sumo gate --configuration "$tmp/configuration.nix" 2>/dev/null)"
+gate_bad_rc=$?
+set -e
+[ "$gate_bad_rc" -eq 1 ] || { echo "gate accepted a contradicting config" >&2; exit 1; }
+printf '%s' "$gate_bad" | grep -q "networking.firewall.allowedTCPPorts" || {
+  echo "gate proof does not name the firewall option path" >&2; exit 1; }
+printf '%s' "$gate_bad" | grep -q "services.postgresql.settings.listen_addresses" || {
+  echo "gate proof does not name the listener option path" >&2; exit 1; }
+
+sed 's/allowedTCPPorts = lib.mkForce \[ \];/allowedTCPPorts = [ 5432 ];/' \
+  "$tmp/configuration.nix" > "$tmp/configuration-good.nix"
+./bin/sumo gate --configuration "$tmp/configuration-good.nix" 2>/dev/null \
+  | grep -q '^gate: pass' || {
+  echo "gate rejected the firewall fix" >&2; exit 1; }
+
 # A fresh snapshot that attests completeness but omits the declared unit.
 cat > "$tmp/observer-drift.sh" <<'EOF'
 #!/usr/bin/env bash
