@@ -125,7 +125,7 @@ Commands:
   repair [--configuration FILE] [--json]
                           Ranked single-option repairs, each re-lifted and re-gated
   init [dir] [--force]    Scaffold a new sumonix project (facts/rules/policies + pre-commit + CI)
-  lint [file...]          Lint KIF files for syntax errors
+  lint [file...]          Lint KIF files: file:line:col diagnostics, typo suggestions
   version                 Show version
   --help                  Show this help
 
@@ -135,6 +135,8 @@ Environment:
   SUMO_POLICIES Path to policies KIF (default: ./policies.kif, then none)
   SUMO_DECLARED Path to lifted declared facts (default: /etc/sumo/declared.kif)
   SUMO_OBSERVED Path to observer output (default: /run/sumo/observed.kif)
+  SUMO_CACHE_DIR Evaluation cache root (default: .runtime/cache)
+  SUMO_NO_CACHE  1 to bypass the cache (same as --no-cache)
 
 Examples:
   sumo status
@@ -167,6 +169,104 @@ run_nix() {
   "$ROOT/nix-eval.sh" --raw --expr "$1"
 }
 
+# --- M0.1 evaluation cache ---------------------------------------------------
+# Warm subcommands read a checksummed cache instead of re-evaluating. The key is
+# sha256(facts + rules + ontology + synthesized + engine version + engine files),
+# so any input or code change invalidates it. Entries are partitioned by
+# predicate (`.runtime/cache/<digest>/<predicate>/`) and each carries its own
+# checksum: a poisoned entry is reported and recomputed, never served.
+# Commands whose answer depends on the clock (drift, metavisor status) bypass the
+# cache: a cached claim could outlive its attestation (R1).
+ENGINE_VERSION="${SUMONIX_ENGINE_VERSION:-m0.2}"
+CACHE_DIGEST="${_CACHE_DIGEST:-}"
+
+cache_digest() {
+  if [ -n "$CACHE_DIGEST" ]; then
+    printf '%s' "$CACHE_DIGEST"
+    return
+  fi
+  local manifest
+  manifest="$(
+    {
+      printf 'engine %s\n' "$ENGINE_VERSION"
+      printf '%s\n' \
+        "$DISPATCHER" "$METAVISOR" "$ROOT/sumo.nix" "$ROOT/system.kif" \
+        "$ROOT/rules.kif" "$ROOT/nix-domain.kif" "$ROOT/lib/kif.nix" \
+        "$ROOT/lib/kif-diag.nix" "$ROOT/sumo.full/Merge.kif" \
+        "$ROOT"/reasoner/*.nix \
+        "${SUMO_FACTS:-}" "${SUMO_RULES:-}" "${SUMO_POLICIES:-}" \
+        "${SUMO_DECLARED:-}" "${SUMO_OBSERVED:-}" "${SUMO_CONFIG_FILE:-}"
+    } | while IFS= read -r f; do
+      if [ -n "$f" ] && [ -f "$f" ]; then printf '%s\n' "$f"; fi
+    done | LC_ALL=C sort | xargs sha256sum
+  )"
+  CACHE_DIGEST="$(printf '%s' "$manifest" | sha256sum | cut -d' ' -f1)"
+  printf '%s' "$CACHE_DIGEST"
+}
+
+# run_cached <predicate> <expression>
+run_cached() {
+  local predicate="$1" expr="$2"
+  if [ "${SUMO_NO_CACHE:-0}" = "1" ]; then
+    run_nix "$expr"
+    return $?
+  fi
+  cache_digest > /dev/null
+  local dir key out meta
+  dir="${SUMO_CACHE_DIR:-${ROOT}/.runtime/cache}/${CACHE_DIGEST}/${predicate}"
+  key="$(printf '%s' "$expr" | sha256sum | cut -d' ' -f1)"
+  out="${dir}/${key}.out"
+  meta="${dir}/${key}.meta"
+
+  if [ -f "$out" ] && [ -f "$meta" ]; then
+    local want got code
+    want="$(sed -n 's/^sha256=//p' "$meta")"
+    got="$(sha256sum "$out" | cut -d' ' -f1)"
+    if [ "$want" = "$got" ]; then
+      code="$(sed -n 's/^code=//p' "$meta")"
+      cat "$out"
+      return "${code:-0}"
+    fi
+    printf 'sumo: cache entry %s/%s failed its checksum; recomputing\n' \
+      "$predicate" "${key:0:12}" >&2
+    rm -f "$out" "$meta"
+  fi
+
+  mkdir -p "$dir"
+  local tmp status
+  tmp="$(mktemp "${dir}/.${key}.XXXXXX")"
+  set +e
+  run_nix "$expr" > "$tmp"
+  status=$?
+  set -e
+  if [ "$status" -ne 0 ]; then
+    cat "$tmp"
+    rm -f "$tmp"
+    return "$status"
+  fi
+  mv "$tmp" "$out"
+  {
+    printf 'sha256=%s\n' "$(sha256sum "$out" | cut -d' ' -f1)"
+    printf 'code=0\n'
+    printf 'predicate=%s\n' "$predicate"
+    printf 'created=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'expr=%s\n' "$expr"
+  } > "${meta}.tmp"
+  mv "${meta}.tmp" "$meta"
+  cat "$out"
+}
+
+# Global flags (M0.1): --no-cache bypasses both cache reads and writes.
+args=()
+for arg in "$@"; do
+  if [ "$arg" = "--no-cache" ]; then
+    SUMO_NO_CACHE=1
+  else
+    args+=("$arg")
+  fi
+done
+set -- "${args[@]}"
+
 # Parse subcommand
 cmd="${1:-}"
 shift || true
@@ -187,7 +287,12 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).status"
-    run_nix "$expr"
+    # A metavisor status depends on the clock (attestation TTL); never cached.
+    if [ -n "$SUMO_DECLARED" ]; then
+      run_nix "$expr"
+    else
+      run_cached status "$expr"
+    fi
     ;;
   caps)
     json_flag=""
@@ -196,7 +301,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).caps"
-    run_nix "$expr"
+    run_cached caps "$expr"
     ;;
   closure)
     pkg="${1:-}"
@@ -210,7 +315,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).closure $(nix_quote "$pkg")"
-    run_nix "$expr"
+    run_cached closure "$expr"
     ;;
   query)
     goal="${1:-}"
@@ -224,7 +329,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).query $(nix_quote "$goal")"
-    run_nix "$expr"
+    run_cached query "$expr"
     ;;
   ask)
     pattern="${1:-}"
@@ -238,7 +343,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).ask $(nix_quote "$pattern")"
-    run_nix "$expr"
+    run_cached ask "$expr"
     ;;
   why)
     goal="${1:-}"
@@ -252,7 +357,11 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).why $(nix_quote "$goal")"
-    run_nix "$expr"
+    if [ -n "$SUMO_DECLARED" ]; then
+      run_nix "$expr"
+    else
+      run_cached why "$expr"
+    fi
     ;;
   proof)
     goal="${1:-}"
@@ -266,7 +375,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).proofExport $(nix_quote "$goal")"
-    run_nix "$expr"
+    run_cached proof "$expr"
     ;;
   check)
     cert_file="${1:-}"
@@ -281,7 +390,7 @@ case "$cmd" in
     # Convert to absolute path for the Nix evaluator
     cert_file="$(cd "$(dirname "$cert_file")" && pwd)/$(basename "$cert_file")"
     expr="(import ${DISPATCHER} { facts = \"${SUMO_FACTS}\"; rules = \"${SUMO_RULES}\"; }).check \"${cert_file}\""
-    run_nix "$expr"
+    run_cached check "$expr"
     ;;
   relax)
     json_flag=""
@@ -290,7 +399,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).relax"
-    run_nix "$expr"
+    run_cached relax "$expr"
     ;;
   whatif)
     json_flag=""
@@ -299,7 +408,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).whatif"
-    run_nix "$expr"
+    run_cached whatif "$expr"
     ;;
   dashboard)
     # Resolve TUI binary: PATH → /run/sumo/bin/sumo-tui → repo demo/tui/sumo-tui
@@ -341,7 +450,7 @@ case "$cmd" in
       shift
     fi
     expr="($(dispatcher_args "${json_flag:-false}")).guard"
-    result=$(run_nix "$expr")
+    result=$(run_cached guard "$expr")
     if [ "$json_flag" = "true" ]; then
       echo "$result"
       # Check if pass is false
@@ -381,7 +490,8 @@ case "$cmd" in
     field="text"
     [ "$json_flag" = "true" ] && field="json"
     expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).lift.${field}"
-    run_nix "$expr"
+    SUMO_CONFIG_FILE="$conf"
+    run_cached lift "$expr"
     ;;
   drift)
     # sumo drift — source-labeled drift/rogue report over declared + observed
@@ -455,7 +565,8 @@ case "$cmd" in
     field="text"
     [ "$json_flag" = "true" ] && field="json"
     expr="(import ${METAVISOR} { configuration = $(nix_quote "$conf"); }).repairResult.${field}"
-    run_nix "$expr"
+    SUMO_CONFIG_FILE="$conf"
+    run_cached repair "$expr"
     ;;
   init)
     # sumo init — scaffold a new sumonix project
@@ -623,22 +734,32 @@ CI_EOF
     ;;
   lint)
     # sumo lint — validate KIF syntax using the parser
-    lint_files="${@:-}"
-    if [ -z "$lint_files" ]; then
-      lint_files="facts.kif rules.kif policies.kif"
+    lint_files=("$@")
+    if [ "${#lint_files[@]}" -eq 0 ]; then
+      lint_files=(facts.kif rules.kif policies.kif)
     fi
-    
-    for f in $lint_files; do
+
+    lint_fail=0
+    for f in "${lint_files[@]}"; do
       if [ ! -f "$f" ]; then
-        echo "sumo lint: file not found: $f" >&2
-        exit 1
+        printf 'sumo lint: file not found: %s\n' "$f" >&2
+        exit 2
       fi
       f_abs=$(abs_path "$f")
-      echo "linting $f..."
       expr="(import ${DISPATCHER} { facts = \"$f_abs\"; rules = \"${ROOT}/rules.kif\"; }).lint \"$f_abs\""
-      run_nix "$expr" || exit 1
+      out="$(run_cached lint "$expr")"
+      verdict="$(printf '%s\n' "$out" | head -n 1)"
+      body="$(printf '%s\n' "$out" | tail -n +2)"
+      printf '%s\n' "$body"
+      if [ "$verdict" = "fail" ]; then
+        lint_fail=1
+      fi
     done
-    echo "All files OK"
+    if [ "$lint_fail" -ne 0 ]; then
+      printf 'sumo lint: %s\n' "diagnostics above; fix them and re-run" >&2
+      exit 1
+    fi
+    printf 'All files OK\n'
     ;;
   *)
     echo "sumo: unknown command '$cmd'" >&2

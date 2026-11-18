@@ -53,8 +53,9 @@
       };
     });
 
-    # TUI package
-    sumoTui = forEachSystem (pkgs: pkgs.stdenv.mkDerivation {
+    # TUI package. buildGoModule fetches modules by hash: the old stdenv+go
+    # build had no module cache and failed in a clean sandbox (M0.3).
+    sumoTui = forEachSystem (pkgs: pkgs.buildGoModule {
       pname = "sumo-tui";
       version = "0.1.0";
 
@@ -62,17 +63,11 @@
         src = self + "/demo/tui";
         filter = path: type:
           let base = baseNameOf path; in
-          !(builtins.elem base [ ".git" ]);
+          !(builtins.elem base [ ".git" "sumo-tui" ]);
       };
 
-      nativeBuildInputs = [ pkgs.go ];
-      buildPhase = ''
-        go build -o sumo-tui main.go
-      '';
-      installPhase = ''
-        mkdir -p $out/bin
-        cp sumo-tui $out/bin/sumo-tui
-      '';
+      # `go mod vendor` + `nix hash path --sri vendor`
+      vendorHash = "sha256-/PkD+tnmiA127i6Q0lHd/u8HZJk1BqHKKVuMWm1Z+sg=";
 
       meta = {
         description = "SUMOnix TUI dashboard";

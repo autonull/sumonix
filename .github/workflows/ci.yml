@@ -9,7 +9,11 @@ on:
 jobs:
   # Run the full test suite, demo byte-diff, README check, proof tamper
   checks:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, ubuntu-24.04-arm ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -17,7 +21,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v12
 
       - name: Run flake checks
-        run: nix flake check --all-systems
+        run: nix flake check
         env:
           # GitHub Actions runners have user namespaces enabled
           # and a proper /nix/store, so sandboxed builds work
@@ -25,7 +29,11 @@ jobs:
 
   # Build packages to verify they compile
   build:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, ubuntu-24.04-arm ]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 

@@ -510,11 +510,19 @@ in {
   # proof — Internal: proof subtree for a goal
   proof = goal: datalog.why goal;
 
-  # lint — Validate KIF syntax by parsing the file
+  # lint — located diagnostics (M0.2). First line: `ok` or `fail`; the rest is
+  # the human report. The CLI strips the verdict line and exits non-zero on fail.
   lint = filePath:
     let
       text = builtins.readFile filePath;
-      forms = parse text;
-      count = length forms;
-    in "OK: ${toString count} forms parsed from ${filePath}";
+      diag = import ../lib/kif-diag.nix { };
+      report = diag.diagnose {
+        file = filePath;
+        inherit text;
+        domains = ontology.domains;
+      };
+      body =
+        if report.ok then "OK: ${toString report.forms} forms parsed from ${filePath}"
+        else report.text;
+    in (if report.ok then "ok\n" else "fail\n") + body;
 }

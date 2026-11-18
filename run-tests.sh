@@ -31,6 +31,7 @@ tests=(
   tests/unit/drift.nix
   tests/unit/repair.nix
   tests/unit/metavisor.nix
+  tests/unit/diag.nix
 )
 
 fail=0
@@ -48,6 +49,24 @@ done
 # Metavisor tick smoke test: observer -> drift -> event log -> status.
 printf '  %-44s ' "metavisor tick…"
 if ./tests/metavisor-smoke.sh > /dev/null 2>&1; then
+  echo "✓"
+else
+  echo "✗"
+  fail=1
+fi
+
+# M0.1 cache: warm hit, byte-diff, poisoned-entry recompute.
+printf '  %-44s ' "cache smoke…"
+if ./tests/cache-smoke.sh > /dev/null 2>&1; then
+  echo "✓"
+else
+  echo "✗"
+  fail=1
+fi
+
+# M0.3 sumo-facts exporter smoke test (stubbed systemctl/ss/nix-store).
+printf '  %-44s ' "sumo-facts exporter…"
+if ./tests/sumo-facts.sh > /dev/null 2>&1; then
   echo "✓"
 else
   echo "✗"

@@ -8,7 +8,7 @@
 
 set -eu
 
-FACTS_DIR="/run/sumo"
+FACTS_DIR="${FACTS_DIR:-/run/sumo}"
 FACTS_FILE="${FACTS_DIR}/facts.kif"
 ADVISORY_FILE="${ADVISORY_FILE:-${FACTS_DIR}/advisory.kif}"
 FACTS_FIXTURE="${FACTS_FIXTURE:-${FACTS_DIR}/facts-fixture.kif}"

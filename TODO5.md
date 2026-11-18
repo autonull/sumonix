@@ -107,13 +107,19 @@ artifact may blur that line.
 
 ## Milestones — the thin loop (M0 → D1)
 
+**Progress (2026-11-18):** M0 ✅ (M0.3 awaits the two-arch CI run) · M1 ✅ ·
+M2-lite 🟡 (kernel + observer done; live container proof is D1) · M3A ✅ ·
+M4-lite 🟡 (patches + re-lift proofs done; live apply is D1) · **D1 ⬜ — the only
+open milestone in the thin loop.** Deepening (M2.5/M3.5/M5/M6) stays behind its
+triggers.
+
 ### M0 — Support work
 
 | # | Item | Acceptance | Effort | Status |
 | --- | --- | --- | --- | --- |
-| M0.1 | **Cache** (was 1.4): key = hash(facts+rules+ontology+synthesized+**engine version**); `.runtime/<digest>/`, partitioned by predicate; `--no-cache` | Warm subcommand <100 ms; CI byte-diff cached vs uncached; poisoning test → recompute or loud rejection | 4–8 h | ⬜ |
-| M0.2 | **Error UX** (was 1.5): located diagnostics, unknown-predicate warnings vs domains, completions, exit codes | Typo'd KIF → `file:line:col`, never a Nix stack trace | 3–5 h | ⬜ |
-| M0.3 | **Housekeeping**: tui `buildGoModule`+`vendorHash`; aarch64 CI matrix; sumo-facts tested or demoted | `nix flake check` green both arches; no unbuildable advertised package | 2–4 h | ⬜ |
+| M0.1 | **Cache** (was 1.4): key = hash(facts+rules+ontology+synthesized+**engine version**); `.runtime/<digest>/`, partitioned by predicate; `--no-cache` | Warm subcommand <100 ms; CI byte-diff cached vs uncached; poisoning test → recompute or loud rejection | 4–8 h | ✅ |
+| M0.2 | **Error UX** (was 1.5): located diagnostics, unknown-predicate warnings vs domains, completions, exit codes | Typo'd KIF → `file:line:col`, never a Nix stack trace | 3–5 h | ✅ |
+| M0.3 | **Housekeeping**: tui `buildGoModule`+`vendorHash`; aarch64 CI matrix; sumo-facts tested or demoted | `nix flake check` green both arches; no unbuildable advertised package | 2–4 h | 🟡 |
 
 ### M1 — Config lifter + system.kif skeleton · *keystone*
 
@@ -235,6 +241,7 @@ loop visible live; everything else deepens it.
 
 ## Status log
 
+- **2026-11-18 (M0)** — **M0.1 ✅ / M0.2 ✅ / M0.3 🟡**. **Cache**: `bin/sumo` keys `.runtime/cache/<digest>/<predicate>/` on sha256(engine version + `_sumo.nix`/`_metavisor.nix`/`reasoner/*.nix`/`lib/kif*.nix`/`sumo.nix`/`system.kif`/`rules.kif`/`nix-domain.kif`/`Merge.kif` + facts/rules/policies/declared/observed/configuration contents). Each entry stores `sha256`, exit code, expression, timestamp; a mismatch warns (`cache entry … failed its checksum; recomputing`) and recomputes, never serves. `--no-cache`/`SUMO_NO_CACHE=1` bypass reads **and** writes; `SUMO_CACHE_DIR` relocates the root. Cacheable: caps, closure, query, ask, proof, check, relax, whatif, guard, lift, repair, lint, and `status`/`why` only when no metavisor facts are configured; `drift` and metavisor `status`/`why` are excluded because their answer depends on attestation freshness. Measured: warm caps 28 ms, warm status 32 ms (was 1.2–1.9 s). **Error UX**: `lib/kif-diag.nix` scans with 1-based line/col (unclosed/unbalanced parens, unterminated strings) and suggests near-miss predicates only when a domain-neighbour exists, so extension predicates stay silent; `_sumo.nix` `lint` returns `ok|fail` + report, `sumo lint` prints `file:line:col`, exits 1/2, no Nix trace. **Housekeeping**: `sumo-tui` → `buildGoModule` + `vendorHash` (`go mod vendor` + `nix hash path --sri`, `sha256-/PkD+…`); CI matrix on `ubuntu-latest` + `ubuntu-24.04-arm` running native `nix flake check` and package builds (a cross `--all-systems` check cannot build the other arch); `container/nix/sumo-facts.sh` accepts `FACTS_DIR` and has a stubbed `systemctl`/`ss`/`nix-store` test that asserts emitted KIF parses. Tests: **26** + `cache-smoke` + `sumo-facts`; `demo/run` byte-identical; README check green. M0.3 stays 🟡 until the two-arch CI run is green.
 - **2026-11-18** — **M3A ✅**. `flake.nix` exports `nixosModules.sumonix-metavisor` (`container/nixos/metavisor.nix`): `services.sumonix-metavisor.enable` builds `/etc/sumo/declared.kif` by lifting *the host's own config* at build time, runs `tools/metavisor.sh` from a systemd timer (`StateDirectory=sumonix-metavisor`, `SUMO_OBSERVE_TTL=2×interval`), and wires the observer path. The tick writes `/run/sumo/observed.kif` via `tools/observe.sh`, evaluates declared + observed at one frozen `now` through `reasoner/metavisor.nix` (source labels + `sha256:` proof IDs, no new step kinds), appends one JSON line per *new* drift/violation to `events.jsonl` (deduped by proof-ID signature), and logs one `logger -t sumonix-metavisor` line per new event. `sumo status` gains a source-labeled METAVISOR section (non-JSON and JSON); `sumo drift --journal` feeds the journal; `sumo why '(drift "...")'` uses the drift engine. Degraded: observer dead → TTL expiry → `unknown` with a reason; eval failure → `engine-unavailable` event; tick slower than interval → "engine behind … snapshot mode" journal line. CLI: `sumo lift --configuration FILE`, `sumo drift --declared FILE --observed FILE [--now N] [--json|--journal]`, `sumo repair --configuration FILE`. Measured: `sumo lift` ~3.5 s cold (NixOS config eval), warm `sumo drift` ~0.1–1.5 s, tick ~0.15 s warm. `reasoner/repair.nix` now defaults to the 3 ranked patches (allow port, bind localhost, disable service). Tests: **25** (lift-config, drift, repair, metavisor) + `tests/metavisor-smoke.sh` (drift → dedup → resolved → status → why → stale=unknown); all green, `demo/run` byte-identical. Live module install on a real non-container host remains in **D1/soak**; rules 3–5 (unit user, secret modes, licenses) remain deferred.
 - **2026-11-17** — Thin-loop core landed. **M1 ✅**: `reasoner/lift-config.nix` (pure slice lift, option-path provenance, inferred defaults, ambiguous joins), `system.kif` v0 (rules 1–2 + signatures + alias/command joins), `reasoner/config-gate.nix` (well-typedness + policy gate, throws with the why-tree, exports a KIF certificate and forces the independent checker). Real postgres + strict firewall fails with a proof naming `services.postgresql.enable`, `services.postgresql.settings.listen_addresses`, `services.postgresql.settings.port`, and `networking.firewall.allowedTCPPorts`; the 22 KB certificate re-checks as 3 steps. Measured: config eval ~0.96 s, lift+gate+checker ~1.48 s (**gate adds ~0.4–0.5 s**, under the 2 s budget). **M2-lite 🟡**: `reasoner/drift.nix` + `tools/observe.sh`; drift/rogue proofs, TTL pre-filter, stale/partial → `unknown`, zero new step kinds. Live CI-container run remains in D1. **M4-lite 🟡**: `reasoner/repair.nix`; 3 ranked patches (allow 5432 / bind localhost / disable postgres), each re-lifted and re-gated, option diffs + fact diffs, rejections for multi-path, uncontrolled, and failed re-lift. Live apply/rebuild remains in D1. Test suite: **24 tests** (lift-config, drift, repair added), all green. `demo/run` byte-identical. `equal` → `aliasOf` (kernel reserves `equal`), store-path identity deferred (Nix rejects store-path strings in eval). Next: **M3A** (timer, event log, operator surface, `sumo lift|drift|repair` CLI) then **D1**.
 - **2026-11-16 (rev 2)** — Effectiveness evaluation applied: islands moved behind triggers; thin loop on existing kernel (zero new step kinds); repair verified by re-lift via `extendModules`; M1 eval budget; D1 + operator surface + system.kif v0 + soak as definition of done; two-scope fact-volume control; estimates corrected (~2–3 weeks to D1). Supersedes TODO4. Next: **M1**.
@@ -253,10 +260,12 @@ loop visible live; everything else deepens it.
    regression test. **M3A is complete but only proven in tests + smoke, not yet on
    a real host**; D1 closes that gap.
 
-2. **M0 support** — M0.1 cache keyed on facts+rules+ontology+engine version;
-   M0.2 located KIF diagnostics; M0.3 `buildGoModule`/aarch64 housekeeping. The
-   metavisor tick re-evaluates declared + observed each interval, so M0.1 is now
-   the highest-value support item (currently ~0.1–1.5 s warm).
+2. **M0.3 residual — close the last support gap (do with D1's first CI run).**
+   Push and confirm `nix flake check` + `nix build .#sumo-tui` green on both
+   `ubuntu-latest` and `ubuntu-24.04-arm`. If `vendorHash` mismatches (Go cache
+   layout changes), recompute with `cd demo/tui && go mod vendor &&
+   nix hash path --sri vendor` and update `flake.nix`. Nothing else in M0 is
+   open: cache and diagnostics are done and tested.
 
 3. **M3B — rules 3–4 + audit scope.** `system.kif` rule 3 (unit user ≠ declared
    user, observed from `systemctl show -p User`), rule 4 (declared secret path
