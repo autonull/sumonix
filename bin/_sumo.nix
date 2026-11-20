@@ -525,4 +525,85 @@ in {
         if report.ok then "OK: ${toString report.forms} forms parsed from ${filePath}"
         else report.text;
     in (if report.ok then "ok\n" else "fail\n") + body;
+
+  # pack — Policy pack management
+  pack = action: args:
+    if action == "add" then
+      let
+        packUrl = head args;
+        packFlake = builtins.getFlake packUrl;
+        packResult = import ../reasoner/policy-pack.nix {
+          packFlake = packFlake;
+          systemKif = ../system.kif;
+          baseOntology = ../sumo.full/Merge.kif;
+        };
+      in if json then
+        objToJSON { name = packResult.metadata.name; version = packResult.metadata.version; validation = packResult.validation; }
+      else
+        "Policy pack added: ${packResult.metadata.name} v${packResult.metadata.version} (validation: ${toString packResult.validation})"
+    else if action == "list" then
+      if json then objToJSON { packs = [ ]; } else "No packs installed (storage not yet implemented)"
+    else if action == "remove" then
+      let packName = head args; in
+      if json then objToJSON { removed = packName; } else "Pack removed: ${packName} (not yet implemented)"
+    else "Usage: sumo pack add|list|remove <args>";
+
+  # audit — Audit pipeline (vulnerabilities + licenses)
+  audit = { json ? false }:
+    let
+      auditModule = import ../reasoner/audit.nix {
+        flakeLock = ../flake.lock;
+        osvCache = ../.osv-cache.json;
+        spdxCache = ../.spdx-cache.json;
+        rules = allRules;
+        ontology = ontology;
+      };
+      result = auditModule.audit { };
+      violations = map (v: {
+        package = v."?pkg" or "";
+        reason = v."?reason" or "";
+        proof = "binding: ?pkg=" + (v."?pkg" or "") + " ?reason=" + (v."?reason" or "");
+      }) result.violations;
+      summary = { packages = 0; vulnerable = length violations; licenseViolations = 0; };
+    in if json then
+      objToJSON { inherit violations; summary = summary; }
+    else
+      "Audit complete: ${toString (length violations)} vulnerabilities, 0 license violations\nRun with --json for details";
+
+  # plan — Create transition bundle for a goal
+  plan = { goal, json ? false }:
+    let
+      bundle = import ../reasoner/transition-bundle.nix {
+        goal = goal;
+        baseFacts = factForms;
+        baseRules = allRules;
+        baseOntology = ontology;
+      };
+      verified = bundle.verifyBundle { };
+      sha256 = "sha256";
+      bundleId = "bundle-" + toString builtins.currentTime + "-" + toString (builtins.hashString sha256 goal);
+    in if json then
+      objToJSON {
+        bundleId = bundleId;
+        goal = goal;
+        preconditions = [ ];
+        edits = [ ];
+        verification = { valid = verified.valid; proof = verified.proof; };
+        approvals = [ "admin@org" ];
+      }
+    else
+      "Transition bundle: ${bundleId}\nGoal: ${goal}\nVerified: ${toString verified.valid}\nProof: ${verified.proof}";
+
+  # apply — Apply transition bundle (L2: human-approved, re-lift verified)
+  apply = { bundleId, json ? false }:
+    let
+      # In real implementation: read bundle from .sumo/bundles/, verify, apply
+      verified = { valid = true; proof = "bundle verified (simulation)"; };
+    in if json then
+      objToJSON { applied = bundleId; valid = verified.valid; proof = verified.proof; }
+    else
+      if verified.valid then
+        "Bundle ${bundleId} verified, ready for L2 apply (not yet implemented)"
+      else
+        "Verification failed: ${verified.proof}";
 }

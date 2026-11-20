@@ -1,0 +1,1 @@
+(jsonSchema "test" (object (property "name" (string)) (required "name")))

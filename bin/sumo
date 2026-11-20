@@ -444,6 +444,59 @@ case "$cmd" in
       exit 1
     fi
     ;;
+  pack)
+    action="${1:-}"
+    if [ -z "$action" ]; then
+      echo "sumo pack: missing action (add|list|remove)" >&2
+      exit 2
+    fi
+    shift
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    args_json=$(printf ' %s' "$@" | xargs -I{} echo -n " $(nix_quote "{}")")
+    expr="($(dispatcher_args "${json_flag:-false}")).pack $(nix_quote "$action") [ $args_json ] { json = ${json_flag:-false}; }"
+    run_cached pack "$expr"
+    ;;
+  audit)
+    json_flag=""
+    if [ "${1:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).audit { json = ${json_flag:-false}; }"
+    run_cached audit "$expr"
+    ;;
+  plan)
+    goal="${1:-}"
+    if [ -z "$goal" ]; then
+      echo "sumo plan: missing goal argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).plan { goal = $(nix_quote "$goal"); json = ${json_flag:-false}; }"
+    run_cached plan "$expr"
+    ;;
+  apply)
+    bundleId="${1:-}"
+    if [ -z "$bundleId" ]; then
+      echo "sumo apply: missing bundleId argument" >&2
+      exit 2
+    fi
+    json_flag=""
+    if [ "${2:-}" = "--json" ]; then
+      json_flag="true"
+      shift
+    fi
+    expr="($(dispatcher_args "${json_flag:-false}")).apply { bundleId = $(nix_quote "$bundleId"); json = ${json_flag:-false}; }"
+    run_cached apply "$expr"
+    ;;
   guard)
     # Policy check: runs the dispatcher's guard function, exits 1 on any violation
     json_flag=""

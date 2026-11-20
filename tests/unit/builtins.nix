@@ -1,4 +1,4 @@
-# T2.6 — Builtins: test greaterThan, lessThan, notEqual, subsetOf, supersetOf, licensePolicyCheck
+# T2.6 — Builtins: test greaterThan, lessThan, notEqual, subsetOf, supersetOf, licensePolicyCheck, versionInRange
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/builtins.nix'
 let
   kif = import ../../lib/kif.nix { };
@@ -49,4 +49,19 @@ if builtins.all (x: x) [
   (check "licensePolicyCheck SSPL-1.0" (e.ask [ "licensePolicyCheck" "SSPL-1.0" "ProhibitedLicense" ] != [ ]))
   (check "licensePolicyCheck Apache-2.0" (e.ask [ "licensePolicyCheck" "Apache-2.0" "ProhibitedLicense" ] == [ ]))
   (check "licensePolicyCheck BSD-2-Clause" (e.ask [ "licensePolicyCheck" "BSD-2-Clause" "ProhibitedLicense" ] == [ ]))
+  # versionInRange
+  (check "versionInRange inclusive [1.0.0,2.0.0]" (e.ask [ "versionInRange" "1.5.0" "[1.0.0,2.0.0]" ] != [ ]))
+  (check "versionInRange exclusive (1.0.0,2.0.0)" (e.ask [ "versionInRange" "1.5.0" "(1.0.0,2.0.0)" ] != [ ]))
+  (check "versionInRange lower inclusive [1.0.0,2.0.0)" (e.ask [ "versionInRange" "1.0.0" "[1.0.0,2.0.0)" ] != [ ]))
+  (check "versionInRange lower exclusive (1.0.0,2.0.0]" (e.ask [ "versionInRange" "1.0.0" "(1.0.0,2.0.0]" ] == [ ]))
+  (check "versionInRange upper inclusive [1.0.0,2.0.0]" (e.ask [ "versionInRange" "2.0.0" "[1.0.0,2.0.0]" ] != [ ]))
+  (check "versionInRange upper exclusive [1.0.0,2.0.0)" (e.ask [ "versionInRange" "2.0.0" "[1.0.0,2.0.0)" ] == [ ]))
+  (check "versionInRange caret ^1.2.3 -> [1.2.3,2.0.0)" (e.ask [ "versionInRange" "1.5.0" "^1.2.3" ] != [ ]))
+  (check "versionInRange caret ^1.2.3 excludes 2.0.0" (e.ask [ "versionInRange" "2.0.0" "^1.2.3" ] == [ ]))
+  (check "versionInRange tilde ~1.2.3 -> [1.2.3,1.3.0)" (e.ask [ "versionInRange" "1.2.5" "~1.2.3" ] != [ ]))
+  (check "versionInRange tilde ~1.2.3 excludes 1.3.0" (e.ask [ "versionInRange" "1.3.0" "~1.2.3" ] == [ ]))
+  (check "versionInRange x-range 1.2.x -> [1.2.0,1.3.0)" (e.ask [ "versionInRange" "1.2.5" "1.2.x" ] != [ ]))
+  (check "versionInRange x-range 1.2.x excludes 1.3.0" (e.ask [ "versionInRange" "1.3.0" "1.2.x" ] == [ ]))
+  (check "versionInRange exact 1.2.3" (e.ask [ "versionInRange" "1.2.3" "1.2.3" ] != [ ]))
+  (check "versionInRange exact 1.2.3 excludes 1.2.4" (e.ask [ "versionInRange" "1.2.4" "1.2.3" ] == [ ]))
 ] then "ok" else "failed"

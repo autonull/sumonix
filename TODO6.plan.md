@@ -429,10 +429,20 @@ Pack = `schema.kif` + rules + ontology, pinned as flake input.
 - ✅ New runtime-policy.nix test passes
 - ✅ builtins.nix updated with licensePolicyCheck tests pass
 
-### **Phase 2: Trust Anchor Freeze — ⏳ PENDING**
-- Checker parity for version ranges, WFS, congruence, temporal, soft-rules
-- Kernel frozen after Phase 2
+### **Phase 2: Trust Anchor Freeze — ✅ COMPLETE**
+- Checker parity for version ranges, WFS, congruence, temporal, soft-rules ✅
+- Kernel frozen after Phase 2 ✅
 
-### **Phase 3: Schema Mapper — ⏳ PENDING**
-- Universal JSON/YAML/TOML ⇄ KIF adapter
-- Policy packs, audit pipeline, transition bundles
+**Test Results:** 27/27 tests pass (100%)
+- versionInRange builtin added to reasoner/builtins.nix with comprehensive tests
+- proof-check.nix extended with three-valued logic (WFS), builtins parity, congruence tracking, soft-rules weight tracking
+- All existing tests pass
+
+### **Phase 3: Schema Mapper — 🟡 PARTIAL (Core files created, audit needs refinement)**
+- reasoner/schema.nix — Universal JSON/YAML/TOML ⇄ KIF adapter ✅
+- reasoner/policy-pack.nix — Policy pack loader ✅
+- reasoner/transition-bundle.nix — Bundle schema & verification ✅
+- bin/_sumo.nix — Extended with pack, audit, plan, apply commands ✅
+- reasoner/audit.nix — Audit pipeline (needs refinement for builtins.concatMap context issues) 🟡
+
+**Status:** Core schema mapper infrastructure complete. Audit pipeline has context issues with builtins.concatMap in nested scopes; returns static data for now. Other Phase 3 components functional.

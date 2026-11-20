@@ -184,7 +184,84 @@ let
     description = "licensePolicy(?license, ?policy) — true if license has the given policy";
   };
 
+  # Version in range: (versionInRange ?version ?range)
+  # Range formats: [lower,upper), (lower,upper], [lower,upper], ^1.2.3, ~1.2.3, 1.2.x, or exact
+  # Returns true if version is in range
+  versionInRange = {
+    arity = 2;
+    eval = b: args:
+      let
+        version = stripQuotes (head args);
+        range = stripQuotes (head (tail args));
+        # Parse range using string functions (regex for brackets is tricky in Nix)
+        parseRange = r:
+          let
+            firstChar = substring 0 1 r;
+            lastChar = substring (builtins.stringLength r - 1) 1 r;
+            inner = substring 1 (builtins.stringLength r - 2) r;
+            commaMatch = builtins.match "(.+),(.+)" inner;
+            lower = elemAt commaMatch 0;
+            upper = elemAt commaMatch 1;
+          in
+          if firstChar == "[" && lastChar == "]" && commaMatch != null then
+            { lower = lower; lowerInc = true; upper = upper; upperInc = true; }
+          else if firstChar == "(" && lastChar == ")" && commaMatch != null then
+            { lower = lower; lowerInc = false; upper = upper; upperInc = false; }
+          else if firstChar == "[" && lastChar == ")" && commaMatch != null then
+            { lower = lower; lowerInc = true; upper = upper; upperInc = false; }
+          else if firstChar == "(" && lastChar == "]" && commaMatch != null then
+            { lower = lower; lowerInc = false; upper = upper; upperInc = true; }
+          else if firstChar == "^" then
+            let base = substring 1 (builtins.stringLength r - 1) r;
+            in { lower = base; lowerInc = true; upper = nextMajor base; upperInc = false; }
+          else if firstChar == "~" then
+            let base = substring 1 (builtins.stringLength r - 1) r;
+            in { lower = base; lowerInc = true; upper = nextMinor base; upperInc = false; }
+          else if match ".*\\..*\\.x" r != null then
+            let base = replaceStrings [ ".x" ] [ ".0" ] r;
+            in { lower = base; lowerInc = true; upper = nextMinor base; upperInc = false; }
+          else { lower = r; lowerInc = true; upper = r; upperInc = true; };  # exact
+        # Version comparison helpers
+        parseVersion = v:
+          if isString v then
+            let
+              spaced = replaceStrings [ "." ] [ " " ] v;
+              m = match "([0-9]+) ?([0-9]+)? ?([0-9]+)? ?([0-9]+)?" spaced;
+              nums = map builtins.fromJSON (filter (x: x != null) m);
+            in
+            if m == null then [ ] else nums
+          else [ ];
+        compareVersions = a: b:
+          let
+            va = parseVersion a;
+            vb = parseVersion b;
+            maxLen = if length va > length vb then length va else length vb;
+            pad = l: l ++ genList (_: 0) (maxLen - length l);
+            vaP = pad va;
+            vbP = pad vb;
+          in
+          foldl' (acc: i: if acc != 0 then acc else if elemAt vaP i < elemAt vbP i then -1 else if elemAt vaP i > elemAt vbP i then 1 else 0) 0 (genList (i: i) maxLen);
+        nextMajor = v:
+          let p = parseVersion v; in
+          if length p == 0 then v
+          else if length p >= 1 then toString ((elemAt p 0) + 1) + ".0.0"
+          else v;
+        nextMinor = v:
+          let p = parseVersion v; in
+          if length p == 0 then v
+          else if length p >= 2 then toString (elemAt p 0) + "." + toString ((elemAt p 1) + 1) + ".0"
+          else if length p >= 1 then toString (elemAt p 0) + ".1.0"
+          else v;
+        bounds = parseRange range;
+        cmpLower = compareVersions version bounds.lower;
+        cmpUpper = compareVersions version bounds.upper;
+        inRange = (if bounds.lowerInc then cmpLower >= 0 else cmpLower > 0) && (if bounds.upperInc then cmpUpper <= 0 else cmpUpper < 0);
+      in
+      inRange;
+    description = "versionInRange(?version, ?range) — true if version in range";
+  };
+
 in
 {
-  inherit greaterThan lessThan notEqual compareVersionsRel subsetOf supersetOf count licensePolicyCheck;
+  inherit greaterThan lessThan notEqual compareVersionsRel subsetOf supersetOf count licensePolicyCheck versionInRange;
 }
