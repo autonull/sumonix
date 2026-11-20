@@ -406,11 +406,16 @@ Pack = `schema.kif` + rules + ontology, pinned as flake input.
 | Propagate meta through engine | ✅ Done | datalog.nix derive() creates derived facts with provenance, confidence |
 | Export meta in certificates | ✅ Done | proof.nix exports certs with bare facts (for independent checker) |
 | Validate meta in checker | ⚠️ Deferred | Certificates use bare facts for independent verification |
-| Deterministic proofs for checker | ✅ Done | observedAt=0 for derived facts; proofId stable |
+| Deterministic proofs for checker | ✅ Done | observedAt=0 for all facts; proofId stable |
 
 **Test Results:** 26/26 tests pass (100%)
 - ✅ All core engine, lifter, drift, repair, proof-check, metavisor, metavisor tick pass
-- ✅ synthesize.nix & relax.nix now pass with meta-aware comparisons
+- ✅ synthesize.nix & relax.nix pass with meta-aware comparisons
+
+### **Phase 1: Runtime Policy Complete — ⏳ NEXT**
+- R3 (unauthorized user), R4 (world-readable secret), R5 (prohibited license)
+- Observer v2: `/proc/<pid>/status` + `stat` secret paths
+- License builtin for R5
 
 ### **Phase 1: Runtime Policy Complete — ⏳ PENDING**
 - R3 (unauthorized user), R4 (world-readable secret), R5 (prohibited license)
