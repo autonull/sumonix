@@ -1,4 +1,4 @@
-# T2.6 — Builtins: test greaterThan, lessThan, notEqual, subsetOf, supersetOf
+# T2.6 — Builtins: test greaterThan, lessThan, notEqual, subsetOf, supersetOf, licensePolicyCheck
 # Usage: nix --extra-experimental-features nix-command eval --impure --expr 'import ./tests/unit/builtins.nix'
 let
   kif = import ../../lib/kif.nix { };
@@ -11,6 +11,11 @@ let
     (hasIntVal b 5)
     (hasList a [ "x" "y" ])
     (hasList b [ "x" "y" "z" ])
+    (packageLicense "openssl" "Apache-2.0")
+    (packageLicense "foo" "GPL-3.0-only")
+    (licensePolicy "GPL-3.0-only" ProhibitedLicense)
+    (licensePolicy "AGPL-3.0-only" ProhibitedLicense)
+    (licensePolicy "SSPL-1.0" ProhibitedLicense)
   '';
   ontology = import ../../sumo.nix { forms = [ ]; };
   rules = [ ];
@@ -38,4 +43,10 @@ if builtins.all (x: x) [
   # supersetOf
   (check "supersetOf" (e.ask [ "supersetOf" "[ \"x\" \"y\" \"z\" ]" "[ \"x\" \"y\" ]" ] != [ ]))
   (check "supersetOf false" (e.ask [ "supersetOf" "[ \"x\" \"y\" ]" "[ \"x\" \"y\" \"z\" ]" ] == [ ]))
+  # licensePolicyCheck
+  (check "licensePolicyCheck GPL-3.0-only" (e.ask [ "licensePolicyCheck" "GPL-3.0-only" "ProhibitedLicense" ] != [ ]))
+  (check "licensePolicyCheck AGPL-3.0-only" (e.ask [ "licensePolicyCheck" "AGPL-3.0-only" "ProhibitedLicense" ] != [ ]))
+  (check "licensePolicyCheck SSPL-1.0" (e.ask [ "licensePolicyCheck" "SSPL-1.0" "ProhibitedLicense" ] != [ ]))
+  (check "licensePolicyCheck Apache-2.0" (e.ask [ "licensePolicyCheck" "Apache-2.0" "ProhibitedLicense" ] == [ ]))
+  (check "licensePolicyCheck BSD-2-Clause" (e.ask [ "licensePolicyCheck" "BSD-2-Clause" "ProhibitedLicense" ] == [ ]))
 ] then "ok" else "failed"

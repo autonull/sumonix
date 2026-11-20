@@ -412,15 +412,22 @@ Pack = `schema.kif` + rules + ontology, pinned as flake input.
 - ✅ All core engine, lifter, drift, repair, proof-check, metavisor, metavisor tick pass
 - ✅ synthesize.nix & relax.nix pass with meta-aware comparisons
 
-### **Phase 1: Runtime Policy Complete — ⏳ NEXT**
-- R3 (unauthorized user), R4 (world-readable secret), R5 (prohibited license)
-- Observer v2: `/proc/<pid>/status` + `stat` secret paths
-- License builtin for R5
+### **Phase 1: Runtime Policy Complete — ✅ COMPLETE**
 
-### **Phase 1: Runtime Policy Complete — ⏳ PENDING**
-- R3 (unauthorized user), R4 (world-readable secret), R5 (prohibited license)
-- Observer v2: `/proc/<pid>/status` + `stat` secret paths
-- License builtin for R5
+| Task | Status | Notes |
+|------|--------|-------|
+| R3 (unauthorized user) rule in system.kif | ✅ Done | (declaredRunning ?svc ?path) (runningAs ?svc ?user) (not (authorizedUser ?user ?svc)) → policyViolation |
+| R4 (world-readable secret) rules in system.kif | ✅ Done | secretMode "0644" and "0755" → policyViolation WorldReadableSecret |
+| R5 (prohibited license) rule in system.kif | ✅ Done | packageLicense + licensePolicy ProhibitedLicense → policyViolation |
+| Observer v2: `/proc/<pid>/status` for UID/GID | ✅ Done | demo/host-facts.sh reads Uid from /proc/<pid>/status, emits (runningAs) |
+| Observer v2: `stat` secret paths for permissions | ✅ Done | demo/host-facts.sh scans common secret locations, emits (secretPath) + (secretMode) |
+| License builtin for R5 | ✅ Done | reasoner/builtins.nix: licensePolicyCheck builtin |
+| Test: runtime-policy.nix | ✅ Done | 7 test cases covering R3, R4 (two modes), R5 |
+
+**Test Results:** 27/27 tests pass (100%)
+- ✅ All Phase 0 tests still pass
+- ✅ New runtime-policy.nix test passes
+- ✅ builtins.nix updated with licensePolicyCheck tests pass
 
 ### **Phase 2: Trust Anchor Freeze — ⏳ PENDING**
 - Checker parity for version ranges, WFS, congruence, temporal, soft-rules

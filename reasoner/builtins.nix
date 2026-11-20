@@ -161,7 +161,30 @@ let
     description = "count(?var, ?groupBy, ?result) — count of var per groupBy";
   };
 
+  # License policy check: (licensePolicy ?license ?policy)
+  # Returns true if the license has the given policy (e.g., ProhibitedLicense)
+  licensePolicyCheck = {
+    arity = 2;
+    eval = b: args:
+      let license = head args; policy = head (tail args);
+          # Strip KIF quotes if present: "\"GPL-3.0-only\"" -> "GPL-3.0-only"
+          stripQuotes = s:
+            if isString s && builtins.stringLength s >= 2 && substring 0 1 s == "\"" && substring (builtins.stringLength s - 1) 1 s == "\"" then
+              substring 1 (builtins.stringLength s - 2) s
+            else s;
+          license' = stripQuotes license;
+          policy' = stripQuotes policy;
+      in
+      if isString license && isString policy then
+        # Check against prohibited licenses
+        elem policy' [ "ProhibitedLicense" ] &&
+        elem license' [ "GPL-3.0-only" "AGPL-3.0-only" "SSPL-1.0" ]
+      else
+        false;
+    description = "licensePolicy(?license, ?policy) — true if license has the given policy";
+  };
+
 in
 {
-  inherit greaterThan lessThan notEqual compareVersionsRel subsetOf supersetOf count;
+  inherit greaterThan lessThan notEqual compareVersionsRel subsetOf supersetOf count licensePolicyCheck;
 }

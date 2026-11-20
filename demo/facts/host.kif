@@ -7,6 +7,7 @@
 ;; services: nginx (running, NIXService, listensOn 80, runningAs nginx)
 ;; packages: nginx, openssl, curl, python3, redis, postgresql + closure mirrors
 ;; advisory: vulnerable openssl CVE-2026-9999 (severity critical) → policy verdict non-trivial
+;; runtime policy: authorizedUser nginx nginx, secret /etc/ssl/private/key.pem mode 0600, license Apache-2.0
 
 ;; Kernel
 (runningKernel "6.6")
@@ -35,3 +36,13 @@
 ;; Advisory
 (vulnerable openssl CVE-2026-9999)
 (severity CVE-2026-9999 critical)
+
+;; Runtime policy facts
+(authorizedUser nginx nginx)
+(secretPath "/etc/ssl/private/key.pem" "services.nginx.sslKey")
+(secretMode "/etc/ssl/private/key.pem" "0600")
+(packageLicense "openssl" "Apache-2.0")
+(packageLicense "nginx" "BSD-2-Clause")
+(licensePolicy "GPL-3.0-only" ProhibitedLicense)
+(licensePolicy "AGPL-3.0-only" ProhibitedLicense)
+(licensePolicy "SSPL-1.0" ProhibitedLicense)

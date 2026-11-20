@@ -32,6 +32,7 @@ tests=(
   tests/unit/repair.nix
   tests/unit/metavisor.nix
   tests/unit/diag.nix
+  tests/unit/runtime-policy.nix
 )
 
 fail=0

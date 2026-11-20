@@ -4,8 +4,8 @@
 ;; KIF strings. Relations, classes, observation kinds and policy reasons are
 ;; symbols. Every rule conclusion is ground (the kernel refuses a variable there).
 ;;
-;; This file carries rules 1-2 of system.kif v0. Rules 3-5 (unit user, secret
-;; modes, licenses) land with M3A and the audit scope.
+;; This file carries rules 1-5 of system.kif v0. Rules 3-5 (unauthorized user,
+;; world-readable secret, prohibited license) added in Phase 1.
 
 ;; --- classes -----------------------------------------------------------------
 (subclass NIXUnit NIXService)
@@ -18,13 +18,21 @@
 (subclass NIXPolicyReason NIXEntity)
 (subclass NIXStorePath NIXEntity)
 (subclass NIXVersion NIXEntity)
+(subclass NIXUser NIXEntity)
+(subclass NIXGroup NIXEntity)
+(subclass NIXSecret NIXEntity)
+(subclass NIXLicense NIXEntity)
 
 (instance unitActive NIXObservationKind)
 (instance listener NIXObservationKind)
+(instance secretRead NIXObservationKind)
 (instance NoFirewallAllowance NIXPolicyReason)
 (instance NoRogueListener NIXPolicyReason)
 (instance drift NIXPolicyReason)
 (instance rogueListener NIXPolicyReason)
+(instance UnauthorizedUser NIXPolicyReason)
+(instance WorldReadableSecret NIXPolicyReason)
+(instance ProhibitedLicense NIXPolicyReason)
 
 ;; --- signatures: one for every fact the lifter emits --------------------------
 ;; The well-typedness gate checks each non-instance lifted fact against these.
@@ -70,6 +78,16 @@
 (domain memberOf 3 NIXOptionPath)
 (domain commandName 1 NIXEntity)
 (domain commandName 2 NIXEntity)
+(domain authorizedUser 1 NIXUser)
+(domain authorizedUser 2 NIXService)
+(domain secretPath 1 NIXSecret)
+(domain secretPath 2 NIXOptionPath)
+(domain secretMode 1 NIXSecret)
+(domain secretMode 2 NIXEntity)
+(domain packageLicense 1 NIXPackage)
+(domain packageLicense 2 NIXLicense)
+(domain licensePolicy 1 NIXLicense)
+(domain licensePolicy 2 NIXPolicyReason)
 
 ;; --- derived joins ------------------------------------------------------------
 (=>
@@ -130,3 +148,42 @@
     (observedListener ?cmd ?addr ?port ?snap)
     (not (expectedListener ?cmd ?addr ?port)))
   (rogueListener ?cmd ?addr ?port))
+
+;; --- rule 3: unauthorized user -----------------------------------------------
+;; A service running as a user not in its authorizedUsers list.
+(=>
+  (and
+    (declaredRunning ?svc ?enablePath)
+    (runningAs ?svc ?user)
+    (not (authorizedUser ?user ?svc)))
+  (policyViolation ?svc UnauthorizedUser))
+
+;; --- rule 4: world-readable secret -------------------------------------------
+;; A secret file with mode 0644 (world-readable) or 0755 (world-executable).
+(=>
+  (and
+    (secretPath ?secret ?path)
+    (secretMode ?secret "0644"))
+  (policyViolation ?secret WorldReadableSecret))
+
+(=>
+  (and
+    (secretPath ?secret ?path)
+    (secretMode ?secret "0755"))
+  (policyViolation ?secret WorldReadableSecret))
+
+;; --- rule 5: prohibited license ----------------------------------------------
+;; A package with a license that has a deny policy.
+(=>
+  (and
+    (instance ?pkg NIXPackage)
+    (packageLicense ?pkg ?license)
+    (licensePolicy ?license ProhibitedLicense))
+  (policyViolation ?pkg ProhibitedLicense))
+
+;; --- Observed facts for runtime policy ---------------------------------------
+;; (authorizedUser "alice" "services.nginx")
+;; (secretPath "/etc/ssl/private/key.pem" "services.nginx.sslKey")
+;; (secretMode "/etc/ssl/private/key.pem" "0644")
+;; (packageLicense "openssl" "Apache-2.0")
+;; (licensePolicy "GPL-3.0-only" ProhibitedLicense)
