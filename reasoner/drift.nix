@@ -23,14 +23,14 @@ let
 
   observedForms = if isString observed then parse observed else observed;
 
-  # Wrap observed facts with meta
+  # Wrap observed facts with meta (deterministic timestamp for reproducible proofs)
   wrapObserved = fact:
     let
       meta = {
         sourceClass = "observed";
         sourceId = "tools/observe.sh";
-        observedAt = currentTime;
-        expiresAt = now + 120;  # TTL
+        observedAt = 0;  # deterministic for proof stability
+        expiresAt = 0;
         snapshotId = "";  # will be set per fact
         contentHash = "sha256:" + builtins.hashString "sha256" (showFact fact);
         confidence = 1.0;
@@ -38,13 +38,13 @@ let
       };
     in makeEnvelope fact meta;
 
-  # Wrap freshSnapshot facts
+  # Wrap freshSnapshot facts (deterministic timestamp for reproducible proofs)
   wrapFresh = id:
     let fact = [ "freshSnapshot" id ]; in
     makeEnvelope fact {
       sourceClass = "derived";
       sourceId = "reasoner/drift.nix";
-      observedAt = currentTime;
+      observedAt = 0;  # deterministic for proof stability
       expiresAt = 0;
       snapshotId = id;
       contentHash = "sha256:" + builtins.hashString "sha256" (showFact fact);
