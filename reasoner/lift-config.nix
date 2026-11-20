@@ -21,16 +21,48 @@
 }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) parse show headOf;
+  inherit (kif) parse show headOf makeEnvelope defaultMeta getFact;
 
   inherit (builtins)
     attrNames attrValues concatMap concatStringsSep elem elemAt filter
-    isAttrs isList isString length listToAttrs map tail toString;
+    isAttrs isList isString length listToAttrs map tail toString currentTime hashString;
 
   # Quote a value as a KIF string atom (the parser keeps the quotes in the atom).
   q = s:
     let esc = builtins.replaceStrings [ "\\" "\"" "\n" ] [ "\\\\" "\\\"" " " ] (toString s);
     in "\"" + esc + "\"";
+
+  # Create FactMeta for a fact
+  # sourceClass: "declared" | "inferred" | "observed" | "fixture" | "derived"
+  makeMeta = sourceClass: sourceId: fact:
+    let
+      now = currentTime;
+      factStr = show fact;
+      contentHash = "sha256:" + hashString "sha256" factStr;
+    in {
+      sourceClass = sourceClass;
+      sourceId = sourceId;
+      observedAt = now;
+      expiresAt = 0;  # config facts don't expire
+      snapshotId = "";
+      contentHash = contentHash;
+      confidence = if sourceClass == "declared" then 1.0 else 0.8;
+      provenance = [ ];
+    };
+
+  # Wrap a fact with appropriate meta based on its predicate
+  wrapFact = fact:
+    let
+      h = headOf fact;
+      meta =
+        if elem h [ "declaredService" "declaredRunning" "portDeclared" "listenerDeclared"
+                     "firewallEnabled" "firewallTcpAllowed" "firewallUdpAllowed"
+                     "packageVersion" "storePath" "userAccount" "memberOf" "aliasOf" "instance" ]
+        then makeMeta "declared" "reasoner/lift-config.nix" fact
+        else if elem h [ "portInferred" "listenerInferred" ]
+        then makeMeta "inferred" "reasoner/lift-config.nix" fact
+        else makeMeta "derived" "reasoner/lift-config.nix" fact;
+    in makeEnvelope fact meta;
 
   # Read a nested attribute, or return the default.
   get = default: path:
@@ -238,7 +270,8 @@ let
       ]) (users.${name}.extraGroups or [ ]))
     (attrNames users);
 
-  facts = dedupe (serviceFacts ++ firewallFacts ++ packageFacts ++ userFacts);
+  rawFacts = dedupe (serviceFacts ++ firewallFacts ++ packageFacts ++ userFacts);
+  facts = map wrapFact rawFacts;
 
   # --- well-typedness ---------------------------------------------------------
   # Instance facts establish the types; every other lifted fact must satisfy
@@ -252,25 +285,25 @@ let
     "packageVersion" "storePath" "userAccount" "memberOf" "aliasOf" "instance"
   ];
   inferredHeads = [ "portInferred" "listenerInferred" ];
-  isDeclared = f: elem (headOf f) declaredHeads;
-  isInferred = f: elem (headOf f) inferredHeads;
+  isDeclared = f: elem (headOf (getFact f)) declaredHeads;
+  isInferred = f: elem (headOf (getFact f)) inferredHeads;
   declaredFacts = filter isDeclared facts;
   inferredFacts = filter isInferred facts;
   otherFacts = filter (f: !(isDeclared f) && !(isInferred f)) facts;
 
-  serviceCount = length (filter (f: headOf f == "declaredService") facts);
-  packageCount = length (filter (f: headOf f == "instance" && elemAt f 2 == "NIXPackage") facts);
-  userCount = length (filter (f: headOf f == "instance" && elemAt f 2 == "NIXUser") facts);
+  serviceCount = length (filter (f: headOf (getFact f) == "declaredService") facts);
+  packageCount = length (filter (f: headOf (getFact f) == "instance" && elemAt (getFact f) 2 == "NIXPackage") facts);
+  userCount = length (filter (f: headOf (getFact f) == "instance" && elemAt (getFact f) 2 == "NIXUser") facts);
 
   section = label: fs:
     if fs == [ ] then ""
-    else ";; source: " + label + "\n" + concatStringsSep "\n" (map show fs) + "\n";
+    else ";; source: " + label + "\n" + concatStringsSep "\n" (map (f: show f) fs) + "\n";
 in
 {
-  inherit facts systemRules ontology' illTyped ambiguous;
+  inherit facts rawFacts systemRules ontology' illTyped ambiguous;
   rules = systemRules;
   ontology = ontology';
-  provenance = filter (f: !(headOf f == "instance")) facts;
+  provenance = filter (f: !(headOf (getFact f) == "instance")) facts;
   typed = illTyped == [ ];
   counts = {
     facts = length facts;

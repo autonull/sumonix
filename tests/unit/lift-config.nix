@@ -73,8 +73,8 @@ if builtins.all (x: x) [
   (check "lifted facts are well typed" (bad.illTyped == [ ]))
   (check "declared and inferred facts are labeled" (bad.counts.declared > 0 && bad.counts.inferred > 0))
   (check "the port default is inferred, never declared"
-    (builtins.any (f: headOf f == "portInferred") bad.facts
-     && !(builtins.any (f: headOf f == "portDeclared") bad.facts)))
+    (builtins.any (f: headOf f == "portInferred") bad.rawFacts
+     && !(builtins.any (f: headOf f == "portDeclared") bad.rawFacts)))
   (check "a real config is byte-stable"
     (bad.factsText == (lift badConfig).factsText))
   (check "an enabled service without a unit is rejected with a reason"

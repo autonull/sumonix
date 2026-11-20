@@ -16,7 +16,7 @@
 { base, patched, candidates ? null }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) show headOf;
+  inherit (kif) show headOf getFact;
 
   inherit (builtins)
     any concatStringsSep deepSeq elem elemAt filter fromJSON head isString
@@ -39,13 +39,16 @@ let
 
   factsOf = x: base.facts;
 
+  # Extract bare facts for pattern matching
+  bareFacts = map getFact base.facts;
+
   controlledBy = optionPath:
     let path = q optionPath; in
-    filter (f: elem path f) base.facts;
+    filter (f: elem path f) bareFacts;
 
   currentAllowedPorts =
     map (f: fromJSON (unquote (elemAt f 1)))
-      (filter (f: headOf f == "firewallTcpAllowed") base.facts);
+      (filter (f: headOf f == "firewallTcpAllowed") bareFacts);
 
   currentValue = optionPath:
     let fs = controlledBy optionPath; in
@@ -60,22 +63,23 @@ let
        in showValue (fromJSON (unquote (elemAt f 2))))
     else "(see proof)";
 
+  # Use bare facts for set comparison
+  showSet = fs: listToAttrs (map (f: { name = show (getFact f); value = f; }) fs);
+  factDiff = before: after:
+    let
+      b = showSet (map getFact before);
+      a = showSet (map getFact after);
+    in {
+      removed = filter (n: !(a ? ${n})) (builtins.attrNames b);
+      added = filter (n: !(b ? ${n})) (builtins.attrNames a);
+    };
+
   diffOf = edit:
     "--- a/configuration.nix\n"
     + "+++ b/configuration.nix\n"
     + "@@ " + edit.optionPath + " @@\n"
     + "-  " + edit.optionPath + " = " + currentValue edit.optionPath + ";\n"
     + "+  " + edit.optionPath + " = " + showValue edit.value + ";";
-
-  showSet = fs: listToAttrs (map (f: { name = show f; value = f; }) fs);
-  factDiff = before: after:
-    let
-      b = showSet before;
-      a = showSet after;
-    in {
-      removed = filter (n: !(a ? ${n})) (builtins.attrNames b);
-      added = filter (n: !(b ? ${n})) (builtins.attrNames a);
-    };
 
   # The default candidates for a NoFirewallAllowance violation: allow the port
   # (rank 1) or disable the service (rank 3). The caller may supply candidates
@@ -89,17 +93,17 @@ let
         reason = elemAt v.goal 2;
         portFacts = filter
           (f: (headOf f == "portInferred" || headOf f == "portDeclared") && elemAt f 1 == svc)
-          base.facts;
+          bareFacts;
         port = if portFacts == [ ] then null else fromJSON (unquote (elemAt (head portFacts) 2));
         enableFact = head (filter
           (f: headOf f == "declaredService" && elemAt f 1 == svc)
-          base.facts);
+          bareFacts);
         enablePath = unquote (elemAt enableFact 2);
         ports = if port == null then currentAllowedPorts else
           currentAllowedPorts ++ (if elem port currentAllowedPorts then [ ] else [ port ]);
         listenerFacts = filter
           (f: headOf f == "listenerDeclared" && elemAt f 1 == svc && elemAt f 2 == "\"0.0.0.0\"")
-          base.facts;
+          bareFacts;
         listenerPath =
           if listenerFacts == [ ] then null
           else unquote (elemAt (head listenerFacts) 3);

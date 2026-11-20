@@ -15,13 +15,42 @@
 { declared, observed, now }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) parse show headOf unique;
+  inherit (kif) parse show headOf unique makeEnvelope defaultMeta;
 
   inherit (builtins)
     any concatStringsSep elem elemAt filter fromJSON isString length map
-    stringLength substring;
+    stringLength substring currentTime;
 
   observedForms = if isString observed then parse observed else observed;
+
+  # Wrap observed facts with meta
+  wrapObserved = fact:
+    let
+      meta = {
+        sourceClass = "observed";
+        sourceId = "tools/observe.sh";
+        observedAt = currentTime;
+        expiresAt = now + 120;  # TTL
+        snapshotId = "";  # will be set per fact
+        contentHash = "sha256:" + builtins.hashString "sha256" (show fact);
+        confidence = 1.0;
+        provenance = [ ];
+      };
+    in makeEnvelope fact meta;
+
+  # Wrap freshSnapshot facts
+  wrapFresh = id:
+    let fact = [ "freshSnapshot" id ]; in
+    makeEnvelope fact {
+      sourceClass = "derived";
+      sourceId = "reasoner/drift.nix";
+      observedAt = currentTime;
+      expiresAt = 0;
+      snapshotId = id;
+      contentHash = "sha256:" + builtins.hashString "sha256" (show fact);
+      confidence = 1.0;
+      provenance = [ ];
+    };
 
   top = name: filter (f: headOf f == name) observedForms;
 
@@ -45,8 +74,9 @@ let
     else if headOf f == "observedListener" then elemAt f 4
     else null;
 
-  kept = filter (f: let s = snapOf f; in s != null && elem s freshIds) observedForms;
-  freshFacts = map (id: [ "freshSnapshot" id ]) freshIds;
+  keptRaw = filter (f: let s = snapOf f; in s != null && elem s freshIds) observedForms;
+  kept = map wrapObserved keptRaw;
+  freshFacts = map wrapFresh freshIds;
 
   facts = declared.facts ++ kept ++ freshFacts;
 

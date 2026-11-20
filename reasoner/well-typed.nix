@@ -7,11 +7,14 @@
 { ontology, facts }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) headOf;
+  inherit (kif) headOf getFact;
 
   inherit (builtins) all any elemAt filter genList groupBy length tail;
 
-  instanceFacts = filter (f: headOf f == "instance" && length f == 3) facts;
+  # Extract bare facts from envelopes
+  bareFacts = map getFact facts;
+
+  instanceFacts = filter (f: headOf f == "instance" && length f == 3) bareFacts;
   classOfLifted = groupBy (f: elemAt f 1) instanceFacts;
   classesOf = x:
     map (f: elemAt f 2) (classOfLifted.${x} or [ ])
@@ -21,8 +24,9 @@ let
 
   wellTyped = f:
     let
-      sig = ontology.domains.${headOf f} or { };
-      args = tail f;
+      bareFact = getFact f;
+      sig = ontology.domains.${headOf bareFact} or { };
+      args = tail bareFact;
     in
     all
       (i:
@@ -30,8 +34,8 @@ let
         wanted == null || isInstance (elemAt args i) wanted)
       (genList (i: i) (length args));
 
-  typedFacts = filter (f: headOf f != "instance") facts;
-  illTyped = filter (f: !(wellTyped f)) typedFacts;
+  typedFacts = filter (f: headOf (getFact f) != "instance") facts;
+  illTyped = map getFact (filter (f: !(wellTyped f)) typedFacts);
 in
 {
   inherit isInstance wellTyped illTyped;
