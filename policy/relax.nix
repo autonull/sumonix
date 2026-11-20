@@ -15,7 +15,7 @@
 let
   # Shared KIF helpers (type-aware show for int/string/list)
   kif = import ../lib/kif.nix { };
-  inherit (kif) show;
+  inherit (kif) show showFact;
 
   namedRules = builtins.genList
     (i:
@@ -34,8 +34,8 @@ let
 
   tryOne = c:
     let
-      dropFactTexts = builtins.map show (c.dropFacts or [ ]);
-      remainingFacts = builtins.filter (f: !(builtins.elem (show f) dropFactTexts)) facts;
+      dropFactTexts = builtins.map showFact (c.dropFacts or [ ]);
+      remainingFacts = builtins.filter (f: !(builtins.elem (showFact f) dropFactTexts)) facts;
       e = run { facts' = remainingFacts; dropRuleIds = c.dropRules or [ ]; };
       derived = e.holds goal;
       pass = polarity derived;
@@ -55,8 +55,8 @@ let
   tryPair = p:
     let
       cs = builtins.map (i: builtins.elemAt candidates i) p;
-      dropFactTexts = builtins.concatMap (c: builtins.map show (c.dropFacts or [ ])) cs;
-      remainingFacts = builtins.filter (f: !(builtins.elem (show f) dropFactTexts)) facts;
+      dropFactTexts = builtins.concatMap (c: builtins.map showFact (c.dropFacts or [ ])) cs;
+      remainingFacts = builtins.filter (f: !(builtins.elem (showFact f) dropFactTexts)) facts;
       dropRuleIds = builtins.concatMap (c: c.dropRules or [ ]) cs;
       e = run { facts' = remainingFacts; dropRuleIds = dropRuleIds; };
       derived = e.holds goal;
@@ -69,7 +69,7 @@ let
 
   # The leaves of the goal's proof, when it holds: which single fact removals flip it.
   proofLeaves = t:
-    if t ? asserted then [ (t.fact or "?") ]
+    if t ? asserted then [ (t.factBare or "?") ]
     else builtins.concatMap proofLeaves (t.from or [ ]);
   leaves = if baseDerived then proofLeaves (baseEngine.why goal) else [ ];
   supports =
@@ -77,7 +77,7 @@ let
     else
       builtins.map (factText:
         let
-          remainingFacts = builtins.filter (f: show f != factText) facts;
+          remainingFacts = builtins.filter (f: showFact f != factText) facts;
           e = run { facts' = remainingFacts; };
           derived = e.holds goal;
         in { fact = factText; flip = derived != baseDerived; })

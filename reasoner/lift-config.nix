@@ -21,7 +21,7 @@
 }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) parse show headOf makeEnvelope defaultMeta getFact;
+  inherit (kif) parse show showFact headOf makeEnvelope defaultMeta getFact;
 
   inherit (builtins)
     attrNames attrValues concatMap concatStringsSep elem elemAt filter
@@ -295,9 +295,10 @@ let
   packageCount = length (filter (f: headOf (getFact f) == "instance" && elemAt (getFact f) 2 == "NIXPackage") facts);
   userCount = length (filter (f: headOf (getFact f) == "instance" && elemAt (getFact f) 2 == "NIXUser") facts);
 
+  showBare = f: showFact (getFact f);
   section = label: fs:
     if fs == [ ] then ""
-    else ";; source: " + label + "\n" + concatStringsSep "\n" (map (f: show f) fs) + "\n";
+    else ";; source: " + label + "\n" + concatStringsSep "\n" (map showBare fs) + "\n";
 in
 {
   inherit facts rawFacts systemRules ontology' illTyped ambiguous;
@@ -314,7 +315,7 @@ in
     users = userCount;
     ambiguous = length ambiguous;
   };
-  factsText = concatStringsSep "\n" (map show facts) + "\n";
+  factsText = concatStringsSep "\n" (map showBare facts) + "\n";
   labeledText =
     ";; lifted by reasoner/lift-config.nix — TODO5 M1 (do not edit)\n"
     + ";; facts: " + toString (length facts)

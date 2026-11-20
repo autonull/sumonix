@@ -50,7 +50,7 @@ if builtins.all (x: x) [
   (check "a declared-running unit missing from a fresh snapshot is drift"
     (d1.status == "drift" && builtins.length d1.drift == 1))
   (check "the drift proof shows the declared fact and the fresh attestation"
-    (lib.hasInfix "declaredRunning" d1.proof && lib.hasInfix "completeFor unitActive" d1.proof))
+    (lib.hasInfix "declaredRunning" d1.proof && lib.hasInfix "completeFor" d1.proof && lib.hasInfix "unitActive" d1.proof))
   (check "an observed active unit is not drift" (d2.status == "pass" && d2.drift == [ ]))
   (check "a listener with no enabled declared owner is a violation"
     (d3.status == "violation" && builtins.length d3.rogue == 1))

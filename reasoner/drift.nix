@@ -15,7 +15,7 @@
 { declared, observed, now }:
 let
   kif = import ../lib/kif.nix { };
-  inherit (kif) parse show headOf unique makeEnvelope defaultMeta;
+  inherit (kif) parse show showFact headOf unique makeEnvelope defaultMeta;
 
   inherit (builtins)
     any concatStringsSep elem elemAt filter fromJSON isString length map
@@ -32,7 +32,7 @@ let
         observedAt = currentTime;
         expiresAt = now + 120;  # TTL
         snapshotId = "";  # will be set per fact
-        contentHash = "sha256:" + builtins.hashString "sha256" (show fact);
+        contentHash = "sha256:" + builtins.hashString "sha256" (showFact fact);
         confidence = 1.0;
         provenance = [ ];
       };
@@ -47,7 +47,7 @@ let
       observedAt = currentTime;
       expiresAt = 0;
       snapshotId = id;
-      contentHash = "sha256:" + builtins.hashString "sha256" (show fact);
+      contentHash = "sha256:" + builtins.hashString "sha256" (showFact fact);
       confidence = 1.0;
       provenance = [ ];
     };

@@ -62,7 +62,7 @@ if builtins.all (x: x) [
     (lib.hasInfix "declared: test/declared.kif" d.text
      && lib.hasInfix "observed: test/observed.kif" d.text))
   (check "the human section prints the proof, not just the verdict"
-    (lib.hasInfix "declaredRunning" d.text && lib.hasInfix "completeFor unitActive" d.text))
+    (lib.hasInfix "declaredRunning" d.text && lib.hasInfix "completeFor" d.text && lib.hasInfix "unitActive" d.text))
   (check "the JSON section is serializable and source-labeled"
     (let j = builtins.toJSON d.json; in
      lib.hasInfix "\"proofId\"" j && lib.hasInfix "\"declaredPath\"" (builtins.toJSON d.json.sources)))

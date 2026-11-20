@@ -15,7 +15,7 @@ let
 
   # Shared KIF helpers
   kif = import ./lib/kif.nix { };
-  inherit (kif) show headOf isEngineVar ground subst unique getFact getMeta makeEnvelope defaultMeta isEnvelope;
+  inherit (kif) show showFact headOf isEngineVar ground subst unique getFact getMeta makeEnvelope defaultMeta isEnvelope;
   isVar = isEngineVar;  # engine only uses ? variables
 
   # Match pattern p against ground f under bindings b: new bindings or null.
@@ -122,12 +122,12 @@ let
                 else if idx ? ${k} then [ ]
                 else
                   let
-                    # Create meta for derived fact
+                    # Create meta for derived fact (deterministic timestamp for reproducible proofs)
                     confidence = calculateConfidence s.used idx;
                     meta = {
                       sourceClass = "derived";
                       sourceId = "datalog.nix";
-                      observedAt = builtins.currentTime;
+                      observedAt = 0;
                       expiresAt = 0;
                       snapshotId = "";
                       contentHash = "sha256:" + builtins.hashString "sha256" k;
@@ -152,9 +152,9 @@ let
   closure = fix 1 initClosure;
 
   proof = k:
-    let e = closure.${k}; in
-    if e.by == null then { fact = show e.fact; asserted = true; }
-    else { fact = show e.fact; rule = e.by.rule; from = map proof e.by.from; };
+    let e = closure.${k}; bare = getFact e.fact; in
+    if e.by == null then { fact = show e.fact; factBare = showFact bare; asserted = true; }
+    else { fact = show e.fact; factBare = showFact bare; rule = e.by.rule; from = map proof e.by.from; };
 
   lines = depth: p:
     let pad = concatStringsSep "" (genList (_: "  ") depth); in
