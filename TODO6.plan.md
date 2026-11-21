@@ -438,11 +438,12 @@ Pack = `schema.kif` + rules + ontology, pinned as flake input.
 - proof-check.nix extended with three-valued logic (WFS), builtins parity, congruence tracking, soft-rules weight tracking
 - All existing tests pass
 
-### **Phase 3: Schema Mapper — 🟡 PARTIAL (Core files created, audit needs refinement)**
+### **Phase 3: Schema Mapper — ✅ COMPLETE**
 - reasoner/schema.nix — Universal JSON/YAML/TOML ⇄ KIF adapter ✅
 - reasoner/policy-pack.nix — Policy pack loader ✅
 - reasoner/transition-bundle.nix — Bundle schema & verification ✅
 - bin/_sumo.nix — Extended with pack, audit, plan, apply commands ✅
-- reasoner/audit.nix — Audit pipeline (needs refinement for builtins.concatMap context issues) 🟡
+- reasoner/audit.nix — Audit pipeline (5 stages: runtimeClosure, configClosure, vulnerabilities, licenses, policyCheck) ✅
 
-**Status:** Core schema mapper infrastructure complete. Audit pipeline has context issues with builtins.concatMap in nested scopes; returns static data for now. Other Phase 3 components functional.
+**Status:** All Phase 3 components functional. `sumo audit --json` returns structured audit results.
+**Test Results:** 27/27 tests pass (100%), demo byte-identical.
