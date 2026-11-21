@@ -132,7 +132,7 @@ Commands:
   --help                  Show this help
 
 Environment:
-  SUMO_FACTS    Path to facts KIF (default: /run/sumo/facts.kif, then demo/vm/host-facts.kif)
+  SUMO_FACTS    Path to facts KIF (default: /run/sumo/facts.kif, then demo/facts/host.kif)
   SUMO_RULES    Path to rules KIF (default: /run/sumo/rules.kif, then rules.kif)
   SUMO_POLICIES Path to policies KIF (default: ./policies.kif, then none)
   SUMO_DECLARED Path to lifted declared facts (default: /etc/sumo/declared.kif)

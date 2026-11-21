@@ -1,17 +1,29 @@
-# sumonix (SUMO + NixOS) Semantic OS 🦙
+# sumonix — a semantic OS for NixOS 🦙
 
-> **Built for audit-grade reasoning. Ships a policy gate with a proof. Extends by design, not by accident.**
+> **Your configuration already declares the truth. sumonix makes it provable.**
+>
+> Audit-grade reasoning over machines, packages, and organizations — every ground verdict carries a proof that a separate checker can re-run.
 
 <p align="center">
   <img src="docs/demo/tour.gif" alt="sumo walkthrough — live facts from this host, the fixture scenario and its proof, the capability atlas, what-if flips, the policy gate refusing the build, an independent proof check, and the dashboard" width="900">
 </p>
 
-**The system holds a semantic model of itself — declared and observed — reasons over it
-with proofs, catches contradictions before anything builds, explains drift while running,
-and proposes declarative repairs it can verify before a human applies them.**
+**sumonix turns declarations and observations into facts, reasons over them with Horn rules, and returns proofs.** Ask why a build fails, whether a CVE reaches production, or what must change to ship. You get an answer, a proof tree, and a ranked repair — not an opinion.
 
-**The vision:** NixOS configurations, nixpkgs derivations, CI pipelines, and runtime telemetry all contribute facts to a single SUMO-native knowledge base. A forward-chaining engine derives transitive closures (dependencies, vulnerabilities, capabilities), subsumes through equivalences, and answers queries with full provenance. Policies are Horn rules; violations halt the build with an independently re-checkable proof. A relaxation menu shows exactly which overrides flip the verdict. Extensions for disjunction, aggregates, soft rules, temporal logic, and congruence closure are admitted by design — each a pure Nix module behind a flag, never touching the eval path unless explicitly enabled.
+| | |
+|---|---|
+| 🚧 **Gate** | Policy violations stop the build with a proof-of-violation that names the exact option paths. |
+| ✅ **Proof** | Every derived fact carries rule, round, bindings, and provenance. `proof-check.nix` shares zero code and rejects tampering. |
+| 🔭 **Observe** | Declared config and live state become one source-labeled model; drift and rogue listeners are found, not guessed. |
+| 🧭 **Repair** | Ranked single-option edits, each re-lifted and re-gated before a human applies it. |
+| 🧩 **Extend** | SUMO declaration synthesis, a JSON ⇄ KIF adapter with YAML/TOML schema forms, policy packs, verified transitions, and 28 bootstraps. |
+| ⚡ **Small** | Pure Nix: no daemon, no external solver, no LLM in the reasoning path. 27 tests green; warm runs are near-instant. |
 
-> **What runs today (V3 + Phase 3):** parser, ontology with equivalence union-find, declaration-driven synthesis (166 rules from SUMO's own `TransitiveRelation`/`subrelation`/`inverse`…), stratifier (349 neg-cycle rejections with reasons), ingestion (116 Horn rules from Merge.kif, default-on), naive engine (~1.1 s), proof export + zero-shared-code checker, build gate with proof-of-violation, relaxation menu (single flips + size-2 flips + minimal supports), **universal JSON/YAML/TOML ⇄ KIF schema mapper**, **policy pack loader**, **transition bundle verification**, **5-stage audit pipeline** (vulns + licenses).
+**See the trust anchor in one command:**
 
-> **What's next (pick one):** congruence closure (equal things interchangeable), aggregates/builtins (version ranges, counts), disjunctive heads (choice), soft rules/MaxSAT (minimize violations), well-founded negation, bounded existentials, temporal logic — each an independent module with its own test and demo, never touching the eval path unless explicitly enabled.
+```console
+$ ./nix-eval.sh --expr '(import ./proof-check.nix { file = ./proof.kif; })'
+"proof: 9 steps, independently re-checked ✓"
+```
+
+**Contents:** [Quick start](#quick-start) · [What it is](#what-it-is) · [Status](#status) · [Architecture](#architecture) · [CLI cheatsheet](#cli-cheatsheet) · [Extension contract](#extension-contract) · [Application bootstraps](#application-bootstraps) · [Coverage](#coverage) · [The demo](#the-demo) · [Metavisor live loop](#metavisor-live-loop) · [Repository layout](#repository-layout) · [Documentation map](#documentation-map)

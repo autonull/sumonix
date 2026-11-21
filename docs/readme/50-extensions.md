@@ -1,10 +1,15 @@
-## 📜 Extension Contract — Everything Admitted by Design
+## Extension contract
 
-**Rule zero:** needs unbounded FOL or unbounded satisfiability on this ontology ⇒ **offline tooling** or **validation-only CI**, never `nix eval`.
+**Rule zero:** a capability that needs unbounded FOL or unbounded
+satisfiability on this ontology belongs in **offline tooling** or
+**validation-only CI**, never in `nix eval`.
 
-### 🟢 Implemented in Engine (T2.x / P3)
+Every capability below is an accepted obligation. It either has a test or a
+documented reject path. Nothing is admitted by accident.
 
-| Capability | Extension Point | Milestone | Termination | Proof Tag |
+### Implemented in the engine (T2.x / P3)
+
+| Capability | Extension point | Milestone | Termination | Proof tag |
 |------------|-----------------|-----------|-------------|-----------|
 | Disjunctive consequent | IR `disjunct [B C]` | T2.1 | branch enumeration + per-branch fixpoint | `by disjunct#<i>` |
 | Well-founded negation | three-valued eval + alternating fixpoint | T2.2 | bounded by strata size | `by unknown#neg` |
@@ -16,9 +21,9 @@
 | Aggregates & arithmetic | builtins registry (`greaterThan`, `subsetOf`, …) | P3 / T2.6 | pure Nix comparisons | `by builtin#<name>` |
 | Non-ground `ask` + aggregates | IR `aggregate` with group-by | T2.6 | finite solutions | `by aggregate#count` |
 
-### 🟡 Planned Extensions (T3.x)
+### Planned extensions (T3.x)
 
-| Capability | Extension Point | Milestone | Termination | Proof Tag |
+| Capability | Extension point | Milestone | Termination | Proof tag |
 |------------|-----------------|-----------|-------------|-----------|
 | Weighted/soft rules & MaxSAT | rule weights + violation minimization | T3.1 | bounded candidate set | `by soft#<w>` |
 | Abductive repair | minimal failing sets (hitting-set) | P5 (menu) | bounded candidates | `by abduced` |
@@ -26,10 +31,16 @@
 | Parallel eval | semi-naive rounds are set-parallel | T3.2 | unchanged | unchanged |
 | Temporal/Modal | binary predicates + dedicated module | T3.3 | finite time atoms | modal tags |
 
-### 🔴 Excluded from Eval Path
+### Excluded from the eval path
 
 | Capability | Reason |
 |------------|--------|
 | Full FOL / disjunctive stable models | unbounded satisfiability; requires offline tooling |
 
-> **Every row is an accepted obligation with a test or a documented reject path. Nothing is admitted by accident.**
+> **Every row is an accepted obligation with a test or a documented reject
+> path. Nothing is admitted by accident.**
+
+**Want to help?** Start with one planned extension — soft rules / MaxSAT,
+abductive repair, Soufflé differential CI, or parallel evaluation. Each is an
+independent module with its own test and demo, and it stays off the eval path
+unless explicitly enabled.

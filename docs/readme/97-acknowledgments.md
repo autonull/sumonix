@@ -1,4 +1,4 @@
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **SUMO** — the Suggested Upper Merged Ontology (ontologyportal/sumo)
 - **mlnix** — the MLIR-based Nix frontend that inspired the dialect stack

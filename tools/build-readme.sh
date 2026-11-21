@@ -37,4 +37,11 @@ awk -v transcripts="$TRANSCRIPTS" '
   { print }
 ' "$README_OUT" > "$README_OUT.tmp" && mv "$README_OUT.tmp" "$README_OUT"
 
+# Strip trailing blank lines so the generated file ends on the last content line.
+awk '
+  BEGIN { blank = 0 }
+  /^[[:space:]]*$/ { blank++; next }
+  { for (i = 0; i < blank; i++) print ""; blank = 0; print }
+' "$README_OUT" > "$README_OUT.tmp" && mv "$README_OUT.tmp" "$README_OUT"
+
 echo "Generated $README_OUT"

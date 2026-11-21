@@ -1,6 +1,7 @@
-## ⚖️ License
+## License
 
-**LGPL-2.1** — same as Nix and mlnix. `COPYING` is a byte-for-byte copy of Nix's `COPYING`.
+**LGPL-2.1** — same as Nix and mlnix. `COPYING` is a byte-for-byte copy of
+Nix's `COPYING`.
 
 Some files are copies or snapshots of other projects and keep their terms:
 

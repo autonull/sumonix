@@ -116,7 +116,7 @@ Both use the **curated facts** (`demo/vm/host-facts.kif`) and the real `sumo` CL
 ## Tests
 
 ```bash
-./run-tests.sh        # 21 tests, all eval-only through local store
+./run-tests.sh        # 27 tests, all eval-only through local store
 ```
 
 The test suite never builds — it evaluates pinned expressions against the warm local store.
@@ -377,7 +377,7 @@ The VM's `sumo-facts.service` copies the same file to `/run/sumo/facts.kif` at b
 
 ```bash
 $ ./run-tests.sh
-# 21 tests, all nix eval, zero builds
+# 27 tests, all nix eval, zero builds
 ```
 
 Tests evaluate pinned expressions against the warm local store. They never:
@@ -520,7 +520,7 @@ diff /tmp/before.txt /tmp/after.txt
 ### 1. Every Change Must Pass the Suite
 
 ```bash
-./run-tests.sh              # 21 tests
+./run-tests.sh              # 27 tests
 ./tools/check-readme.sh     # README drift
 ./demo/run                  # byte-identical output
 ```

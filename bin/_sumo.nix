@@ -258,14 +258,11 @@ let
 
   # JSON helpers
   toJSON = x:
-    if isString x then "\"" + escapeJSON x + "\""
+    if isString x then builtins.toJSON x
     else if isList x then "[" + concatStringsSep "," (map toJSON x) + "]"
     else if builtins.isAttrs x then objToJSON x
     else if x == true || x == false then if x then "true" else "false"
     else toString x;
-
-  # Escape string for JSON - use builtins.toJSON which handles escaping
-  escapeJSON = s: builtins.toJSON s;
 
   objToJSON = obj:
     let
@@ -307,11 +304,13 @@ let
     candidates = map (c: { name = c.name; flip = c.flip; proof = c.proof; }) menu.menu;
   };
 
-  queryJSON = goal:
+  queryJSON = goalStr:
     let
+      goalForms = parse goalStr;
+      goal = if goalForms != [ ] && isList (head goalForms) then head goalForms else goalStr;
       derived = datalog.holds goal;
       proof = if derived then datalog.explain goal else "goal underivable";
-    in objToJSON { goal = goal; derived = derived; proof = proof; };
+    in objToJSON { goal = goalStr; derived = derived; proof = proof; };
 
 in {
   # Topology/help layout (for dashboard h/?)
@@ -369,11 +368,13 @@ in {
   else closureTree pkg;
 
   # query — Ground goal → verdict + why subtree
-  query = goal: if json then queryJSON goal else
+  query = goalStr: if json then queryJSON goalStr else
     let
+      goalForms = parse goalStr;
+      goal = if goalForms != [ ] && isList (head goalForms) then head goalForms else goalStr;
       derived = datalog.holds goal;
       proof = if derived then datalog.explain goal else "goal underivable";
-    in "Goal: " + goal + "\nDerived: " + toString derived + "\nProof:\n" + proof;
+    in "Goal: " + goalStr + "\nDerived: " + toString derived + "\nProof:\n" + proof;
 
   # whatif — One counterfactual from the proof
   whatif = if json then whatifJSON else
@@ -433,7 +434,7 @@ in {
       useMeta = metavisorResult != null && goalForm != null
         && elem (headOf goalForm) [ "drift" "rogueListener" "observedActive" "observedListener" "completeFor" "freshSnapshot" ];
       engine = if useMeta then metavisorResult.engine else datalog;
-      goal' = if useMeta then goalForm else goal;
+      goal' = if goalForm != null then goalForm else goal;
       derived = engine.holds goal';
       tree = if derived then engine.why goal' else null;
     in if json then

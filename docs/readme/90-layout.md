@@ -1,6 +1,6 @@
-## 📦 Repository Layout (Stable)
+## Repository layout
 
-```
+```text
 ├── kif.nix                    # SUO-KIF parser
 ├── sumo.nix                   # Ontology: ancestors, classOf, isSubclass, isInstance, equivalent union-find
 ├── datalog.nix                # Naive engine + trace (round, bindings, proof)
@@ -13,13 +13,13 @@
 │   ├── ingest.nix             # Merge.kif classification + transforms + stratifier cut
 │   ├── stratify.nix           # Predicate graph + strata + neg-cycle rejection
 │   ├── lift-config.nix        # Pure nixosConfig → KIF with option-path provenance
-│   ├── config-gate.nix         # Well-typedness + policy gate (throws with the why-tree)
-│   ├── drift.nix               # Attested drift + rogue listeners (Horn + NAF)
-│   ├── metavisor.nix           # Source labels + proof IDs over drift (M3A)
-│   ├── repair.nix              # One option edit per candidate, verified by re-lifting
+│   ├── config-gate.nix        # Well-typedness + policy gate (throws with the why-tree)
+│   ├── drift.nix              # Attested drift + rogue listeners (Horn + NAF)
+│   ├── metavisor.nix          # Source labels + proof IDs over drift (M3A)
+│   ├── repair.nix             # One option edit per candidate, verified by re-lifting
 │   ├── proof.nix              # KIF certificate generator
 │   ├── proof-artifact.nix     # Deterministic proof.kif for the CVE scenario
-│   ├── schema.nix             # Universal JSON/YAML/TOML ⇄ KIF adapter
+│   ├── schema.nix             # JSON ⇄ KIF adapter (+ YAML/TOML schema forms)
 │   ├── policy-pack.nix        # Composable policy packs as flake inputs
 │   ├── transition-bundle.nix  # Verified change operations (preconditions, edits, simulation)
 │   ├── audit.nix              # 5-stage audit pipeline (vulns + licenses)
@@ -86,3 +86,14 @@
 ├── .osv-cache.json            # OSV vulnerability cache (for audit)
 └── .spdx-cache.json           # SPDX license cache (for audit)
 ```
+
+### The local store, in one paragraph
+
+This repository keeps two Nix stores inside the checkout. `.nix-store/` is the
+**eval store**: store paths are rewritten to the repository prefix, so it is
+fast and self-contained, but it can never fetch a substitute. `.nix-root/` is
+the **build store**: logical paths stay `/nix/store/...`, so binary-cache
+hashes match and substitution works, but builds need mount namespaces. The rule
+is simple: **eval-only work uses the local store; anything that must fetch or
+build uses the root store.** `AGENTS.md` documents the mechanics and the
+failure modes.
