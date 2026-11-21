@@ -264,25 +264,8 @@ let
     else if x == true || x == false then if x then "true" else "false"
     else toString x;
 
-  # Escape string for JSON
-  escapeJSON = s:
-    let
-      # Recursive character-by-character escaping
-      escapeRec = i: acc:
-        if i >= length (split "" s) then acc
-        else
-          let
-            c = substring i 1 s;
-            escaped =
-              if c == "\"" then "\\\""
-              else if c == "\\" then "\\\\"
-              else if c == "\n" then "\\n"
-              else if c == "\r" then "\\r"
-              else if c == "\t" then "\\t"
-              else c;
-          in escapeRec (i + 1) (acc + escaped);
-      len = length (split "" s);
-    in escapeRec 0 "";
+  # Escape string for JSON - use builtins.toJSON which handles escaping
+  escapeJSON = s: builtins.toJSON s;
 
   objToJSON = obj:
     let

@@ -16,7 +16,8 @@ let
   kif = import ../lib/kif.nix { };
   schema = import ./schema.nix { };
 
-  inherit (builtins) all any attrNames attrValues concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString length listToAttrs map sort tail substring match replaceStrings fromJSON toJSON readFile;
+  inherit (kif) makeEnvelope defaultMeta show;
+  inherit (builtins) all any attrNames attrValues concatMap concatStringsSep elem elemAt filter foldl' genList head isList isString length listToAttrs map sort tail substring match replaceStrings fromJSON toJSON readFile currentTime hashString;
 
   # --- Stage 1: Runtime closure (live system) -----------------------------------
   stage1_runtimeClosure = { }:
@@ -29,18 +30,23 @@ let
   stage2_configClosure = { }:
     let
       lockData = fromJSON (readFile flakeLock);
-      meta = { sourceClass = "fixture"; sourceId = "audit.nix:stage2_configClosure"; observedAt = 0; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.9; provenance = [ ]; };
+      now = currentTime;
+      baseMeta = { sourceClass = "fixture"; sourceId = "audit.nix:stage2_configClosure"; observedAt = now; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.9; provenance = [ ]; };
       packages = lockData.nodes or { };
       pkgNames = attrNames packages;
-      facts = builtins.concatMap (name: attrs:
+      makeMeta = fact: baseMeta // { contentHash = "sha256:" + hashString "sha256" (show fact); };
+      facts = builtins.concatMap (name:
         let
+          attrs = packages.${name} or { };
           locked = attrs.locked or { };
           version = locked.version or locked.rev or "";
           storePath = locked.narHash or "";
+          fact1 = [ "packageVersion" name version "flake.lock" ];
+          fact2 = [ "storePath" name storePath "flake.lock" ];
         in
         if version != "" then
-          [ (["packageVersion" name version "flake.lock"] // { meta = meta; })
-            (["storePath" name storePath "flake.lock"] // { meta = meta; }) ]
+          [ (makeEnvelope fact1 (makeMeta fact1))
+            (makeEnvelope fact2 (makeMeta fact2)) ]
         else [ ]
       ) pkgNames;
     in
@@ -50,8 +56,10 @@ let
   stage3_vulnerabilities = { }:
     let
       osvData = fromJSON (readFile osvCache);
-      meta = { sourceClass = "fixture"; sourceId = "audit.nix:stage3_vulnerabilities"; observedAt = 0; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.95; provenance = [ ]; };
+      now = currentTime;
+      baseMeta = { sourceClass = "fixture"; sourceId = "audit.nix:stage3_vulnerabilities"; observedAt = now; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.95; provenance = [ ]; };
       vulns = osvData.vulns or [ ];
+      makeMeta = fact: baseMeta // { contentHash = "sha256:" + hashString "sha256" (show fact); };
       facts = builtins.concatMap (v:
         let
           cve = v.id or "";
@@ -68,14 +76,14 @@ let
                   fixed = (head (filter (e: e.fixed != null) events)).fixed or "";
                 in
                 if fixed != "" then
-                  [ (["vulnerable" pkg cve] // { meta = meta; })
-                    (["fixedIn" pkg fixed] // { meta = meta; }) ]
+                  [ (makeEnvelope [ "vulnerable" pkg cve ] (makeMeta [ "vulnerable" pkg cve ]))
+                    (makeEnvelope [ "fixedIn" pkg fixed ] (makeMeta [ "fixedIn" pkg fixed ])) ]
                 else if introduced != "" then
-                  [ (["vulnerable" pkg cve] // { meta = meta; }) ]
+                  [ (makeEnvelope [ "vulnerable" pkg cve ] (makeMeta [ "vulnerable" pkg cve ])) ]
                 else [ ]
               ) ranges;
               versionFacts = builtins.concatMap (ver:
-                [ (["vulnerable" pkg cve] // { meta = meta; }) ]
+                [ (makeEnvelope [ "vulnerable" pkg cve ] (makeMeta [ "vulnerable" pkg cve ])) ]
               ) versions;
             in
             rangeFacts ++ versionFacts
@@ -90,15 +98,18 @@ let
   stage4_licenses = { }:
     let
       spdxData = fromJSON (readFile spdxCache);
-      meta = { sourceClass = "fixture"; sourceId = "audit.nix:stage4_licenses"; observedAt = 0; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.9; provenance = [ ]; };
+      now = currentTime;
+      baseMeta = { sourceClass = "fixture"; sourceId = "audit.nix:stage4_licenses"; observedAt = now; expiresAt = 0; snapshotId = ""; contentHash = ""; confidence = 0.9; provenance = [ ]; };
       packages = spdxData.packages or [ ];
+      makeMeta = fact: baseMeta // { contentHash = "sha256:" + hashString "sha256" (show fact); };
       facts = builtins.concatMap (p:
         let
           name = p.name or "";
           license = p.licenseConcluded or p.licenseDeclared or "NOASSERTION";
+          fact = [ "packageLicense" name license ];
         in
         if name != "" && license != "NOASSERTION" then
-          [ (["packageLicense" name license] // { meta = meta; }) ]
+          [ (makeEnvelope fact (makeMeta fact)) ]
         else [ ]
       ) packages;
     in

@@ -19,9 +19,9 @@
 [1;36m│[0m refused ✓  (the checker exits non-zero and says which line broke)
   error:
          … while calling the 'throw' builtin
-           at /home/me/sumonix/proof-check.nix:132:26:
-            131| else if !universeOk then throw "proof: the universe does not match the certified facts (missing steps or extra facts)"
-            132| else if !goalStepOk then throw "proof: the goal step does not prove the goal fact"
+           at /home/me/sumonix/proof-check.nix:315:26:
+            314| else if !universeOk then throw "proof: the universe does not match the certified facts (missing steps or extra facts)"
+            315| else if !goalStepOk then throw "proof: the goal step does not prove the goal fact"
 [1;36m│[0m 
 [1;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[0m
 
